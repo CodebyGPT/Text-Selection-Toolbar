@@ -1,5 +1,5 @@
 import {
-  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_TRANSLATOR_API,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
 } from "../config/apiConstants";
@@ -10,7 +10,7 @@ import {
 
 // Vendor code aliases stay with compiled adapters; SDK exposes the common dictionary.
 export const OPT_LANGS_TO_SPEC = {
-  [OPT_TRANS_BUILTINAI]: new Map([
+  [OPT_TRANS_TRANSLATOR_API]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT,
     ["zh-CN", "zh-Hans"],
     ["zh-TW", "zh-Hant"],

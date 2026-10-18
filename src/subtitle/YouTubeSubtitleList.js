@@ -7,7 +7,7 @@ import { getSettingWithDefault, saveEdit } from "../libs/storage.js";
 import { openOptionsPage } from "../libs/navigation.js";
 import { apiSummarizeVideo, getVideoSummarySignature } from "../apis/index.js";
 import { DEFAULT_SUMMARY_PROMPT } from "../config/prompt.js";
-import { OPT_TRANS_BUILTINAI } from "../config/api.js";
+import { OPT_TRANS_TRANSLATOR_API } from "../config/api.js";
 import { STOKEY_SETTING } from "../config/storage.js";
 import { DEFAULT_SUBTITLE_SETTING } from "../config/setting.js";
 import { MSG_BUILTINAI_PROGRESS } from "../config/msg.js";
@@ -2016,10 +2016,10 @@ export class YouTubeSubtitleList {
       (api) => api.apiSlug === config?.summaryApiSlug
     );
     if (!apiSetting) {
-      if (config?.summaryApiSlug === OPT_TRANS_BUILTINAI) {
+      if (config?.summaryApiSlug === OPT_TRANS_TRANSLATOR_API) {
         apiSetting = {
-          apiType: OPT_TRANS_BUILTINAI,
-          apiSlug: OPT_TRANS_BUILTINAI,
+          apiType: OPT_TRANS_TRANSLATOR_API,
+          apiSlug: OPT_TRANS_TRANSLATOR_API,
         };
       } else {
         apiSetting = {
@@ -2093,7 +2093,7 @@ export class YouTubeSubtitleList {
     const needFetchStorage =
       transApis.length === 0 ||
       (activeApiSlug !== "-" &&
-        activeApiSlug !== OPT_TRANS_BUILTINAI &&
+        activeApiSlug !== OPT_TRANS_TRANSLATOR_API &&
         !transApis.some((api) => api.apiSlug === activeApiSlug));
 
     if (needFetchStorage) {
@@ -2269,7 +2269,7 @@ export class YouTubeSubtitleList {
   }
 
   /**
-   * 收到后台推送的 BuiltinAI 模型下载进度
+   * 收到后台推送的 TranslatorAPI 模型下载进度
    */
   _handleBuiltinAiProgress(progressData) {
     if (!progressData) return;
@@ -2439,7 +2439,7 @@ export class YouTubeSubtitleList {
    * 弹出网络/其他可用 AI 模型选择菜单
    * @param {HTMLElement} anchorEl 触发弹出的锚点按钮
    * @param {object} [options={}]
-   * @param {boolean} [options.excludeBuiltin=true] 是否排除 BuiltinAI
+   * @param {boolean} [options.excludeBuiltin=true] 是否排除 TranslatorAPI
    */
   async _showModelSwitcherPopup(anchorEl, { excludeBuiltin = true } = {}) {
     if (this._modelSwitcherPopup) {
@@ -2459,8 +2459,8 @@ export class YouTubeSubtitleList {
       if (api.isDisabled) return false;
       if (
         excludeBuiltin &&
-        (api.apiType === OPT_TRANS_BUILTINAI ||
-          api.apiSlug === OPT_TRANS_BUILTINAI)
+        (api.apiType === OPT_TRANS_TRANSLATOR_API ||
+          api.apiSlug === OPT_TRANS_TRANSLATOR_API)
       ) {
         return false;
       }

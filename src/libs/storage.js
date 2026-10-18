@@ -508,6 +508,39 @@ export const storage = {
 // --- 应用设置 (Settings) 数据存取 ---
 export const getSetting = () => getObj(STOKEY_SETTING);
 export const getSettingOld = () => getObj(STOKEY_SETTING_OLD);
+
+// The browser translation preset used to be called "BuiltinAI".
+const LEGACY_API_SLUGS = { BuiltinAI: "TranslatorAPI" };
+const migrateApiSlug = (slug) => LEGACY_API_SLUGS[slug] || slug;
+
+function migrateLegacyApiSlugs(setting) {
+  if (!setting || typeof setting !== "object") return;
+  if (Array.isArray(setting.transApis)) {
+    setting.transApis = setting.transApis.map((api) => {
+      if (!api || typeof api !== "object") return api;
+      const apiType = migrateApiSlug(api.apiType);
+      const apiSlug = migrateApiSlug(api.apiSlug);
+      return apiType === api.apiType && apiSlug === api.apiSlug
+        ? api
+        : { ...api, apiType, apiSlug };
+    });
+  }
+  const panel = setting.tranboxSetting;
+  if (panel && Array.isArray(panel.apiSlugs)) {
+    const next = panel.apiSlugs.map(migrateApiSlug);
+    if (next.some((slug, i) => slug !== panel.apiSlugs[i])) {
+      setting.tranboxSetting = { ...panel, apiSlugs: next };
+    }
+  }
+  const subtitle = setting.subtitleSetting;
+  if (subtitle && subtitle.apiSlug) {
+    const next = migrateApiSlug(subtitle.apiSlug);
+    if (next !== subtitle.apiSlug) {
+      setting.subtitleSetting = { ...subtitle, apiSlug: next };
+    }
+  }
+}
+
 const writeSettingBackupBeforeV2 = (setting) =>
   setObj(STOKEY_SETTING_BACKUP_V1_BEFORE_V2, setting);
 const mergeSettingWithDefault = (setting) => {
@@ -530,6 +563,8 @@ const mergeSettingWithDefault = (setting) => {
   delete mergedSetting.maxLength;
   // 全局默认翻译接口已移除：面板/字幕/网页规则各自选择接口。
   delete mergedSetting.apiSlug;
+  // BuiltinAI was renamed to TranslatorAPI; rewrite saved service references.
+  migrateLegacyApiSlugs(mergedSetting);
   if (mergedSetting.uiLang === "zh-CN" || mergedSetting.uiLang === "zh_TW") {
     mergedSetting.uiLang = "zh";
   }

@@ -2,14 +2,14 @@ import Box from "@mui/material/Box";
 import ApiRoundedIcon from "@mui/icons-material/ApiRounded";
 import {
   API_SPE_TYPES,
-  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_TRANSLATOR_API,
   OPT_TRANS_OLLAMA,
 } from "../config";
 import { browser, isOptions } from "../libs/browser";
 import { isGm } from "../libs/client";
 
 const API_ICON_FILES = {
-  [OPT_TRANS_BUILTINAI]: "BuiltinAI.svg",
+  [OPT_TRANS_TRANSLATOR_API]: "TranslatorAPI.svg",
   [OPT_TRANS_OLLAMA]: "Ollama.svg",
 };
 

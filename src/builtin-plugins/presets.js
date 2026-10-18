@@ -1,5 +1,5 @@
 import {
-  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_TRANSLATOR_API,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
 } from "../config/apiConstants";
@@ -28,7 +28,7 @@ const defaultAiApiOpts = {
 };
 
 export const NATIVE_PRESET_OVERRIDES = {
-  [OPT_TRANS_BUILTINAI]: {
+  [OPT_TRANS_TRANSLATOR_API]: {
     sourceType: "builtin",
   },
   [OPT_TRANS_OLLAMA]: {
@@ -44,6 +44,6 @@ export const NATIVE_PRESET_OVERRIDES = {
 };
 
 export const DEFAULT_ENABLED_API_TYPES = new Set([
-  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_TRANSLATOR_API,
   OPT_TRANS_OLLAMA,
 ]);

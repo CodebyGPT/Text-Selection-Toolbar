@@ -13,7 +13,7 @@ import { apiTranslate } from "../../apis";
 import { supportsServiceFeature } from "../../providers/features";
 import {
   API_SPE_TYPES,
-  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_TRANSLATOR_API,
 } from "../../config";
 import { useI18n } from "../../hooks/I18n";
 import { parseMathInText } from "../../libs/mathParse";
@@ -159,7 +159,7 @@ const normalizeTranslationText = (text, apiType, sourceText, parseLatex) => {
 };
 
 /**
- * BuiltinAI does not preserve input line breaks reliably. Translate each
+ * TranslatorAPI does not preserve input line breaks reliably. Translate each
  * non-empty text fragment separately, then rejoin the original separators.
  *
  * @param {string} text Original text to translate.
@@ -200,7 +200,7 @@ const translateBuiltinText = async (
     requestFromLang = firstResult.srCode || firstResult.srLang;
     if (remainingIndexes.length > 0 && !requestFromLang) {
       throw new Error(
-        "BuiltinAI could not resolve the source language for multiline translation"
+        "TranslatorAPI could not resolve the source language for multiline translation"
       );
     }
   }
@@ -298,7 +298,7 @@ export default function TranCont({
     [transApis, apiSlug]
   );
   const coordinatesBuiltinSource =
-    apiSetting?.apiType === OPT_TRANS_BUILTINAI && fromLang === "auto";
+    apiSetting?.apiType === OPT_TRANS_TRANSLATOR_API && fromLang === "auto";
   const builtinDetectedLang = coordinatesBuiltinSource ? detectedLang : "";
   const waitForDetection =
     (coordinatesBuiltinSource || waitForSourceDetection) &&
@@ -370,7 +370,7 @@ export default function TranCont({
             signal: controller.signal,
           });
         const { trText, isSame } =
-          apiSetting.apiType === OPT_TRANS_BUILTINAI
+          apiSetting.apiType === OPT_TRANS_TRANSLATOR_API
             ? await translateBuiltinText(
                 text,
                 fromLang,

@@ -5,17 +5,17 @@
 
 import {
   OPT_LANGS_TO_CODE,
-  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_TRANSLATOR_API,
   OPT_LANGDETECTOR_MAP,
 } from "../config";
 import { browser } from "./browser";
-import { apiBuiltinAIDetect } from "../apis";
+import { apiTranslatorAPIDetect } from "../apis";
 import { kissLog } from "./log";
 import { normalizeLanguageCode } from "./language";
 
 // 各个平台的语言检测函数映射表
 const langdetectFns = {
-  [OPT_TRANS_BUILTINAI]: apiBuiltinAIDetect,
+  [OPT_TRANS_TRANSLATOR_API]: apiTranslatorAPIDetect,
 };
 
 /**

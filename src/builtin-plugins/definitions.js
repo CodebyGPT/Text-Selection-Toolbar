@@ -9,7 +9,7 @@ const textCapabilities = [
 ];
 
 const contracts = {
-  BuiltinAI: {
+  TranslatorAPI: {
     names: ["translate", "summarize", "detectLanguage"],
     batch: false,
     stream: false,

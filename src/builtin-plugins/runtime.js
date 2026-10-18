@@ -3,7 +3,7 @@ import { createProviderRegistry } from "../providers/registry";
 import { providerError } from "../providers/capabilities";
 import { providerHelpers } from "../providers/sdk";
 import {
-  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_TRANSLATOR_API,
 } from "../config/apiConstants";
 import {
   OPT_LANGS_TO_SPEC,
@@ -13,7 +13,7 @@ import {
 import { OPT_LANGS_SPEC_DEFAULT } from "../providers/sdk/languageDictionary";
 import { speakNative } from "./system-speech";
 import { chatNative } from "./chat";
-import { apiBuiltinAIDetect } from "../apis";
+import { apiTranslatorAPIDetect } from "../apis";
 import { normalizeLanguageCode } from "../libs/language";
 import { createAssetStore } from "../providers/transport";
 import { resolveBuiltinCapabilities } from "./capabilities";
@@ -43,7 +43,7 @@ function languageOptions(input, api, nativeOptions = {}) {
 const handlers = {
   speak: speakNative,
   async detectLanguage(input, api, ctx) {
-    const detected = await apiBuiltinAIDetect(input.text, {
+    const detected = await apiTranslatorAPIDetect(input.text, {
       signal: ctx.signal,
     });
     return {
@@ -53,7 +53,7 @@ const handlers = {
     };
   },
   async translate(input, api, ctx) {
-    if (api.apiType === OPT_TRANS_BUILTINAI) {
+    if (api.apiType === OPT_TRANS_TRANSLATOR_API) {
       const { apiTranslate } = await import("../apis");
       const result = [];
       let sourceLanguage;

@@ -9,7 +9,7 @@ import { getBuiltinServiceDefinition } from "../builtin-plugins/definitions";
 import { nativeRequestBuilders as genReqFuncs } from "../builtin-plugins/requests";
 
 import {
-  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_TRANSLATOR_API,
   INPUT_PLACE_FROM,
   INPUT_PLACE_TO,
   INPUT_PLACE_TEXT,
@@ -1795,7 +1795,7 @@ export const handleNativeSummarize = async ({
   const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
 
   // 1. Chrome 内置 AI (Summarizer API)
-  if (apiType === OPT_TRANS_BUILTINAI) {
+  if (apiType === OPT_TRANS_TRANSLATOR_API) {
     const context = [title, description].filter(Boolean).join("\n");
     let summary = "";
     let err = "";

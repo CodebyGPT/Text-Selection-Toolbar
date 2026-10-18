@@ -1,4 +1,4 @@
-import { OPT_TRANS_BUILTINAI, isBuiltinAISupported } from "./apiConstants";
+import { OPT_TRANS_TRANSLATOR_API, isTranslatorAPISupported } from "./apiConstants";
 import {
   PROVIDER_CAPABILITIES,
   supportsProviderCapability,
@@ -71,7 +71,7 @@ export const normalizeApiCapabilities = (api) => ({
   ...api,
   sourceType: SOURCE_TYPES.includes(api.sourceType)
     ? api.sourceType
-    : api.apiType === OPT_TRANS_BUILTINAI
+    : api.apiType === OPT_TRANS_TRANSLATOR_API
       ? "builtin"
       : "network",
 });
@@ -85,8 +85,8 @@ export const isApiAvailableFor = (
     return false;
   if (!projected.provider?.implementation?.kind) return false;
   if (projected.provider.implementation.kind !== "native") return false;
-  if (api.apiType === OPT_TRANS_BUILTINAI) {
-    if (!isBuiltinAISupported()) return false;
+  if (api.apiType === OPT_TRANS_TRANSLATOR_API) {
+    if (!isTranslatorAPISupported()) return false;
     if (capability === "translate")
       return typeof globalThis.Translator !== "undefined";
     if (capability === "summarize")

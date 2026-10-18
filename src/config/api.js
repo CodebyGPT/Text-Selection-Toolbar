@@ -429,12 +429,17 @@ const defaultApi = {
 };
 
 // Built-in presets remain available for explicit activation in settings.
+// Display-only names; the slug stays machine-readable.
+const API_DISPLAY_NAMES = {
+  [OPT_TRANS_TRANSLATOR_API]: "Translator API",
+};
+
 export const DEFAULT_API_LIST = OPT_ALL_TRANS_TYPES.map((apiType) =>
   normalizeApiThinkingSetting({
     ...defaultApi,
     ...NATIVE_PRESET_OVERRIDES[apiType],
     apiSlug: apiType,
-    apiName: apiType,
+    apiName: API_DISPLAY_NAMES[apiType] || apiType,
     apiType,
     isDisabled: !DEFAULT_ENABLED_API_TYPES.has(apiType),
     sortOrder: DEFAULT_ENABLED_API_TYPES.has(apiType) ? 0 : 999,

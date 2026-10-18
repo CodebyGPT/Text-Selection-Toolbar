@@ -27,7 +27,7 @@ import {
   GLOBAL_KEY,
   GLOBLA_RULE,
   DEFAULT_RULE,
-  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_TRANSLATOR_API,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
   BUILTIN_PLACEHOLDERS,
@@ -38,7 +38,7 @@ import {
   getBatchPromptOptions,
   getNobatchPromptOptions,
   getSubtitlePromptOptions,
-  isBuiltinAISupported,
+  isTranslatorAPISupported,
 } from "../config";
 import {
   DEFAULT_TOOLBAR_SETTING,
@@ -167,7 +167,7 @@ function Toggle({ value, onChange }) {
   );
 }
 
-const PRESET_API_TYPES = new Set([OPT_TRANS_BUILTINAI, OPT_TRANS_OLLAMA]);
+const PRESET_API_TYPES = new Set([OPT_TRANS_TRANSLATOR_API, OPT_TRANS_OLLAMA]);
 
 function Fields({ children }) {
   return <div className="kiss-st-grid">{children}</div>;
@@ -478,7 +478,7 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
   const [test, setTest] = useState({ loading: false, text: "", error: "" });
   const patch = (key, value) => onChange({ ...api, [key]: value });
 
-  const isBuiltinAI = api.apiType === OPT_TRANS_BUILTINAI;
+  const isTranslatorAPI = api.apiType === OPT_TRANS_TRANSLATOR_API;
   const isPreset = PRESET_API_TYPES.has(api.apiType);
   const isCustom = api.apiType === OPT_TRANS_CUSTOMIZE;
 
@@ -541,7 +541,7 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
 
       {open && (
         <div className="kiss-st-stack">
-          {!isPreset && !isBuiltinAI && (
+          {!isPreset && !isTranslatorAPI && (
             <Fields>
               <label>
                 名称
@@ -583,11 +583,11 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
 
           <RuntimeFields api={api} patch={patch} />
           <RequestFields api={api} patch={patch} />
-          {!isBuiltinAI && <BatchFields api={api} patch={patch} />}
-          {!isBuiltinAI && <StreamFields api={api} patch={patch} />}
-          {!isBuiltinAI && <ModelFields api={api} patch={patch} />}
-          {!isBuiltinAI && <ContextFields api={api} patch={patch} />}
-          {!isBuiltinAI && (
+          {!isTranslatorAPI && <BatchFields api={api} patch={patch} />}
+          {!isTranslatorAPI && <StreamFields api={api} patch={patch} />}
+          {!isTranslatorAPI && <ModelFields api={api} patch={patch} />}
+          {!isTranslatorAPI && <ContextFields api={api} patch={patch} />}
+          {!isTranslatorAPI && (
             <PromptFields api={api} patch={patch} prompts={prompts} />
           )}
           {isCustom && <CodeFields api={api} patch={patch} />}
@@ -663,7 +663,7 @@ function ApisTab({ setting, update }) {
   const visible = apis
     .map((api, index) => ({ api, index }))
     .filter(
-      ({ api }) => api.apiType !== OPT_TRANS_BUILTINAI || isBuiltinAISupported()
+      ({ api }) => api.apiType !== OPT_TRANS_TRANSLATOR_API || isTranslatorAPISupported()
     );
   const updateApi = (index, next) =>
     update({
@@ -897,7 +897,7 @@ function PanelTab({ setting, update }) {
   const apis = (setting.transApis || []).filter(
     (api) =>
       !api.isDisabled &&
-      (api.apiType !== OPT_TRANS_BUILTINAI || isBuiltinAISupported())
+      (api.apiType !== OPT_TRANS_TRANSLATOR_API || isTranslatorAPISupported())
   );
 
   return (
@@ -959,7 +959,7 @@ function apiOptions(setting, includeGlobal = false) {
   const options = (setting.transApis || [])
     .filter(
       (api) =>
-        api.apiType !== OPT_TRANS_BUILTINAI || isBuiltinAISupported()
+        api.apiType !== OPT_TRANS_TRANSLATOR_API || isTranslatorAPISupported()
     )
     .map((api) => [
     api.apiSlug,

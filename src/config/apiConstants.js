@@ -40,13 +40,13 @@ export const OPT_SUG_ALL = [OPT_SUG_BAIDU, OPT_SUG_YOUDAO];
 export const OPT_SUG_MAP = new Set(OPT_SUG_ALL);
 
 // --- 翻译服务提供商标识常量（仅保留本地/自托管接口）---
-export const OPT_TRANS_BUILTINAI = "BuiltinAI"; // 浏览器内置翻译 API
+export const OPT_TRANS_TRANSLATOR_API = "TranslatorAPI"; // 浏览器内置翻译 API
 export const OPT_TRANS_OLLAMA = "Ollama"; // 本地部署 Ollama 模型翻译
 export const OPT_TRANS_CUSTOMIZE = "Custom"; // 自定义翻译 API
 
 // 内置支持的翻译引擎
 export const OPT_ALL_TRANS_TYPES = [
-  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_TRANSLATOR_API,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
 ];
@@ -54,7 +54,7 @@ export const OPT_ALL_TRANS_TYPES = [
 // The browser translation API only ships in Chromium 138 and newer, so the
 // preset is hidden and unusable everywhere else.
 export const BUILTIN_AI_MIN_CHROMIUM_VERSION = 138;
-export function isBuiltinAISupported() {
+export function isTranslatorAPISupported() {
   const ua = String(globalThis.navigator?.userAgent || "");
   const match = ua.match(/(?:Chrome|Chromium|CriOS)\/(\d+)/);
   return Boolean(
@@ -62,7 +62,7 @@ export function isBuiltinAISupported() {
   );
 }
 
-export const OPT_LANGDETECTOR_ALL = [OPT_TRANS_BUILTINAI];
+export const OPT_LANGDETECTOR_ALL = [OPT_TRANS_TRANSLATOR_API];
 
 export const OPT_LANGDETECTOR_MAP = new Set(OPT_LANGDETECTOR_ALL);
 

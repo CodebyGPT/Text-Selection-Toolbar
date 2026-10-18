@@ -9,7 +9,7 @@ import {
   DEFAULT_API_SETTING,
   MSG_BUILTINAI_DETECT,
   MSG_BUILTINAI_TRANSLATE,
-  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_TRANSLATOR_API,
   URL_CACHE_SUBTITLE,
   URL_CACHE_CONTEXT,
   OPT_LANGS_TO_CODE,
@@ -33,7 +33,7 @@ import {
 } from "./trans";
 import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
 import { getBatchQueue } from "../libs/batchQueue";
-import { isBuiltinAIAvailable } from "../libs/browser";
+import { isTranslatorAPIAvailable } from "../libs/browser";
 import { chromeDetect, chromeTranslate } from "../libs/builtinAI";
 import { fnPolyfill } from "../libs/fetch";
 import { normalizeHttpTimeout } from "../libs/request";
@@ -157,8 +157,8 @@ export const apiFetchText = (url) =>
  * @param {string} text 待测原文
  * @returns {Promise<string>} 检测出的语言
  */
-export const apiBuiltinAIDetect = async (text) => {
-  if (!isBuiltinAIAvailable) {
+export const apiTranslatorAPIDetect = async (text) => {
+  if (!isTranslatorAPIAvailable) {
     return "";
   }
 
@@ -175,23 +175,23 @@ export const apiBuiltinAIDetect = async (text) => {
   return "";
 };
 
-// 远程语言检测服务已移除；BuiltinAI 的自动检测失败后直接保留原始错误。
+// 远程语言检测服务已移除；TranslatorAPI 的自动检测失败后直接保留原始错误。
 const LANGDETECT_FNS = {};
 
 /**
- * BuiltinAI 自动检测源语言失败后的回退解析。
+ * TranslatorAPI 自动检测源语言失败后的回退解析。
  * 浏览器内置 LanguageDetector 不可用时，改用用户配置的远程语言检测服务
  * 解析出具体源语言；全部失败时返回空串并保留原始错误。
  * @param {string} text 待检测文本
  * @returns {Promise<string>} 解析出的语言代码，失败返回 ""
  */
-const resolveBuiltinAISourceLang = async (text) => {
+const resolveTranslatorAPISourceLang = async (text) => {
   try {
     const setting = (await getSetting()) || {};
     const { langDetector } = setting;
     if (OPT_LANGDETECTOR_MAP.has(langDetector)) {
       const detectFn = LANGDETECT_FNS[langDetector];
-      // BuiltinAI 检测器刚刚失败过，不再重复尝试
+      // TranslatorAPI 检测器刚刚失败过，不再重复尝试
       if (detectFn) {
         const lang = await detectFn(text);
         if (lang) {
@@ -210,8 +210,8 @@ const resolveBuiltinAISourceLang = async (text) => {
  * 浏览器内置 Gemini Nano AI 翻译 API。
  * 整合了超时管理与内置并发频率池（FetchPool），保证前台调用不易发生死锁。
  */
-const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
-  if (!isBuiltinAIAvailable) {
+const apiTranslatorAPITranslate = async ({ text, from, to, apiSetting }) => {
+  if (!isTranslatorAPIAvailable) {
     return ["", true];
   }
 
@@ -232,7 +232,7 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
   );
 
   if (!result) {
-    throw new Error("apiBuiltinAITranslate got null reault");
+    throw new Error("apiTranslatorAPITranslate got null reault");
   }
 
   const [trText, srLang, error] = result;
@@ -242,10 +242,10 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
       from === "auto" &&
       String(error).includes("Automatic detection of source language failed")
     ) {
-      const deLang = await resolveBuiltinAISourceLang(text);
+      const deLang = await resolveTranslatorAPISourceLang(text);
       if (deLang) {
         const mappedFrom =
-          OPT_LANGS_FROM_SPEC[OPT_TRANS_BUILTINAI].get(deLang) || deLang;
+          OPT_LANGS_FROM_SPEC[OPT_TRANS_TRANSLATOR_API].get(deLang) || deLang;
         const retry = await withTimeout(
           fetchPool.push(fnPolyfill, {
             fn: chromeTranslate,
@@ -257,17 +257,17 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
           normalizeHttpTimeout(httpTimeout)
         );
         if (!retry) {
-          throw new Error("apiBuiltinAITranslate retry got null result");
+          throw new Error("apiTranslatorAPITranslate retry got null result");
         }
 
         const [trTextRetry, srLangRetry, errorRetry] = retry;
         if (errorRetry) {
-          throw new Error(`apiBuiltinAITranslate got error: ${errorRetry}`);
+          throw new Error(`apiTranslatorAPITranslate got error: ${errorRetry}`);
         }
         return [trTextRetry, srLangRetry];
       }
     }
-    throw new Error(`apiBuiltinAITranslate got error: ${error}`);
+    throw new Error(`apiTranslatorAPITranslate got error: ${error}`);
   }
 
   return [trText, srLang];
@@ -385,9 +385,9 @@ export const apiTranslate = async ({
 
   // 2. 缓存未命中，分发执行翻译请求
   let translation = [];
-  if (apiType === OPT_TRANS_BUILTINAI) {
+  if (apiType === OPT_TRANS_TRANSLATOR_API) {
     // 2.1 浏览器本地 AI 翻译路径
-    translation = await apiBuiltinAITranslate({
+    translation = await apiTranslatorAPITranslate({
       text,
       from,
       to,
@@ -714,7 +714,7 @@ export const getVideoSummarySignature = async ({
 
 /**
  * 对视频标题、简介和原始字幕原稿生成结构化 Markdown 视频总结 (Video Summary)。
- * 支持使用 BuiltinAI、LocalAI 或网络大模型，支持指定自定义总结提示词和目标语言，支持缓存与强制重新生成。
+ * 支持使用 TranslatorAPI、LocalAI 或网络大模型，支持指定自定义总结提示词和目标语言，支持缓存与强制重新生成。
  */
 export const apiSummarizeVideo = async ({
   videoId,

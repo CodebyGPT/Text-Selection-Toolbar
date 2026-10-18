@@ -490,8 +490,8 @@ export const I18N = {
     en: `Self-hosting a Kiss-worker data sync service`
   },
   about_api: {
-    zh: `1、其中 BuiltinAI 为浏览器内置AI翻译，目前仅 Chrome 138 及以上版本得到支持。`,
-    en: `1. BuiltinAI is the browser's built-in AI translation, which is currently only supported by Chrome 138 and above.`
+    zh: `1、其中 Translator API 为浏览器内置AI翻译，目前仅 Chrome 138 及以上版本得到支持。`,
+    en: `1. Translator API is the browser's built-in AI translation, which is currently only supported by Chrome 138 and above.`
   },
   about_api_2: {
     zh: `2、大部分AI接口都与OpenAI兼容，因此选择OpenAI类型即可。`,
