@@ -55,6 +55,8 @@ const userscriptWebpack = (config, env) => {
 // @grant         unsafeWindow
 // @connect       localhost
 // @connect       127.0.0.1
+// @sandbox       DOM
+// @inject-into   content
 // @run-at        document-end
 // ==/UserScript==
 
