@@ -1055,18 +1055,6 @@ function TranslationTab({ setting, update }) {
             ])}
           />
         </Row>
-        <Row label="段落最小长度">
-          <NumberInput
-            value={setting.minLength}
-            onChange={(v) => update({ minLength: v })}
-          />
-        </Row>
-        <Row label="段落最大长度">
-          <NumberInput
-            value={setting.maxLength}
-            onChange={(v) => update({ maxLength: v })}
-          />
-        </Row>
       </Section>
       <ApisTab setting={setting} update={update} />
       <PanelTab setting={setting} update={update} />

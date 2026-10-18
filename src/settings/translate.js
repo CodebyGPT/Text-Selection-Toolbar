@@ -70,8 +70,6 @@ const EN = {
   "极简样式": "Minimal style",
   "模糊译文": "Blur translation",
   "横排胶囊": "Horizontal capsule",
-  "段落最大长度": "Max paragraph length",
-  "段落最小长度": "Min paragraph length",
   "每行一个域名或匹配模式": "One domain or pattern per line",
   "气泡样式": "Bubble style",
   "浅色": "Light",
