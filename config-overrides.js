@@ -7,7 +7,6 @@ const path = require("path");
 const userscriptWebpack = (config, env) => {
   config.resolve.alias = {
     ...config.resolve.alias,
-    webdav$: path.resolve(__dirname, "src/libs/stubs/webdav-stub.js"),
     [path.resolve(__dirname, "src/libs/interpreter.js")]: path.resolve(
       __dirname,
       "src/libs/stubs/interpreter-gm.js"
