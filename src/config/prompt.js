@@ -236,20 +236,41 @@ export function isPresetPromptSlug(promptSlug) {
  */
 export function getAllPrompts(userPrompts = []) {
   const customPrompts = normalizeCustomPrompts(userPrompts);
+  const overrides = new Map(
+    customPrompts
+      .filter((prompt) => isPresetPromptSlug(prompt.slug))
+      .map((prompt) => [prompt.slug, prompt])
+  );
+  const presets = PRESET_PROMPTS.map((preset) => {
+    const override = overrides.get(preset.slug);
+    if (!override) return preset;
+    // Preset identity (slug/category/protocol) stays; only content is editable.
+    return {
+      ...preset,
+      name: override.name || preset.name,
+      systemPrompt: override.systemPrompt,
+      userPrompt: override.userPrompt,
+    };
+  });
 
-  return [...PRESET_PROMPTS, ...customPrompts];
+  return [
+    ...presets,
+    ...customPrompts.filter((prompt) => !isPresetPromptSlug(prompt.slug)),
+  ];
 }
 
 /**
- * 过滤并规范化用户自定义的提示词列表，去除无效或与预设冲突的项。
+ * 过滤并规范化用户提示词列表。
+ * 与预设同名的条目是「覆盖项」：保留下来，用于替换内置提示词的内容，
+ * 删除该条目即恢复默认。
  *
  * @param {Array} userPrompts 用户自定义提示词列表
- * @returns {Array} 清洗后的自定义提示词列表
+ * @returns {Array} 清洗后的用户提示词列表
  */
 export function normalizeCustomPrompts(userPrompts = []) {
   return (Array.isArray(userPrompts) ? userPrompts : [])
     .map(normalizePrompt)
-    .filter((prompt) => prompt.slug && !isPresetPromptSlug(prompt.slug))
+    .filter((prompt) => prompt.slug)
     .map(({ slug, category, name, protocol, systemPrompt, userPrompt }) => ({
       slug,
       category,
@@ -770,7 +791,7 @@ export function migrateSettingPromptsToV2(setting = {}) {
   const hasSubtitleSettingChanges = subtitleSetting !== setting.subtitleSetting;
   const customPromptState = {
     prompts: [...customPrompts],
-    promptBySlug: createPromptSlugIndex([...PRESET_PROMPTS, ...customPrompts]),
+    promptBySlug: createPromptSlugIndex(getAllPrompts(storedCustomPrompts)),
     hasPromptChanges: hasCustomPromptChanges,
   };
   let hasApiChanges = false;

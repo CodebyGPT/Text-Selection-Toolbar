@@ -27,6 +27,13 @@ import {
   GLOBAL_KEY,
   GLOBLA_RULE,
   DEFAULT_RULE,
+  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_OLLAMA,
+  OPT_TRANS_CUSTOMIZE,
+  BUILTIN_PLACEHOLDERS,
+  BUILTIN_PLACETAGS,
+  PRESET_PROMPTS,
+  isPresetPromptSlug,
 } from "../config";
 import {
   DEFAULT_TOOLBAR_SETTING,
@@ -155,9 +162,286 @@ function Toggle({ value, onChange }) {
   );
 }
 
+const PRESET_API_TYPES = new Set([OPT_TRANS_BUILTINAI, OPT_TRANS_OLLAMA]);
+
+function Fields({ children }) {
+  return <div className="kiss-st-grid">{children}</div>;
+}
+
+function CheckField({ label, checked, onChange }) {
+  return (
+    <label className="kiss-st-check">
+      <input
+        type="checkbox"
+        checked={Boolean(checked)}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      {label}
+    </label>
+  );
+}
+
+function RuntimeFields({ api, patch }) {
+  return (
+    <Fields>
+      <label>
+        触发方式
+        <Select
+          value={String(api.transAllnow === true)}
+          onChange={(v) => patch("transAllnow", v === "true")}
+          options={[
+            ["false", "滚动到才翻译"],
+            ["true", "打开页面即翻译"],
+          ]}
+        />
+      </label>
+      <label>
+        滚动加载提前触发 (px)
+        <NumberInput
+          value={api.rootMargin}
+          min={0}
+          max={10000}
+          onChange={(v) => patch("rootMargin", v)}
+        />
+      </label>
+      <label>
+        占位符
+        <Select
+          value={api.placeholder}
+          onChange={(v) => patch("placeholder", v)}
+          options={BUILTIN_PLACEHOLDERS.map((item) => [item, item])}
+        />
+      </label>
+      <label>
+        占位标签
+        <Select
+          value={api.placetag}
+          onChange={(v) => patch("placetag", v)}
+          options={BUILTIN_PLACETAGS.map((item) => [item, `<${item}>`])}
+        />
+      </label>
+      <label>
+        占位符格式
+        <Select
+          value={api.placetagFormat}
+          onChange={(v) => patch("placetagFormat", v)}
+          options={[
+            ["compact", "简洁格式 <a1>"],
+            ["attribute", "属性格式 <a i=1>"],
+          ]}
+        />
+      </label>
+    </Fields>
+  );
+}
+
+function RequestFields({ api, patch }) {
+  return (
+    <Fields>
+      <label>
+        最大并发请求数量
+        <NumberInput
+          value={api.fetchLimit}
+          min={1}
+          max={100}
+          onChange={(v) => patch("fetchLimit", v)}
+        />
+      </label>
+      <label>
+        每次请求间隔 (ms)
+        <NumberInput
+          value={api.fetchInterval}
+          min={0}
+          max={5000}
+          onChange={(v) => patch("fetchInterval", v)}
+        />
+      </label>
+      <label>
+        请求超时时间 (s)
+        <NumberInput
+          value={api.httpTimeout}
+          min={1}
+          max={600}
+          onChange={(v) => patch("httpTimeout", v)}
+        />
+      </label>
+    </Fields>
+  );
+}
+
+function BatchFields({ api, patch }) {
+  return (
+    <Fields>
+      <CheckField
+        label="聚合发送翻译请求"
+        checked={api.useBatchFetch}
+        onChange={(v) => patch("useBatchFetch", v)}
+      />
+      <label>
+        聚合批次并发数
+        <NumberInput
+          value={api.batchConcurrency}
+          min={1}
+          max={100}
+          onChange={(v) => patch("batchConcurrency", v)}
+        />
+      </label>
+      <label>
+        聚合请求等待时间 (ms)
+        <NumberInput
+          value={api.batchInterval}
+          min={10}
+          max={10000}
+          onChange={(v) => patch("batchInterval", v)}
+        />
+      </label>
+      <label>
+        聚合请求最大段落数
+        <NumberInput
+          value={api.batchSize}
+          min={1}
+          max={100}
+          onChange={(v) => patch("batchSize", v)}
+        />
+      </label>
+      <label>
+        聚合请求最大文本长度
+        <NumberInput
+          value={api.batchLength}
+          min={1000}
+          max={100000}
+          onChange={(v) => patch("batchLength", v)}
+        />
+      </label>
+    </Fields>
+  );
+}
+
+function StreamFields({ api, patch }) {
+  return (
+    <Fields>
+      <CheckField
+        label="流式响应"
+        checked={api.useStream !== false}
+        onChange={(v) => patch("useStream", v)}
+      />
+      <label>
+        流式渲染模式
+        <Select
+          value={api.streamRenderMode || "disabled"}
+          onChange={(v) => patch("streamRenderMode", v)}
+          options={[
+            ["disabled", "关闭"],
+            ["realtime", "实时追加"],
+            ["segment", "按段渲染"],
+          ]}
+        />
+      </label>
+    </Fields>
+  );
+}
+
+function ModelFields({ api, patch }) {
+  return (
+    <Fields>
+      <label>
+        Temperature
+        <NumberInput
+          value={api.temperature}
+          min={0}
+          max={2}
+          onChange={(v) => patch("temperature", v)}
+        />
+      </label>
+      <label>
+        Max Tokens
+        <NumberInput
+          value={api.maxTokens}
+          min={0}
+          max={100000}
+          onChange={(v) => patch("maxTokens", v)}
+        />
+      </label>
+      <label>
+        思考模式
+        <Select
+          value={api.thinkingMode || "disabled"}
+          onChange={(v) => patch("thinkingMode", v)}
+          options={[
+            ["disabled", "关闭"],
+            ["auto", "自动"],
+            ["enabled", "开启"],
+          ]}
+        />
+      </label>
+    </Fields>
+  );
+}
+
+function ContextFields({ api, patch }) {
+  return (
+    <Fields>
+      <CheckField
+        label="智能上下文"
+        checked={api.useContext}
+        onChange={(v) => patch("useContext", v)}
+      />
+      <label>
+        上下文会话数量
+        <NumberInput
+          value={api.contextSize}
+          min={1}
+          max={20}
+          onChange={(v) => patch("contextSize", v)}
+        />
+      </label>
+    </Fields>
+  );
+}
+
+function CodeFields({ api, patch }) {
+  return (
+    <div className="kiss-st-stack">
+      <label>
+        自定义请求头
+        <TextArea
+          value={api.customHeader}
+          onChange={(v) => patch("customHeader", v)}
+        />
+      </label>
+      <label>
+        自定义请求体
+        <TextArea
+          value={api.customBody}
+          onChange={(v) => patch("customBody", v)}
+        />
+      </label>
+      <label>
+        Request Hook
+        <TextArea
+          value={api.reqHook}
+          onChange={(v) => patch("reqHook", v)}
+        />
+      </label>
+      <label>
+        Response Hook
+        <TextArea
+          value={api.resHook}
+          onChange={(v) => patch("resHook", v)}
+        />
+      </label>
+    </div>
+  );
+}
+
 function ApiEditor({ api, onChange, onDelete, canDelete }) {
+  const [open, setOpen] = useState(false);
   const [test, setTest] = useState({ loading: false, text: "", error: "" });
   const patch = (key, value) => onChange({ ...api, [key]: value });
+
+  const isBuiltinAI = api.apiType === OPT_TRANS_BUILTINAI;
+  const isPreset = PRESET_API_TYPES.has(api.apiType);
+  const isCustom = api.apiType === OPT_TRANS_CUSTOMIZE;
 
   const runTest = async () => {
     setTest({ loading: true, text: "", error: "" });
@@ -177,111 +461,108 @@ function ApiEditor({ api, onChange, onDelete, canDelete }) {
 
   return (
     <div className="kiss-st-api">
-      <div className="kiss-st-api__head">
+      <div
+        className="kiss-st-api__head"
+        role="button"
+        tabIndex={0}
+        onClick={() => setOpen((v) => !v)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
+      >
         <strong>{api.apiName || api.apiType}</strong>
+        {isPreset && <span className="kiss-st-badge">预设</span>}
         <span className="kiss-st-badge">{api.apiType}</span>
         <span className="kiss-st-spacer" />
-        <Toggle
-          value={!api.isDisabled}
-          onChange={(enabled) => patch("isDisabled", !enabled)}
-        />
+        <span
+          onClick={(event) => event.stopPropagation()}
+          style={{ display: "inline-flex" }}
+        >
+          <Toggle
+            value={!api.isDisabled}
+            onChange={(enabled) => patch("isDisabled", !enabled)}
+          />
+        </span>
+        <span className="kiss-st-chev">{open ? "收起" : "展开"}</span>
         {canDelete && (
-          <button className="kiss-st-btn kiss-st-btn--danger" onClick={onDelete}>
+          <button
+            className="kiss-st-btn kiss-st-btn--danger"
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete();
+            }}
+          >
             删除
           </button>
         )}
       </div>
-      <div className="kiss-st-grid">
-        <label>
-          名称
-          <TextInput value={api.apiName} onChange={(v) => patch("apiName", v)} />
-        </label>
-        <label>
-          URL
-          <TextInput value={api.url} onChange={(v) => patch("url", v)} />
-        </label>
-        <label>
-          Key
-          <TextInput
-            value={api.key}
-            type="password"
-            onChange={(v) => patch("key", v)}
-          />
-        </label>
-        <label>
-          模型
-          <TextInput value={api.model} onChange={(v) => patch("model", v)} />
-        </label>
-        <label>
-          模型列表 URL
-          <TextInput
-            value={api.modelListUrl}
-            onChange={(v) => patch("modelListUrl", v)}
-          />
-        </label>
-        <label>
-          Temperature
-          <NumberInput
-            value={api.temperature}
-            min={0}
-            max={2}
-            onChange={(v) => patch("temperature", v)}
-          />
-        </label>
-        <label>
-          Max Tokens
-          <NumberInput
-            value={api.maxTokens}
-            min={0}
-            max={100000}
-            onChange={(v) => patch("maxTokens", v)}
-          />
-        </label>
-        <label>
-          超时（秒）
-          <NumberInput
-            value={api.httpTimeout}
-            min={1}
-            max={600}
-            onChange={(v) => patch("httpTimeout", v)}
-          />
-        </label>
-      </div>
-      <div className="kiss-st-inline">
-        <label className="kiss-st-check">
-          <input
-            type="checkbox"
-            checked={Boolean(api.useBatchFetch)}
-            onChange={(e) => patch("useBatchFetch", e.target.checked)}
-          />
-          批量合并
-        </label>
-        <label className="kiss-st-check">
-          <input
-            type="checkbox"
-            checked={api.useStream !== false}
-            onChange={(e) => patch("useStream", e.target.checked)}
-          />
-          流式
-        </label>
-        <label className="kiss-st-check">
-          <input
-            type="checkbox"
-            checked={Boolean(api.useContext)}
-            onChange={(e) => patch("useContext", e.target.checked)}
-          />
-          上下文
-        </label>
-        <button
-          className="kiss-st-btn"
-          onClick={runTest}
-          disabled={test.loading}
-        >
-          {test.loading ? "测试中…" : "测试翻译"}
-        </button>
-      </div>
-      {test.text && <div className="kiss-st-ok">→ {test.text}</div>}
-      {test.error && <div className="kiss-st-error">{test.error}</div>}
+
+      {open && (
+        <div className="kiss-st-stack">
+          {!isPreset && !isBuiltinAI && (
+            <Fields>
+              <label>
+                名称
+                <TextInput
+                  value={api.apiName}
+                  onChange={(v) => patch("apiName", v)}
+                />
+              </label>
+              <label>
+                URL
+                <TextInput value={api.url} onChange={(v) => patch("url", v)} />
+              </label>
+              {isCustom && (
+                <label>
+                  Key
+                  <TextInput
+                    value={api.key}
+                    type="password"
+                    onChange={(v) => patch("key", v)}
+                  />
+                </label>
+              )}
+              <label>
+                模型
+                <TextInput
+                  value={api.model}
+                  onChange={(v) => patch("model", v)}
+                />
+              </label>
+              <label>
+                模型列表 URL
+                <TextInput
+                  value={api.modelListUrl}
+                  onChange={(v) => patch("modelListUrl", v)}
+                />
+              </label>
+            </Fields>
+          )}
+
+          <RuntimeFields api={api} patch={patch} />
+          <RequestFields api={api} patch={patch} />
+          {!isBuiltinAI && <BatchFields api={api} patch={patch} />}
+          {!isBuiltinAI && <StreamFields api={api} patch={patch} />}
+          {!isBuiltinAI && <ModelFields api={api} patch={patch} />}
+          {!isBuiltinAI && <ContextFields api={api} patch={patch} />}
+          {isCustom && <CodeFields api={api} patch={patch} />}
+
+          <div className="kiss-st-inline">
+            <button
+              className="kiss-st-btn"
+              onClick={runTest}
+              disabled={test.loading}
+            >
+              {test.loading ? "测试中…" : "测试翻译"}
+            </button>
+          </div>
+          {test.text && <div className="kiss-st-ok">→ {test.text}</div>}
+          {test.error && <div className="kiss-st-error">{test.error}</div>}
+        </div>
+      )}
     </div>
   );
 }
@@ -339,11 +620,13 @@ function ApisTab({ setting, update }) {
     update({
       transApis: apis.map((api, i) => (i === index ? next : api)),
     });
+
+  // Custom endpoints are added on demand; fresh installs only ship presets.
   const addCustom = () => {
     const used = new Set(apis.map((api) => api.apiSlug));
     let n = 1;
     while (used.has(`Custom-${n}`)) n += 1;
-    const api = createBuiltinInstance("Custom", `Custom-${n}`, `Custom ${n}`);
+    const api = createBuiltinInstance("Custom", `Custom-${n}`, `自定义接口 ${n}`);
     update({ transApis: [...apis, api] });
   };
   const removeApi = (index) =>
@@ -351,21 +634,17 @@ function ApisTab({ setting, update }) {
 
   return (
     <Section title="翻译接口">
-      <div className="kiss-st-hint">
-        只保留 BuiltinAI、Ollama、Custom。BuiltinAI 使用浏览器内置翻译，Ollama
-        默认连接本地 11434，Custom 可填任意兼容接口。
-      </div>
       {apis.map((api, index) => (
         <ApiEditor
           key={api.apiSlug}
           api={api}
           onChange={(next) => updateApi(index, next)}
           onDelete={() => removeApi(index)}
-          canDelete={api.apiType === "Custom" && apis.length > 1}
+          canDelete={api.apiType === OPT_TRANS_CUSTOMIZE}
         />
       ))}
       <button className="kiss-st-btn kiss-st-btn--primary" onClick={addCustom}>
-        + 添加 Custom
+        + 添加自定义接口
       </button>
     </Section>
   );
@@ -927,70 +1206,142 @@ function RulesSection({ setting }) {
   );
 }
 
+function PromptRow({ prompt, isPreset, dirty, onPatch, onReset, onDelete }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="kiss-st-api">
+      <div
+        className="kiss-st-api__head"
+        role="button"
+        tabIndex={0}
+        onClick={() => setOpen((v) => !v)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
+      >
+        <strong>{prompt.name || prompt.slug}</strong>
+        {isPreset && <span className="kiss-st-badge">预设</span>}
+        {dirty && <span className="kiss-st-badge kiss-st-badge--warn">已修改</span>}
+        <span className="kiss-st-spacer" />
+        <span className="kiss-st-chev">{open ? "收起" : "展开"}</span>
+        {isPreset ? (
+          dirty && (
+            <button
+              className="kiss-st-btn"
+              onClick={(event) => {
+                event.stopPropagation();
+                onReset();
+              }}
+            >
+              重置
+            </button>
+          )
+        ) : (
+          <button
+            className="kiss-st-btn kiss-st-btn--danger"
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete();
+            }}
+          >
+            删除
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <div className="kiss-st-stack">
+          <label>
+            名称
+            <TextInput
+              value={prompt.name}
+              onChange={(v) => onPatch({ name: v })}
+            />
+          </label>
+          <label>
+            System Prompt
+            <TextArea
+              value={prompt.systemPrompt}
+              onChange={(v) => onPatch({ systemPrompt: v })}
+            />
+          </label>
+          <label>
+            User Prompt
+            <TextArea
+              value={prompt.userPrompt}
+              onChange={(v) => onPatch({ userPrompt: v })}
+            />
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PromptsSection({ setting, update }) {
-  const prompts = setting.prompts || [];
-  const patch = (index, changes) =>
+  const stored = setting.prompts || [];
+  const overrides = new Map(
+    stored
+      .filter((prompt) => isPresetPromptSlug(prompt.slug))
+      .map((prompt) => [prompt.slug, prompt])
+  );
+  const customPrompts = stored.filter(
+    (prompt) => !isPresetPromptSlug(prompt.slug)
+  );
+
+  const upsert = (prompt, changes) => {
+    const next = { ...prompt, ...changes };
+    const exists = stored.some((item) => item.slug === prompt.slug);
     update({
-      prompts: prompts.map((prompt, i) =>
-        i === index ? { ...prompt, ...changes } : prompt
-      ),
+      prompts: exists
+        ? stored.map((item) => (item.slug === prompt.slug ? next : item))
+        : [...stored, next],
     });
+  };
+  const resetPreset = (slug) =>
+    update({ prompts: stored.filter((item) => item.slug !== slug) });
+  const removeCustom = (slug) =>
+    update({ prompts: stored.filter((item) => item.slug !== slug) });
   const add = () =>
     update({
       prompts: [
-        ...prompts,
+        ...stored,
         {
           slug: `custom-${Date.now()}`,
-          name: `自定义提示词 ${prompts.length + 1}`,
+          name: `自定义提示词 ${customPrompts.length + 1}`,
           category: "custom",
           systemPrompt: "",
           userPrompt: "",
         },
       ],
     });
-  const remove = (index) =>
-    update({ prompts: prompts.filter((_, i) => i !== index) });
 
   return (
     <Section title="提示词">
-      <div className="kiss-st-hint">
-        这里管理自定义提示词；KISS 内置提示词仍然可用，不需要重复创建。
-      </div>
-      {prompts.map((prompt, index) => (
-        <div key={prompt.slug || index} className="kiss-st-api">
-          <div className="kiss-st-api__head">
-            <strong>{prompt.name || prompt.slug}</strong>
-            <span className="kiss-st-badge">{prompt.category || "custom"}</span>
-            <span className="kiss-st-spacer" />
-            <button
-              className="kiss-st-btn kiss-st-btn--danger"
-              onClick={() => remove(index)}
-            >
-              删除
-            </button>
-          </div>
-          <label style={{ display: "grid", gap: 6 }}>
-            名称
-            <TextInput
-              value={prompt.name}
-              onChange={(v) => patch(index, { name: v })}
-            />
-          </label>
-          <label style={{ display: "grid", gap: 6, marginTop: 8 }}>
-            System Prompt
-            <TextArea
-              value={prompt.systemPrompt}
-              onChange={(v) => patch(index, { systemPrompt: v })}
-            />
-          </label>
-          <label style={{ display: "grid", gap: 6, marginTop: 8 }}>
-            User Prompt
-            <TextArea
-              value={prompt.userPrompt}
-              onChange={(v) => patch(index, { userPrompt: v })}
-            />
-          </label>
-        </div>
+      {PRESET_PROMPTS.map((preset) => {
+        const override = overrides.get(preset.slug);
+        return (
+          <PromptRow
+            key={preset.slug}
+            isPreset
+            dirty={Boolean(override)}
+            prompt={{ ...preset, ...(override || {}) }}
+            onPatch={(changes) => upsert(preset, changes)}
+            onReset={() => resetPreset(preset.slug)}
+          />
+        );
+      })}
+      {customPrompts.map((prompt) => (
+        <PromptRow
+          key={prompt.slug}
+          prompt={prompt}
+          onPatch={(changes) => upsert(prompt, changes)}
+          onDelete={() => removeCustom(prompt.slug)}
+        />
       ))}
       <div className="kiss-st-inline">
         <button className="kiss-st-btn kiss-st-btn--primary" onClick={add}>

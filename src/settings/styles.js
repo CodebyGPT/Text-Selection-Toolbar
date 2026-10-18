@@ -200,7 +200,27 @@ export const SETTINGS_APP_CSS = String.raw`
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 12px;
+}
+:host .kiss-st-api__head[role="button"] { cursor: pointer; }
+:host .kiss-st-chev {
+  color: var(--st-muted);
+  font-size: 12px;
+  user-select: none;
+}
+:host .kiss-st-stack {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+:host .kiss-st-stack > label {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--st-muted);
+}
+:host .kiss-st-badge--warn {
+  color: #e8a33d;
+  border-color: #e8a33d;
 }
 :host .kiss-st-badge {
   padding: 2px 8px;
