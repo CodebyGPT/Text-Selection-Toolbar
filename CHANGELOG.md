@@ -1,112 +1,201 @@
-# Changelog
+## v2.1.1
 
-## 2026.06.18 — Lightning Paste Cross-Tab Survival Optimization
+- 修复网页翻译中的富文本标签、未加载行内图片和 DOM 重排处理，减少页面闪烁，并避免将嵌入脚本源码显示为正文。
+- 修复划词翻译的焦点保持、术语缓存及批处理取消问题，并绕过 WebDAV 同步请求的 HTTP 缓存。
+- 改进弹窗的本页与文本翻译界面、多服务交互、设置搜索、下拉菜单及设置页打开后的关闭行为。
+- 新增悬浮按钮外观设置与实时预览、点击直接打开翻译面板及快捷键控制显示，修复按钮初始动画与页面切换后的状态。
+- 改进网站规则编辑和文本选取、翻译输入框拉伸、样式选择与高度保持，并修复关于页面的 HTML 内容显示。
+- 新增 Requesty 翻译接口和土耳其语扩展界面支持，优化翻译界面、默认服务及专业术语 Playground。
 
-### Improvements
-- **Conditional visibilitychange cleanup**: Caches produced by copy/cut are no longer affected by tab switching; visibilitychange listener is only registered after paste resets the timestamp
-- **Dynamic register/unregister**: `registerVisibilityCleanup()` / `unregisterVisibilityCleanup()` control listener lifecycle on demand
-- **No active deletion**: All cache invalidation paths now write expired cache `{ text: '', timestamp: 0 }` as overwrite, never setting null, maintaining one-way overwrite semantics
+## v2.1.0
 
-### Technical Details
-- `19-bootstrap.js`: Removed permanently registered visibilitychange listener; exposed dynamic register/unregister functions instead
-- `13-renderer.js`: Copy/cut calls `unregisterVisibilityCleanup()` after write; paste timestamp reset calls `registerVisibilityCleanup()`
-- `14-events.js`: Both right-click clear and 8-second expiration checks write expired cache overwrite, never actively setting null
-- 8-second expiration changed to pure judgment logic (does not modify cache); cache is preserved until overwritten by a new copy/cut
+- 新增术语库本地替换引擎和专业术语 Playground，支持在翻译流程中验证术语替换效果。
+- 新增按住鼠标翻译模式，可在链接、按钮及网页规则限定区域内触发翻译，并可配置触发后的点击行为。
+- 新增可视化网站规则编辑器，并统一设置页、弹窗及规则界面的 Material 3 风格与交互。
+- 新增 APIMart 翻译接口及 GPT-6 Astra 思考参数支持，改进提示词协议兼容和小模型使用说明。
+- 新增字幕翻译服务选择和跨视频字幕位置记忆，改进 YouTube 字幕分段与时间轴处理。
+- 新增触摸段落翻译、俄语界面及可选的 LaTeX 转 Unicode 显示，并支持自动检查新版本。
+- 修复设置启动与同步竞态、翻译面板导航和滚动行为、悬浮按钮定位等问题，并改进同步警告与多语言标签。
 
-## 2026.06.18 — URL Identifier Exact Matching + Anchor Position Fix
+## v2.0.32
 
-### Fixes
-- **Password assignment now uses anchor position**: `extractLinkAndCode()` no longer re-searches via `indexOf(host)`, uses `anchorStart` (original text position) calculated by `extractUrlsFromText()` — eliminates position offset for same-domain URLs
-- **Consumption matching now uses URL identifiers**: Added `extractPanUrlId()` function, extracts unique identifiers from each cloud drive URL (Baidu `/s/XXXXX`, Tianyi `/t/XXXXX`, Ali `/s/XXXXX`, etc.), enabling O(1) exact lookup on consumption, eliminating same-domain cross-contamination
-- **Cross-redirect matching**: `/s/XXXXX` and `/share/init?surl=XXXXX` extract the same identifier, adapting to URL redirects from Baidu and similar cloud drives
+- 新增 Google Cloud、Qwen MT、Yandex Cloud 等翻译接口，并补充免费翻译接口选择。
+- 支持语言地区变体翻译，统一翻译文本格式处理，并将默认翻译接口切换为微软翻译。
+- 悬浮翻译气泡可独立选择翻译接口，不影响划词翻译和网页翻译；同时改进翻译流程兼容性与批量删除性能。
+- AI 词典新增多语言英文提示词预设，收藏词高亮支持悬浮查看词典释义。
+- 新增复制到剪贴板后自动翻译的可选设置，并更新扩展快捷键分配与中文标签。
+- 更新主页的视频、生态链接及多语言内容，并修复 CVE-2026-54466 安全漏洞。
 
-### Technical Details
-- `pan_code_map` key changed from full URL to `extractPanUrlId()` identifier
-- `extractUrlsFromText()` return object now includes `anchorStart` field
-- `checkPanCodeMap` changed from O(n) traversal + domain substring matching to O(1) identifier direct lookup
-- Supports lanzou, 123pan, quark, etc. as generic fallback
+## v2.0.31
 
-## 2026.06.18 — Batch Multi-Link Independent Password Cache
+- Gemini 接口恢复 Generate Content 兼容支持，并可适配 Generate Content 与 Interactions 双协议、模型列表地址及不同模型的思考参数。
+- 修复 Gemini 2 模型列表配置并移除不兼容的温度参数；DeepL 支持简体与繁体中文语言代码。
+- OpenRouter 新增推理控制，并提高默认批量翻译并发数。
+- 微软翻译改用 Edge 公开端点，不再依赖旧的认证流程。
+- 新增越南语界面支持。
+- 流式翻译可在完整 JSON 返回前持续输出已解析片段，改善响应反馈。
+- 保留翻译文本内部空白，并排除收藏词高亮内容，避免翻译请求被额外标记污染。
+- 悬浮翻译按钮可记住贴边状态，并在窗口尺寸变化后恢复吸附位置。
 
-### New Features
-- **Password per URL**: When opening multiple cloud drive links in batch, each link carries its own extraction code without interference
-- **`pan_code_map`**: Password mapping table keyed by full URL, replacing single `pan_code_cache` — isolates links under the same domain
-- **1-hour auto-expiry cleanup**: Unconsumed password entries are automatically cleared after 1 hour to prevent storage pollution
+## v2.0.30
 
-### Fixes
-- **Password length relaxed to 3 chars**: `{4,8}` → `{3,8}`, fixing issues with 3-character codes like `hka`
-- **Multi-link password assignment**: `extractLinkAndCode()` added `extractAllCodesWithPositions()` stage, assigning each password to its nearest URL by text position
-- **URL prefix match on consumption**: `checkPanCodeMap()` iterates all entries; matches when current page URL contains the stored URL; deletes the entry after consumption
+- Gemini 接口默认模型更新为 Gemini 3.6 Flash，并支持按模型适配思考模式配置与降级提示。
+- 优化 Firefox 中扩展快捷键设置的引导，避免跳转至不支持的直接管理地址。
+- 升级依赖以修复 CVE-2026-9277 安全漏洞。
 
-### Technical Details
-- `pan_code_map` storage format: `{ "http://pan.baidu.com/s/xxx": { code: "hka", ts: ... } }`
-- Batch open writes all passwords at once; toast shows `已粘贴提取码 x3`
-- Each tab independently consumes its own password entry; entry deleted after consumption
+## v2.0.29
 
-## 2026.06.18 — Cloud Drive Password Cache Restructure
+- 新增 OrcaRouter 翻译接口，支持 OpenAI 兼容请求、流式输出、批量翻译与推理强度配置。
+- 微软翻译失效，设腾讯翻译为默认翻译接口。
+- 优化 OpenRouter 应用归因、模型列表去重与 Gemini Interactions API 的响应解析和重试。
+- 新增目标语言忽略规则：选中文本与目标语言相同或为纯数字时可不显示划词翻译按钮；中文默认显示划词翻译按钮。
+- 划词翻译新增双击触发模式；优化可编辑元素识别、按钮定位、全屏视频中的悬浮按钮隐藏及可自动高度翻译窗的视口约束。
+- 新增原文包裹与样式选项，翻译仅显示模式下可在悬停气泡中查看隐藏的原文。
+- 规则新增持久化的纯文本翻译选项；悬浮翻译按钮支持按站点配置例外显示规则。
+- 优化输入框与各翻译接口的换行保留逻辑，并新增批量翻译并发控制。
+- 字幕功能支持按视频保存自动翻译开关、缓存字幕轨道、自动收藏字幕单词，并修复 AI 断句索引偏移导致的时间轴不同步问题。
+- Playground 新增合并单行换行选项，并补充多组字幕分段测试样本。
+- 增加字幕断句的测试功能，方便调试。
+- 选词收藏新增自动收藏选项；词典提示词模式的选择说明更清晰。
+- 同步加密密码支持本地重置，并加强密码轮换的安全校验。
+- 设置页打开优先使用浏览器原生 API，并在不支持时回退到扩展页面；支持正式、GitHub 与开发环境的多站点 Options 页和版本检测地址。
+- Web 构建现在会生成 `version.txt`；内置规则构建仅生成规则 JSON 文件；版本检测主地址失败或返回非成功状态时自动回退到 GitHub。
+- 新增土耳其语界面翻译。
+- 改进 Firefox 内容脚本样式注入、油猴流式响应兼容性、Trusted Types 回退处理、悬停译文重触发和不可滚动页面的滚动锚定。
+- 升级依赖以修复 CVE-2026-25896 安全漏洞。
 
-### Fixes
-- **Independent cloud drive password cache**: `pan_paste_handover` renamed to `pan_code_cache`, no longer mixed with lightning paste cache
-- **Removed 15-second timeout**: Cloud drive password cache has no time limit, persists until manually pasted or right-click cleared
-- **Cache priority**: Page hidden no longer clears cloud drive password cache (only lightning paste cache); cloud drive paste button takes priority over lightning paste
-- **Toast notification optimization**: Respects `enableToast` setting; shows notification based on user config when caching and reading passwords
+## v2.0.28
 
-### Cache Lifecycle
-- **Write**: Click link button with extraction code → write to `pan_code_cache`
-- **Consume**: Click input field on target page → clear `sessionPanCode` after paste
-- **Manual clear**: Right-click menu → clear all caches
-- **Note**: Page hidden (visibilitychange) does not clear cloud drive password cache
+- PDF 页面支持使用选中文本打开划词翻译弹窗。
+- 鼠标悬停翻译新增气泡显示模式，并优化相关设置项布局。
+- 优化划词翻译弹窗位置约束，避免弹窗超出视口，并防止 Logo 被误拖拽。
+- 统一 XML 与按行响应的译文分段解析逻辑，提升 AI 接口响应处理稳定性。
+- 修复 OpenCodeGo 流式响应解析、Playground 表单和划词翻译弹窗相关问题。
 
-## 2026.06.17 — Text Selection Major Improvements
+## v2.0.27
 
-### New Features
-- **TLD Domain Whitelist Validation**: Embedded Top 100 TLD list; only matching domains are recognized as URL links, reducing false positives
-- **Email Detection & @ Button**: When selected text contains `@`, shows the @ button; click copies the full email address to clipboard
-- **Custom TLD Menu Option**: Custom TLDs can be added via script manager menu; supports i18n (Chinese/English/Russian)
+- AI 接口支持配置模型列表 URL，可在接口设置中拉取并选择模型。
+- 新增 OpenCode AI 翻译接口支持。
+- 收藏单词页新增 AI 词典标签页，方便查看不同 AI 词典结果。
+- 优化 YouTube 字幕 AI 断句与分块调度，减少不必要的提前处理。
+- 优化字幕界面显示、悬停查找、列表标签和层级表现。
+- 设置页新增扩展快捷键展示，并增加版本提示。
+- 修复已处理节点可能被重复翻译的问题，并优化内置 AI 超时处理。
 
-### Improvements
-- **Complete rewrite of cloud drive access code extraction**: New `extractLinkAndCode()` function unified URL and password extraction
-  - Supports Chinese noise words (e.g., "删、去、这几个字" etc.) mixed within URLs
-  - Extended password detection keywords: 提取码, 密码, 访问码, 分享码, 口令, code, pwd, key, pw, pass
-  - Supports bracket format extraction: `(访问码:cpn0)` and `(:cpn0)` and `(cpn0)`
-  - Password length expanded to 4-8 characters
-  - Enhanced URL trailing character cleanup
-  - Excludes private IP addresses (10.x, 172.16-31.x, 192.168.x, 127.x, 0.x)
+## v2.0.26
 
-### Technical Details
-- Added `TLD_SET` collection containing 100 TLDs
-- Added `getEffectiveTLDs()` to merge built-in and user-defined TLDs
-- Deprecated old `extractLinkFromText()` and `extractPanCode()` and `PAN_CODE_REGEX`
-- @ button uses SVG icon from at-sign.txt
-- Email detection takes priority over link detection (both @ and URL present → show @ button first)
+- AI 接口支持非批量请求的流式输出，并修复非批量翻译提示词生成问题。
+- 个人规则新增启用/禁用开关，方便临时关闭单条自定义规则。
+- 划词翻译弹窗新增单击翻译、双击翻译和禁用模式，优化复制弹窗内容时的交互体验。
+- 修复划词翻译弹窗相关问题，提升选区状态、弹窗提交和清理逻辑的稳定性。
+- 优化大段纯文本翻译处理，修复纯文本 `<pre>` 内容翻译卡顿或分段异常的问题。
+- 修复用户脚本设置页启动与 GM 桥接兼容性，支持原生和旧版 GM API。
+- 优化繁体中文文案、同步设置标签和接口测试目标语言逻辑，并移除接口排序权重的可见输入项。
+- 修复渐变样式背景色、设置页 URL 匹配和开发环境选项页地址等问题。
 
-## 2026.06.18 — Cloud Drive URL Extraction Precision Fix
+## v2.0.25
 
-### Fixes
-- **Fixed URL path over-consumption**: Dual-strategy URL extraction
-  - Strategy A: Character-by-character scan in original text; Chinese character immediately sets boundary; content after Chinese is not part of URL
-  - Strategy B: If no anchor in original text, search in Chinese-cleaned text (handles extreme cases of Chinese embedded inside URLs)
-  - Fixed `(访问码:cpn0)` being mistakenly absorbed into URL — detects `(` before Chinese as comment boundary and backtracks
-- **RFC 3986 strict character filtering**: Only URL-safe characters (`a-zA-Z0-9._~:/?#[]@!$&'()*+,;=%\-`) allowed in path
-- **Non-ASCII characters rejected**: Chinese, emoji, full-width symbols, etc. will not be mixed into URLs
+- 新增字幕显示顺序设置，支持按偏好调整原文与译文的展示位置。
+- 新增划词翻译按钮位置模式，并优化划词翻译相关控制逻辑。
+- AI 词典支持自定义用户提示词，并修复 popup 中 AI 词典显示异常的问题。
+- 优化提示词签名缓存，使用摘要减少缓存键体积并提升稳定性。
+- 优化字幕 AI 断句与提示词输出要求，修复响应解析失败导致字幕丢失的问题。
+- 修复字幕块修复逻辑过早翻译普通未译字幕的问题，避免绕过预翻译与节流设置。
+- 修复自动扫描时空白文本组仍触发翻译的问题，并增强 `keepSelector` 匹配的兼容性。
+- 优化主页元数据、Logo 与 API 图标路径，并更新版本管理流程文档。
 
-### Test Cases
-- Case 1: `【天翼云盘：https://cloud.189.cn/t/3yqYreieuUFv(访问码:cpn0) 】` → URL correctly extracted as `https://cloud.189.cn/t/3yqYreieuUFv`, password `cpn0`
-- Case 2: `5日iPhone 历代壁纸https://www.aliyundrive.com/s/rxUp6HNpwP8点击链接...` → URL correctly extracted as `https://www.aliyundrive.com/s/rxUp6HNpwP8`
-- Case 3: `htt删p:/去/pan这.bai几du.co个m/s/hff字H57gb?...（提取码:5u8m）` → URL extracted as `http://pan.baidu.com/s/hffH57gb?=yhgfdxcc54`, password `5u8m`
+## v2.0.24
 
-## 2026.06.18 — Protocol-less URL + Multi-Link + Password Extraction Enhancement
+- 新增 AI 词典功能，支持使用检测到的语言进行语音播报。
+- 新增提示词（Prompt）管理功能，方便自定义和管理提示词。
+- 新增同步加密密码支持，进一步提升多端数据同步的安全性。
+- 优化 YouTube 字幕处理：支持翻译失败字幕块的立即修复，并增加导出原始字幕事件为 JSON 的功能。
+- 优化并加固油猴脚本 (GM) 支持：修复 Via 浏览器中的流式 UTF-8 解码回退，完善桥接逻辑及请求回退处理，补充缺失的 connect 域名。
+- 修复并优化 GitHub Gist 同步功能，解决同步重复等问题。
+- 提升安全性与兼容性：使用 Trusted Types 保护 HTML 解析过程，并在界面中隐藏 API 密钥显示。
+- 增强扩展与页面性能：在 manifest 中添加 `match_origin_as_fallback` 以提升匹配能力；延迟选项页面的启动同步并跳过重载重新同步。
+- 接口与体验优化：调整模型 Temperature 步长为 0.1；优化主页 SEO 与元数据；重构项目入口组件并优化构建流程。
 
-### New Features
-- **Multi-link detection and batch open**: Selected text containing multiple URLs shows link count badge; click to open all links (200ms interval to avoid popup blocking)
-- **Protocol-less URL detection**: Supports `cloud.189.cn/t/xxx` format (without `http://` prefix) for automatic domain recognition
+## v2.0.23
 
-### Fixes
-- **`码` keyword password extraction**: Added `/码\s*[:：\s]*([a-zA-Z0-9]{4,8})/` pattern, supporting shorthand formats like `码 7515`
-- **Multi-anchor dedup optimization**: Uses actual URL scan end position for anchor deduplication, preventing incorrect URL merging
+- 全局规则和站点规则新增文本顺序选项，支持译文在上方显示，并让隐藏原文快捷键遵循该顺序。
+- 优化字幕翻译的流式渲染、AI 断句、翻译设置和错误处理，并补充字幕翻译相关测试。
+- OpenAI 兼容接口支持推理模式配置。
+- 优化 YouTube 字幕提供器结构，拆分字幕轨道、字幕处理、AI 断句和播放器 UI 模块，提升后续维护性。
+- 优化 TranslatorManager 在 SPA 页面中的生命周期处理，并修复已处理节点重新扫描的问题。
+- 移除 iframe 白名单设置，空 iframe 不再触发无效翻译流程。
+- 修复划词翻译手动选择接口后被自动切换的问题。
+- 修复 popup 中无害标签页消息错误、油猴脚本环境变量读取、Origin 头伪装范围和右键菜单文案等问题。
 
-### Technical Details
-- `extractLinkAndCode()` return type changed to `{ urls: [...], password }` supporting multi-URL
-- Added `extractUrlsFromText()` function to unify protocol anchors and domain anchors
-- Link button shows red number badge in multi-link mode (e.g., "x3")
-- Added `DOMAIN_ANCHOR_PATTERN` regex for protocol-less domain matching
+## v2.0.22
+
+- 接口设置页优化：新增批量操作、拖拽排序、置顶、按字母排序、禁用沉底、删除默认接口等能力。
+- 接口配置调整：AI 接口支持推理开关，触发模式移动到各接口设置中，并新增一些常用接口。
+- 增加 GitHub Gist 同步功能，并优化 WebDAV 同步时的 cookie 处理。
+- 字幕翻译增强：增加视频上下文摘要、流式渲染、内置统计断句选项、仅译文模式悬停显示原文、可配置加载提示显示。
+- 优化字幕列表性能与交互：虚拟列表、滚动位置保持、字幕项动画性能、YouTube 字幕按钮状态同步和字幕下载触屏兼容。
+- 优化字幕解析与分段：修复 YouTube timedtext 规范化、字幕轨道切换检测、Gemini 截断处理、单词字幕回退、HTML 实体反转义等问题。
+- 划词翻译弹窗支持色彩模式切换、拖拽调整宽度、快捷键，并优化划词按钮跟随选中文本的逻辑。
+- 规则设置新增 iframe 白名单、块级选择器规则、订阅规则单独开关和快速加入黑名单按钮。
+- 增加模糊译文功能、代码型输入框等宽字体、自动设置界面语言、YouTube 隐藏 Logo 等体验优化。
+- 修复新版汉典布局下的单字查询解析、about:blank 页面扩展可用性、忽略 script 元素、部分接口图标暗色模式显示等问题。
+
+## v2.0.21
+
+- 禁用某个翻译服务后，将不再出现在下拉列表中
+- BUILTINAI 翻译服务将区分简体中文和繁体中文
+- 选中单个英文单词，可以设置是否调用翻译服务进行翻译
+- 翻译失败时，显示一个重试按钮
+- AI接口也可以设置专业术语，如果规则中也设置了AI专业术语，会自动合并。
+- 输入框翻译、鼠标悬停翻译、划词翻译 均增加黑名单功能，匹配则会自动禁用。
+- 字幕翻译增加AI专业术语支持。
+- 译文增加 lang 属性。
+- 优化 trustedTypes，提高安全性。
+- 修复换行符处理逻辑引发的系列问题。
+- 支持单个汉字查询（调用汉典）。
+- 其他一些小修改和优化。
+
+## v2.0.20
+
+- 优化本地语言识别不准确时的处理逻辑
+- 修复 MacOS 编译 Safari 插件脚本错误
+- 优化调整划词翻译逻辑
+  - 修复移动端不显示header的bug
+  - 仅对翻译框的大小和位置持久化，其他设置不持久化，仅在当前页面生效
+  - 修复翻译框有时会突然变成0,0位置，和0,0大小的bug
+- 修复移动端输入框翻译圆点按钮无效的bug
+- youtube视频右边的字幕滚动列表可以在设置中选择关闭
+- 接口设置中增加`复制接口`功能
+- 修复接口权重排序在popup无效的bug
+- 规则设置增加`扫描全部节点`的功能，并替换popup中`shadowroot`的位置
+  - `扫描全部节点`相当于忽略所有`忽略元素`，翻译全部内容，并同时扫描`shadowroot`
+- 更新内置部分规则，新安装时会尝试同步订阅规则
+- 其他一下小优化
+
+## v2.0.19
+
+- 修复油猴脚本切换翻译时的脚本错误
+- 添加自动更新版本号脚本
+
+## v2.0.18
+
+- 支持翻译closed模式的 shadowroot 中的内容
+- 保存规则时，可选子域名
+- AI聚合翻译，支持流式传输，优化翻译体验
+- 优化划词翻译窗口显示效果
+  - 划词翻译按钮增加自动隐藏逻辑（5秒 / 移动100px / 右键）
+- 增加翻译状态的图标显示，已翻译会有一个绿色小勾
+- 优化输入框翻译，解决一些兼容性问题
+  - 可设置在输入框上方显示一个圆形翻译按钮，使得移动端也可以使用输入框翻译功能
+- 优化字幕翻译，增加一些新功能
+  - 字幕翻译设置样式时，支持可视化编辑
+  - 优化字幕翻译逻辑，优先使用用户选择的字幕轨
+  - 字幕翻译右侧的字幕滚动列表可以手动点击按钮关闭
+  - 字幕翻译的菜单去掉shadowroot
+  - 增加下拉选项，可以随时切换AI断句的模型
+  - 重构字幕增强功能设置，新增“移动端禁用”选项（默认）
+- 优化移动端检测逻辑，修复触屏笔记本被误判为移动端的问题
+- 在所有场景下均给AI接口添加上下文信息，包括网页标题、描述、摘要
+- 翻译接口增加排序权重
+- 新增占位标签格式，优化google2的翻译效果
+- bing词典增加显示单词时态信息

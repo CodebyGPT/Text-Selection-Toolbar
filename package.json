@@ -1,26 +1,73 @@
 {
-  "name": "text_selection_toolbar-main",
-  "version": "1.0.0",
-  "description": "![GitHub License](https://img.shields.io/github/license/CodebyGPT/Text_Selection_Toolbar) ![GitHub Repo stars](https://img.shields.io/github/stars/CodebyGPT/Text_Selection_Toolbar) ![Greasy Fork Downloads](https://img.shields.io/greasyfork/dt/558720) ![Greasy Fork Rating](https://img.shields.io/greasyfork/rating-count/558720)",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
+  "name": "text-selection-toolbar",
+  "description": "Text Selection Toolbar with the KISS translation engine (userscript-only build)",
+  "version": "2.1.1",
+  "author": "CodebyGPT",
+  "private": true,
+  "dependencies": {
+    "@emotion/cache": "^11.11.0",
+    "@emotion/css": "^11.13.5",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.15.15",
+    "@mui/lab": "5.0.0-alpha.170",
+    "@mui/material": "^5.15.15",
+    "@streamparser/json": "^0.0.22",
+    "dompurify": "^3.4.0",
+    "postcss-selector-parser": "6.1.2",
+    "query-string": "^8.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^8.0.7",
+    "react-router-dom": "^6.30.6",
+    "webextension-polyfill": "^0.10.0"
   },
   "scripts": {
-    "build": "node modules/build.js",
-    "build:watch": "node modules/build.js --watch",
-    "build:minify": "node modules/build.js --minify",
-    "build:all": "node modules/build.js --all",
-    "lint": "node modules/build.js --lint-only",
-    "test": "npm run lint"
+    "prestart": "node scripts/build-toolbar.mjs",
+    "start": "cross-env REACT_APP_CLIENT=userscript react-app-rewired start",
+    "prebuild": "node scripts/build-toolbar.mjs",
+    "build": "node scripts/build.mjs"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "globals": {
+      "GM": true,
+      "unsafeWindow": true,
+      "globalThis": true,
+      "messenger": true,
+      "LanguageDetector": true,
+      "Translator": true
+    }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
   "devDependencies": {
-    "eslint": "^10.5.0",
-    "eslint-plugin-userscripts": "^0.5.6",
-    "globals": "^17.6.0"
+    "@babel/core": "^7.22.20",
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@babel/preset-env": "^7.22.20",
+    "@types/chrome": "0.0.312",
+    "@types/node": "22",
+    "@types/react": "18",
+    "@types/react-dom": "18",
+    "cross-env": "^7.0.3",
+    "prettier": "3.6.2",
+    "react-app-rewired": "^2.2.1",
+    "react-scripts": "5.0.1",
+    "terser-webpack-plugin": "^5.2.5",
+    "typescript": "~5.9.3",
+    "webpack": "^5.64.4"
   }
 }

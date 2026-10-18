@@ -1,4 +1,47 @@
-node_modules/
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnpm-store/
+/.pnp
+/.obsidian
+.pnp.js
+.yarn
+
+# testing
+/coverage
+/tmp/
+
+# production
+/build
+/.local-ai-build/
+
+# misc
 .DS_Store
-*.log
-dist/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+*.patch
+*.crx
+*.pem
+*.zip
+.repomixignore
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/release-kiss-translator/
+!.agents/skills/release-kiss-translator/**
+.claude
+
+# Generated provider example and local acceptance artifacts
+/docs/plugins/examples/*-ui/
+/docs/plugins/examples/service-ui-followups/
+/docs/plugins/examples/provider-validation-report.json
+/docs/plugins/examples/service-form-feature-audit.json

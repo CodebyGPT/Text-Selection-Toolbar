@@ -1,106 +1,214 @@
-# <img src="https://api.iconify.design/material-symbols:touch-triple.svg" width="32"> Text Selection Toolbar - 划词工具栏
+# KISS Translator 简约翻译
 
-> [🇨🇳 中文版](README.md) | [🇬🇧 English](readme_en.md)
+[English](README.en.md) | [中文](README.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
 
-![GitHub License](https://img.shields.io/github/license/CodebyGPT/Text_Selection_Toolbar)
-![GitHub Repo stars](https://img.shields.io/github/stars/CodebyGPT/Text_Selection_Toolbar)
-![Greasy Fork Downloads](https://img.shields.io/greasyfork/dt/558720)
-![Greasy Fork Rating](https://img.shields.io/greasyfork/rating-count/558720)
+[![GitHub Release](https://img.shields.io/github/v/release/fishjar/kiss-translator?color=blue)](https://github.com/fishjar/kiss-translator/releases)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL_3.0-green.svg)](https://github.com/fishjar/kiss-translator/blob/master/LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/fishjar/kiss-translator/pulls)
 
-![demo](https://github.com/user-attachments/assets/f119f59d-fca7-4364-b2e0-c556f2501c7f)
+一个简约、开源的 [双语对照翻译扩展 & 油猴脚本](https://github.com/fishjar/kiss-translator)。
 
-## 这是什么？
+[kiss-translator.webm](https://github.com/fishjar/kiss-translator/assets/1157624/f7ba8a5c-e4a8-4d5a-823a-5c5c67a0a47f)
 
-https://github.com/user-attachments/assets/fb64dc93-37e7-421f-bc5d-89a8ef43b7c8
+## 感谢以下赞助商对本项目的支持
 
-这是一个适用于鼠标或触控板用户的用户脚本（UserScript），目标是复刻 Microsoft Edge 内建的划词工具栏，让用户可以快速地对选中的文本执行复制和搜索等操作，无需频繁打开右键菜单。
+<table>
+  <tr>
+    <td align="center"><img src="https://github.com/user-attachments/assets/8c5f141d-9d13-46b0-832f-f6884db4e5d5" width="600" /></td>
+    <td>
+      <a href="https://go.apimart.ai/gh-gotranslatorrr" target="_blank">
+        <b>APIMart</b> 是专注 AI 图片/视频生成的低价 API 平台，GPT-Image-2 低至 $0.006/张，1 美元可出图 160+ 张。图片、视频一套异步 API 通吃，提交任务拿 ID、回调取结果，跑批万张不超时、换模型不改代码。按量付费、无月费，通过此注册链接注册即可开用。
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://platform.ephone.ai/logo-e.png" width="96" /></td>
+    <td>
+      <a href="https://platform.ephone.ai/" target="_blank">
+        <b>ePhone AI</b> 是一个面向开发者的 AI 模型 API 中转与聚合平台，支持 OpenAI、Claude、Gemini、DeepSeek、GLM 等多家大模型。
+      </a>
+    </td>
+  </tr>
+</table>
 
-## 如何安装？
+## 功能概览
 
-推荐前往 [👉**Greasy Fork**👈](https://greasyfork.org/zh-CN/scripts/558720) 安装，支持自动更新。或者从 [**Github Releases**](https://github.com/CodebyGPT/word_selection_toolbar/releases) 下载并手动导入脚本管理器。
+> **提示**：本文档对应当前分支代码，新增功能（接口插件、本地 AI、文件翻译及剪贴板自动翻译等）目前面向 Chrome/Edge、Firefox 扩展版本提供，油猴脚本及其他客户端暂不包含这些入口。具体 AI 能力取决于所用浏览器、设备硬件及所选模型。
 
-> 如果这是你首次尝试安装用户脚本，在开始前你必须在浏览器中安装一个脚本管理器：Chromium 138+ 推荐使用：[ScriptCat](https://docs.scriptcat.org/)；旧版 Chromium 和 Firefox 浏览器推荐使用：[Violentmonkey](https://violentmonkey.github.io/)、[旧版 ScriptCat（v0.16.x）](https://github.com/scriptscat/scriptcat/releases/tag/v0.16.11)。
+### 翻译场景与交互
 
-## 基本特性
+- **多场景覆盖**：支持网页双语对照翻译、输入框即时翻译、划词查词与鼠标悬停翻译；完美支持富文本排版、自定义译文样式，并支持「仅显示译文（隐藏原文）」。
+- **查词与对比面板**：提供翻译浮窗与独立对比窗口，支持多个翻译服务横向对照、柯林斯/内置英文词典查词与生词本收藏，支持可选的剪贴板自动翻译。
+- **YouTube 双语字幕**：支持基础智能合并算法与 AI 语义断句，提供自定义字幕样式、完整对照列表、字幕悬停查词、生词收藏以及基于字幕的 AI 视频总结。
 
-* 工具栏外观模仿 Apple Inc. 的 Liquid Glass 风格（未来计划增加 hover 高光、点按回弹等跨浏览器通用效果，并使用 CSS 和 SVG filters 实现透镜折射等 Chromium 系浏览器专属效果）
-* 多语言支持（通过机器翻译实现）
-* 低内存占用
-* 100% 事件驱动
-* 运行在隔离的上下文中，且默认情况下不对网页进行任何修改，不影响网页正常运行
-* 100% 离线运行（脚本的自动更新是脚本管理器通过读取脚本元数据段实现的）
-* 无混淆代码
-* 依据最新的 [MDN Web Docs](https://developer.mozilla.org/zh-CN/docs/Web) 开发，力求最广泛的兼容性
+### 服务配置与接口插件
 
-## 已实现功能
+- **海量内置服务**：涵盖主流传统与 AI 翻译服务，包括 Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX，以及 OpenAI、Gemini、Claude、Ollama、DeepSeek、OpenRouter、OrcaRouter、Requesty、AzureAI、CloudflareAI，并支持 Chrome 浏览器内置 AI 与本地 AI。
+- **按能力自由选用**：按文本翻译、词典查词、字幕断句、OCR 识别、语音合成等能力独立配置服务与模型参数；根据模型能力无缝支持批量聚合翻译、流式输出、上下文记忆对话、AI 专业术语及思考链（Reasoning）配置。
+- **接口插件体系**：支持通过 ZIP 压缩包、本地文件夹、GitHub 项目根地址或 HTTPS 链接导入扩展插件；提供细粒度权限授权/撤销、手动更新及配置实例升级。
+- **开放自定义协议**：任意非标准 API 均可通过插件实现对接。详细开发指引请参阅 [插件开发指南](docs/plugins/plugin-development-guide.md)、[OpenAI 兼容示例](docs/plugins/examples/openai-compatible-bundle/README.md) 和 [DeepSeek 声明式示例](docs/plugins/examples/deepseek/README.md)。
 
-|功能名称|具体内容|重要更新日志|
-| :--------  | :-----  | :----:  |
-|🖱️ 网页划词|弹出快捷复制、搜索栏。如果文本含超链接则弹出打开（新建标签页）按钮，如果是常见的网盘链接同时附带访问密码+用户开启了“闪电粘贴”，则跳转到新标签页后点击输入框可以快速粘贴密码。|2025.12.12-功能上线、2026.1.5-增加 UI 重绘设置项、2026.1.19-增加智能分配搜索引擎功能|
-|⌨️ 输入框划词|弹出快捷复制、剪贴按钮。在中文环境下若匹配到内置规则时（例如中英文字符之间没有空格且没有被引号框住）弹出校对按钮。|2025.12.12-功能上线|
-|⚡ 闪电粘贴|复制后，在任意标签页的输入框中点击直接弹出粘贴按钮。|2025.12.12-功能上线|
-|🔓 超级取词（Unlock Mode）|按住热键（默认左Ctrl），可以临时移除网页通过 JS 或 CSS 对选中、复制、Ctrl+C 等操作的干扰，使被鼠标点击的密码暂时变成明文，可完整选取被折叠的文本，松开热键一切复原。测试效果：https://www.wlgooo.com/19458.html 、 https://rehtt.com/ 、 https://www.cnblogs.com/ppqppl/articles/17461611.html 、 https://www.baidu.com/s?wd=0 （测试是否可以展开因 text-overflow 属性折叠的文本）|2025.12.12-功能上线|
-|🔗 拖拽预览|拖拽任意超链接可打开小窗快速预览。|2025.12.12-功能上线|
-|🚫 屏蔽网页自带划词条|干掉讨厌的网页自带的划词条。|2025.12.12-功能上线|
+### 本地 AI（边缘端计算）
 
-## To Do
+- **全流程端侧多模态**：内置模型中心，支持模型的下载、删除与设备环境选择（GPU/CPU）；提供涵盖 LLM 文本生成、VLM 图像理解、OCR 文字识别、ASR 语音转写、TTS 语音合成、JEV 判定和版面分析的独立功能测试页。
+- **运行控制与缓存**：支持实时查看运行状态与调试日志、手动停止推理任务、卸载内存/显存中的已加载模型；支持文本与结构化推理结果缓存（二进制音频/图片暂不缓存）。
+- **隐私与轻量纯离线**：模型下载完成后所有计算均在本机设备运行，保护数据隐私；云端服务保持原有网络请求逻辑。（可用性、推理速度与内存占用取决于具体硬件环境与模型大小）。
 
-|类型|事项|详情|优先级|
-| :--------  | :--------  | :-----  | :----:  |
-|👾 Bug|超级取词在部分网站无法正常运作|1、某些网站（如知乎专栏）由于使用了自定义的字体，导致复制的内容含有乱码。有的网站使用canvas等方式将文字“画”到了屏幕上，导致无法以文本形式复制目标内容。解决上述问题的通用办法是OCR；2、shadow-root相关：用户可能会发现在某些网站中（如msn.cn），无论是否按住超级取词热键，都无法选取特定文本，这是因为目标文本在shadow-root里面，外部JavaScript无法去除影子内部设置的user-select: none|常驻|
-|👾 Bug|网页划词-优化检测提取网盘访问码相关逻辑|例如：文本【 天翼云盘：https://cloud.189.cn/t/3yqYreieuUFv(访问码:cpn0) 】被识别成了链接【 https://cloud.189.cn/t/3yqYreieuUFv(:cpn0 】，文本【 5日iPhone 历代壁纸https://www.aliyundrive.com/s/rxUp6HNpwP8点击链接保存,或者复制本段内容,打开「阿里云盘」APP ,无 】被识别为了链接【 https://www.aliyundrive.com/s/rxUp6HNpwP8,,「」APP 】|高|
-|👾 Bug|输入框划词-优化剪切按钮的逻辑|在某些网页（如 markdown.lovejade.cn ）的输入框中，选取文本后点击剪切按钮，选中的文字没有被删除|中|
-|👾 Bug|闪电粘贴-通过闪电粘贴功能粘贴文本无法触发粘贴事件|如在百度翻译 fanyi.baidu.com 中，在输入框中使用闪电粘贴粘贴文本后未能触发翻译|中|
-|👾 Bug|超级取词-“允许折叠文本滚动”功能可能会破坏网页布局|该功能会造成某些元素发生错位，如百度搜索右边栏中的“弹幕互动”模块|中|
-|👾 Bug|网页划词-UI重绘-反向选区的按钮在页面scroll/resize后重新出现的位置退回正向选区的逻辑|（同左）|中|
-|👾 Bug|输入框划词-UI重绘-UI在某些情况下无法触发重绘|例如GitHub编辑readme.md时，输入框scroll后UI仍在原位置，没有触发重绘|中|
-|👾 Bug|输入框划词-UI重绘-UI重绘后退回网页划词的逻辑|例如GitHub编辑readme.md时，在UI可见期间resize窗口，UI重绘后变成复制、搜索双按钮样式|中|
-|👾 Bug|输入框划词-在特定网页中，无法触发UI重绘、反向选区中UI始终在锚点下方|例如用户在哔哩哔哩视频评论区的任意评论中划取文本，会观察到当页面scroll/resize后UI直接消失没有重绘，而且反向选取文本，UI出现位置始终在锚点下方。但划取右侧相关视频的标题文本就没有上述问题。初步判断是在有特定网页中，脚本获取到的锚点坐标定位有飘移。|中|
-|👾 Bug|输入框划词-脚本因无法取得锚点坐标而自动降级为根据光标位置弹出UI后，UI出现位置距离光标太近|即使设置了UI弹出位置偏移量，在某些场景下UI出现位置仍然距离光标太近，可能会阻挡用户的操作|中|
-|👾 Bug|超级取词-按下并松开超级取词默认热键LeftCtrl后光标会消失，可能影响用户体验|在默认设置下，用户在输入框中按下Ctrl+V粘贴文字时，会同步触发超级取词模式，松开后超级取词会退出，同时光标消失，导致用户需要再次点击输入框才能继续输入文字。这是超级取词默认热键与系统默认快捷键重合导致的用户输入体验中断，需要考虑如何优化，初步设想了以下方案：1、进入超级取词前先判断当前光标是否在输入框内，如果是则不进入超级取词模式；2、进入超级取词前记录下光标位置，退出超级取词后还原光标位置|低|
-|🧩 Feature|闪电粘贴-改进自动清除缓存功能|目前的规则是粘贴后自动清除缓存，改为标签页失焦后再清除缓存，这样可以允许用户一次性在同一个页面中反复使用闪电粘贴粘贴文本|高|
-|🧩 Feature|闪电粘贴-在工具栏中显示待粘贴的文本|在工具栏的粘贴图标的旁边显示待粘贴的文本，超出部分用省略号折叠防止把工具栏撑太宽。提供设置允许用户决定是否显示待粘贴的文本|高|
-|🧩 Feature|闪电粘贴-允许用户未通过本划词工具栏复制文本也能触发闪电粘贴|监听copy事件，闪电粘贴则通过模拟Ctrl+V实现，由于没有读取剪切板，此类闪电粘贴只能在工具栏中显示单个粘贴图标，无法显示待粘贴的文本|高|
-|🧩 Feature|网页划词-优化超链接识别|现有识别规则太过宽泛（脚本会把“abcd.efg”也识别成超链接），计划内置一个常见的顶级域名列表来解决该问题|高|
-|🧩 Feature|网页划词、输入框划词-划词翻译|计划支持两种翻译方式：1、调用[Stranslate](https://github.com/STranslate/STranslate)提供的本地翻译服务，计划暂时只提供文本翻译；2、调用 Google Chrome 在 138+ 开始提供的 Translator API，计划暂时只实现en→zh翻译。Built-In AI Playground: https://ai.etiennenoel.com/translator-api 。Availability Code：const availability = await Translator.availability({sourceLanguage: "en", targetLanguage: "zh"}); 。Execute Code：const translator = await Translator.create({sourceLanguage: "en", targetLanguage: "zh", monitor(m) {m.addEventListener("downloadprogress", e => {console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);});},}); await translator.translate("Hello World") 。3、 翻译时忽略代码、含超链接的文本和被英文双引号框住的文本。4、不论是网页划词翻译还是输入框划词翻译，翻译后的文本都以白色半透明悬浮窗的样式展现，区别是输入框划词结果多了一键替换原文的选项。备注：全页翻译功能由于涉及多次请求、文本替换、实时翻译新内容等复杂操作，且全页翻译这项功能与“Text Selection Toolbar”联系不大，所以暂不计划在本项目中实现全页翻译功能。|高|
-|🧩 Feature|输入框划词-自动微调选区|1、自动选中相邻空白符：如果用户选中了空白符，但是脚本检测到相邻位置仍有空白符用户没有选中，脚本会通过input.setSelectionRange(start, end)方法扩展选区以覆盖所有相邻的空白符，方便用户下一步一键删除所有空白符。2、自动排除首尾空白符：如果用户选中了一段文字，但是这段文字的首尾存在空白符，脚本就通过range.setStart() 和 range.setEnd()缩小选区，避免选中用户不想要的空白符。3、脚本原逻辑是用户选中任意数量的空白符时直接hideUI，需要修改代码使得用户在选中空白符时可以弹出删除按钮|高|
-|🧩 Feature|闪电粘贴-支持监听全局剪切板|目前的闪电粘贴只有在浏览器内使用本工具栏提供的按钮复制→8秒内点击任意输入框才能触发闪电粘贴。未来计划编写一个运行在操作系统层面的应用程序，作用是记录最新的剪切板写入时间，油猴脚本通过 GM_xmlhttpRequest (HTTP GET) 按需与该应用程序通信，当用户每次点击输入框时都从应用程序拉取最新的剪切板写入时间，若最近写入时间在8秒内弹出闪电粘贴按钮，用户点击闪电粘贴按钮通过模拟ctrl+v粘贴，全程避免读取剪贴板内容|高|
-|🧩 Feature|网页划词-临时切换搜索引擎功能|1、划词后长按搜索按钮（长按是初步设想，最终触发方式待定），会出现搜索引擎列表，用户可选择非默认搜索引擎发起搜索。另外用户还可以设置在选择使用非默认搜索引擎后，是否需要临时将该搜索引擎设置为默认搜索引擎，直至浏览器关闭；2、考虑是否移除原“智能分配搜索引擎”功能，因为根据选中的文本中是否包含汉字来判断是用百度还是谷歌搜索的方式太简单粗暴|中|
-|🧩 Feature|重写“缓存已输入文本” 功能，改名为“输入框历史记录”|类似很多论坛的富文本编辑框自带的定时备份草稿功能。用户在任意一个输入框中输入文字时，脚本为这个输入框创建一个唯一标识符，并将最后一次的输入内容缓存下来（需要排除清空输入框的行为）.触发开始缓存和更新缓存的操作都是用户的键入行为而不是轮询|中|
-|🧩 Feature|网页划词-划词分享|1、划取文本后弹出分享按钮，点击分享按钮就生成一个分享卡片（纯文本/markdown格式/图片格式可选）并写入系统剪切板，卡片内容包括选中的文本、网页链接、网站 Favicon（可选）、网页标题（可选）、生成时间（可选）、选中文本的上下文（可选）、“由<脚本名称>生成...”提示（可选）等信息；2、支持与文本流转功能联动，将多条文本合并在同一个分享卡片中|中|
-|🧩 Feature|网页划词-文本流转|默认是折叠状态（在网页右上角显示一个贴边悬浮球），用户在网页中划词后可将选中的文本拖放到悬浮球上。点击悬浮球可展开列表（展开/折叠状态默认在所有标签页中同步），每个条目都以长条胶囊形的文本框显示，用户可以将每个胶囊拖放到网页任意输入区中，也可以多选多个条目后按选择顺序进行换行拼接后复制或首尾拼接后复制。该功能还要提供设置让用户选择关闭浏览器时是否保存流转中的文本|中|
-|🧩 Feature|网页划词-划词多选|初步定为超级取词的二级功能，用户激活超级取词后，划词后显示复制和多选两个按钮，多选按钮图标为📌图钉形状。在激活超级取词期间，划取任意一段文本并点击弹出来的多选按钮，文本背景会一直高亮，表示处于被选中状态，当用户多选多条文本并松开超级取词热键后，出现按钮“换行拼接”、“首尾拼接”、“添加顿号并首尾拼接”（如果脚本语言为非中文则是“添加半角逗号并首尾拼接”选项）和“文本流转”四个选项。该功能支持反选，比如用户划动选取已经高亮处于多选状态的文本时，点击弹出的多选按钮可以取消选中这段文本。并且激活unlock mode时，双击鼠标并拖动可画出一个浅蓝色半透明方框（双击鼠标是初步设想，最终触发方式待定），松开鼠标后框住的文本会被选中或取消选中，可参考：https://mybrowseraddon.com/select-copy-html-text.html|高，其中“文本流转”选项需等待文本流转功能实现|
-|🧩 Feature|超级取词-穿透遮罩|当光标选中遮罩元素时，把它的pointer-events从all改成none|中|
-|🧩 Feature|超级取词-Canvas转文本|有的网页把文字用fillText画到Canvas画布上，计划按住超级取词并点击对应Canvas元素时直接hook Canvas的fillText调用拿到真实文本参数，并将结果复制到系统剪切板。技术验证脚本“Canvas fillText 文本提取器.js”已上传至本仓库|中|
-|🧩 Feature|光标移至pre:has(code)代码块内时，显示复制全部代码按钮|（同左）|中|
-|🧩 Feature|拖拽预览-父tab重获焦点且用户点击父tab中任意位置后子tab自动关闭|用户在父tab中通过拖拽链接打开预览弹窗（子tab）后，父tab会被覆盖上全屏灰色半透明层，脚本利用GM_getTab获取父、子tab的TabID，（如果用户在子tab中又通过拖拽链接产生其他弹窗，这些弹窗视为父tab的其他子tab），将父子TabID关联起来，若用户点击父tab的灰色滤镜层，则自动销毁所有子tab，达到预览结束后即走的快捷体验；若用户直接关闭了父tab，则子tab不再等候销毁|中|
-|🧩 Feature|尝试增强 UI 的 Liquid Glass 效果|目前的效果只是背景模糊+边缘静态高光，没有让背景扭曲变形等的高级效果。实现真·液态玻璃的方法可参考：https://kube.io/blog/liquid-glass-css-svg/ |低|
-|🧩 Feature|输入框划词-优化文本校正|1、丰富校正规则：比如选区中出现了两个相同朝向的双引号或左右引号位置反了或一个是中文双引号一个是英文双引号，就显示校对按钮，点击更正为正确的左右中文双引号；中文后面是英文句号就改为中文句号（需要避免误伤文件扩展名中的英文句号）等；2、默认禁用“在中英字符中间自动插入空格”规则，因为不常用；3、计划实现一个二级菜单，允许用户自定义校对功能等开启或禁用；4、未来计划增加调用本地模型来校正文本|低|
-|🧩 Feature|输入框划词-解析中国大陆第二代居民身份证号码|按钮弹出条件：1、脚本语言为中文；2、选区为18位纯数字或17位数字+字母X；3、开头两位数字为11-65。点击按钮后，toast通知显示“🚹/🚺这是有效的二代身份证号，男/女，xx周岁，xx省/区xx市xx区/县”或“❌身份证号码校验未通过”|低|
-|🧩 Feature|输入框划词-校验银行卡号|利用Luhn算法校验银行卡号有效性。点击按钮后，toast通知显示“这是有效的银行卡号，交易前建议再次核对以确保财产安全。”或“这是无效的银行卡号” https://github.com/whinc/whinc.github.io/issues/6 |低|
-|🧩 Feature|复制时保护|当网页在可见文本中嵌入隐藏或离屏文字时警告用户。恶意网页可能会通过此类手法，将恶意代码隐蔽插入复制的内容中，demo：https://thejh.net/misc/website-terminal-copy-paste 。脚本需要检测选取内的文本是否正在使用font-size: 0、使用绝对或固定定位在屏幕外、采用绝对或固定定位结合transform: scale(0)等|低|
-|🧩 Feature|复制时保护|识别并提醒Unicode 同形字攻击，防止攻击者用长得一模一样的 Unicode 字符替换常用的 ASCII 字母实施虚假网址诈骗（西里尔字母 а（U+0430）和拉丁字母 a（U+0061）肉眼完全无法区分）|低|
-|🧩 Feature|复制时保护|识别并提醒复制的文本中是否隐藏了零宽字符（U+200B、U+200C、U+200D、U+FEFF）， 部分网站通过嵌入肉眼完全看不见的由零宽字符组成的唯一ID追踪用户|低|
-|🧩 Feature|修改“删除按钮可见性设置项”设置项|原选项是隐藏和始终可见，再增加一个“仅全选整行时可见”设置项，通过检查 selectionStart 和 selectionEnd 位置前后字符是否换行符（\n）来判定|低|
-|🧩 Feature|输入框划词-双击输入框后自动全选文本并弹出划词栏|提供三个选项：关闭（默认）、双击全选但不弹出划词栏、双击全选并弹出划词栏。当输入框类型为单行时双击后全选所有文本，当输入框类型为多行时，双击选中光标位置所在的一整行|低|
-|🧩 Feature|网页划词、输入框划词-划取文字时，在光标附近显示放大镜|仿iOS选择文字时的放大镜功能，按下鼠标时立即显示，松开渐变消失|低|
-|🧩 Feature|在网页右下角添加滚动到顶部或底部的按钮|该功能默认关闭|低|
-|🧩 Feature|升级节日彩蛋功能|1、原彩蛋仅在圣诞节或农历春节生效，而且是简单的粒子效果，计划扩展至常见的公历和农历节假日，而且用与节日相关的emoji替代简单的彩色粒子。2、计划在愚人节、618、双十一显示虚假的开通会员有优惠彩蛋，用户与彩蛋交互实际得到的是引导用户点亮本项目star或参与贡献本项目的信息。3、提供禁用所有彩蛋的菜单设置项。节日以及对应的emoji：2月14日-情人节-💕💋💍💌、3月8日-妇女节-🎀💄👗👠、3月17日-圣帕特里克节-🍀💚☘️📗、5月1日-劳动节-💼 📎📌🖊️🗒️、5月17日-国际不再恐同日-🌈🏳️‍🌈🏳️‍⚧️🩷 、6月1日-儿童节-🧸🍭🍰🎠、10月31日 万圣节-🎃👻🍬🦇、11月1日至11月2日-亡灵节-⚰️✝️🕯️🌼💀、12月25日 圣诞节-🎄🎁❄️🧦🔔、农历正月初一--春节-🧨🧧🥟🎇、农历正月十五-元宵-🥣🏮🍡⚪️、农历五月初五-端午-🐉🐲🍚🛶、农历八月十五--中秋节-🌕🌛🥮🦀|低|
-|🧩 Feature|网页编辑-增加更多编辑按钮|如：撤销、还原、斜体、下划线、删除线、增大字号、减小字号、对齐、缩进、格式刷等|低|
-|🧩 Feature|拦截网页静默向剪贴板写入内容的行为|当检测到用户没有点击、复制等事件时，网页发生剪贴板写入行为，提示用户，用户可以手动选择默认阻止该网站的复制写入剪贴板的权限。不过鉴于滥用剪贴板写入权限的网站非常少所以需要考虑是否有必要加入这个功能|待定|
-|🧩 Feature|输入框划词-在多行输入区中增加插入换行按钮|当用户点击输入框中任意一行的末尾时，在光标附近显示换行按钮，点击换行按钮即可在此处换行|待定|
-|🧩 Feature|输入框划词-在多行输入区中增加删除换行按钮|触发检测的事件：1、正向选区末尾后没有字符或反向选区末尾前没有字符→用户点击脚本的删除按钮；2、用户点击输入区。检测方法：判断光标是否位于一个没有任何字符的空行且上方存在行。检测通过：显示删除换行按钮，用户点击后删掉当前空行。如果在删除换行按钮显示期间用户点击了输入区的其他位置改变了光标位置，则立即hideUI|待定|
-|🧩 Feature|图片放大查看|仿淘宝京东网页端的商品图放大预览功能，光标移动至图片上方时，在图片一角显示“放大镜”按钮，点击按钮后可放大查看图片。虽然这是个实用功能，但由于和“Text Selection Toolbar”没什么关系，需要考虑是否需要单独作为一个脚本发布|待定|
-|💡 Other|创建GitHub Page用于展示本项目的价值|（同左）|低|
-|💡 Other|将本项目模块化开发|（同左）|进行中|
-|~~👾 Bug~~|~~复制表格内的文本时，复制的文本前面可能携带无用的制表符和换行符~~|~~用户跨单元格边界选取文本时，浏览器会插入 \t（U+0009，水平制表符）和 \n 来保持表格结构，导致用户有时候会发现复制出的文本前面会有两个空白符（其实是制表符和换行符），需要考虑如何优化~~|由于这是浏览器标准行为，暂不处理|
+### 文件翻译
 
----
+- **多格式支持与能力拆分**：支持 TXT、Markdown、PDF、EPUB 电子书，以及 PNG、JPEG、WebP 图片；各阶段可独立选用专用的翻译、OCR 识别、版面分析与表格/公式解析服务。
+- **PDF 深度解析**：支持原文阅读、版面结构检测、文字识别、表格/公式解析与分阶段翻译及结果缓存；支持导出为 Markdown、单文件 HTML 或带资源的 ZIP 包（不还原 PDF 排版，不导出 PDF）。
+- **EPUB 电子书翻译**：支持按章节阅读/单章翻译、整本图书批量翻译、自定义阅读排版样式；支持导出双语 EPUB、纯译文 EPUB 或当前章节 HTML。
+- **纯文本与图片翻译**：TXT 支持下载双语对照或纯译文；Markdown 支持导出翻译后 Markdown/HTML；图片支持文字识别、选区翻译及译文图片（PNG）下载。
 
-## 备注
+### 规则、设置与同步
 
-1. 本项目使用的部分图标来自 allsvgicons.com、iconpark.bytedance.com 等平台。
-2. （Vibe Coding 声明）本脚本由多个 LLM 编写而成。
-3. 本项目参考了 greasyfork.org/zh-CN/scripts/445489-网盘链接识别 、 greasyfork.org/zh-CN/scripts/439266-网盘有效性检查 、 github.com/Magiclyan/panAI（forked from syhyz1990/panAI）、github.com/sparanoid/chinese-copywriting-guidelines 等项目。
-4. 对本项目的任何修改、转载、发布均无需取得我的同意。
-5. 我使用的 Web 浏览器是 [Chromium](https://github.com/Hibbiki/chromium-win64)，Chromium 是一个积极开发中的项目，一旦 Chromium 在未来加入了原生的划词工具栏，本项目将停止维护。
+- **智能与自定义规则**：支持网页内容自动识别扫描；提供可视化元素选取器，支持草稿编辑、撤销/重做、翻译范围高亮预览；支持规则订阅、导出分享及个人专业术语库。
+- **配置管理与测试套件**：提供设置全局搜索、系统提示词模板管理、服务连通性测试工具、术语库与字幕断句调试工具。
+- **多端数据同步**：支持通过 [KISS-Worker](https://github.com/fishjar/kiss-worker)（基于 Cloudflare Workers 或 Docker 自建）或标准 WebDAV 协议进行全量配置跨设备同步。
+- **自定义全局快捷键**：
+  - `Alt+Q`：开启/切换网页翻译
+  - `Alt+D`：打开独立翻译窗口
+  - `Alt+K`：打开设置浮窗
+  - `Alt+S`：打开翻译弹窗 / 翻译选中文字
+  - `Alt+O`：直接打开完整设置页
+  - `Alt+I`：翻译当前光标所在输入框
+
+## 快速上手
+
+### 基础使用（3 步极速上手）
+
+1. **添加翻译服务**：打开扩展设置中的「服务配置」，添加所需内置服务，填写 API 地址、API Key 和模型名称，点击「测试」确认可用后保存。
+2. **场景关联服务**：在「场景设置」中（网页翻译、划词查词、输入框翻译或字幕翻译）勾选对应服务（仅具备对应能力的服务会出现在列表中）；可在「提示词管理」中定制 Prompt 模板。
+3. **启动翻译体验**：点击网页浮动图标或使用快捷键 `Alt+Q` 启动网页翻译；使用 `Alt+D` 打开独立窗口可同时对比多个服务的翻译质量。
+
+### 进阶功能上手
+
+- **使用接口插件**：在「接口插件」页面导入 ZIP 文件、文件夹或 GitHub/HTTPS 仓库链接，完成权限检查并授权；随后在「服务配置 → 添加 → 外部插件」中创建服务实例并配置使用。（注：授权属于本机状态，同步到新设备后需重新授权）。
+- **启用本地 AI**：打开「本地 AI」模块，先检测设备环境（WebGPU/WASM 等）；在「模型中心」下载所需任务模型，并在任务测试页调试；随后在「服务配置」中添加对应的本地 AI 服务并在各场景中选用。
+- **文档与图片翻译**：打开「文件翻译」页面，上传文件并设定源语言与目标语言；分别选择识别与翻译服务后点击处理。PDF 支持逐步执行版面识别与翻译，EPUB 支持单章或全书翻译，处理完成后选择相应格式导出。
+
+## 安装
+
+> **建议优先使用浏览器扩展**：
+>
+> - 浏览器扩展提供更完整的能力（本地语言识别、独立窗口、文件翻译、本地 AI、右键菜单等）。
+> - 油猴脚本受浏览器沙箱限制，缺少扩展专有 API，且可能遇到跨域或脚本管理器兼容性问题。
+
+### 浏览器扩展
+
+- **Chrome**：[Chrome 应用商店安装](https://chrome.google.com/webstore/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof?hl=zh-CN)（Android 端支持 Kiwi 浏览器，iOS 端支持 Orion 浏览器）
+- **Edge**：[Edge 外接程序安装](https://microsoftedge.microsoft.com/addons/detail/%E7%AE%80%E7%BA%A6%E7%BF%BB%E8%AF%91/jemckldkclkinpjighnoilpbldbdmmlh?hl=zh-CN)
+- **Firefox**：[Firefox 附加组件安装](https://addons.mozilla.org/zh-CN/firefox/addon/kiss-translator/)
+- **Thunderbird**：[GitHub Releases 下载 xpi](https://github.com/fishjar/kiss-translator/releases)
+- **Safari**：暂未支持（Mac / iOS 规划中）
+
+### 油猴脚本
+
+- **桌面端（Chrome / Edge / Firefox）**：安装 [Tampermonkey](https://www.tampermonkey.net/) 或 [Violentmonkey](https://violentmonkey.github.io/) 后点击安装：
+  - [直接安装脚本（GitHub Pages）](https://fishjar.github.io/kiss-translator/kiss-translator.user.js)
+  - [Greasy Fork 脚本主页](https://greasyfork.org/zh-CN/scripts/472840-kiss-translator)
+- **iOS Safari**：安装 [Userscripts Safari](https://github.com/quoid/userscripts) 扩展后点击安装：
+  - [直接安装 iOS 专用脚本](https://fishjar.github.io/kiss-translator/kiss-translator-ios-safari.user.js)
+
+## 关联项目
+
+- **[KISS-Worker](https://github.com/fishjar/kiss-worker)**：自建跨设备数据同步服务，支持 Cloudflare Workers 无服务器部署或 Docker 私有化部署，兼顾数据私密性与私有规则分享。
+- **[kiss-rules](https://github.com/fishjar/kiss-rules)**：社区维护的规则库，提供最新、最全的网站适配订阅规则，亦可交流和求助特定网站规则编写。
+
+## 常见问题
+
+### 如何设置自定义快捷键？
+
+由于浏览器快捷键管理的限制，需要在浏览器内置的管理页中进行设置：
+
+- **Chrome / Edge**：地址栏访问 `chrome://extensions/shortcuts`
+- **Firefox**：地址栏访问 `about:addons`，点击右上角齿轮图标选择「管理扩展快捷键」
+
+### 翻译规则的生效优先级是怎样的？
+
+规则按照以下层级覆盖生效：
+**个人规则 > 订阅规则 > 全局规则**（全局规则作为基础默认配置）。
+
+### 如何在网页上可视化编辑规则？
+
+1. 打开网页翻译面板，点击「编辑网站规则」，选择规则用途（如翻译目标、排除区域、保留原文等）。
+2. 在网页上点击目标元素，或手动输入 CSS 选择器。支持调整祖先路径层级、对比定位候选并实时查看匹配元素数量。
+3. **草稿机制**：所有的修改、删除与撤销/重做均仅保存在临时草稿中；点击「保存规则」后才会真正写入并触发数据同步。「预计翻译范围」仅对当前已加载的 DOM 节点进行高亮预览，不向翻译服务发送请求。
+4. **继承与重置**：「恢复此组继承」将重新沿用订阅或全局规则；「清空此组」设置显式空值（清空根容器将不再扫描整页）。
+5. _注：可视化选取目前支持桌面端标准 DOM 页面，暂不支持 iframe 内部嵌套、Shadow DOM 内部、Canvas 渲染文本及触屏手势。_
+
+### 服务测试失败怎么办？
+
+- **核对连接信息**：请仔细核对接口协议、API 地址、API Key 及模型名称是否匹配。若服务或模型不支持批量聚合或流式传输，请关闭对应开关。
+- **Ollama 本地服务**：内置的 Ollama 适配使用 OpenAI 兼容协议（请确保路径正确，非 `/api/chat` 原生协议）；本机调用时需注意服务启动状态与跨域配置（如设置环境变量 `OLLAMA_ORIGINS=*`），详情参考 [Ollama 连接问题 #174](https://github.com/fishjar/kiss-translator/issues/174)。
+- **外部插件服务**：请先在「接口插件」页面完成插件授权，再进行服务测试。若需调整协议或请求体，请在插件声明式规则或源码中调整并升级实例。
+
+### 为什么在设置中找不到本地 AI、文件翻译或接口插件入口？
+
+- 这些高级功能入口目前仅在 Chrome/Edge、Firefox 的桌面扩展版本中提供。
+- 若使用商店已发布版本，可能因审核周期尚未同步当前代码分支的最新功能。
+- 在部分设备上，若浏览器缺少必要特性（如 WebGPU 支持）或本地模型未下载完成，相关操作按钮可能会处于禁用或未就绪状态。
+
+### 油猴脚本如何访问外部服务及进入设置页？
+
+- **跨域授权**：油猴脚本发起网络请求时，必须在脚本管理器弹窗中允许对应域名的访问权限。
+- **功能差异**：接口插件与本地 AI 目前仅限浏览器扩展使用，油猴脚本暂不支持。
+- **设置页面**：可随时直接访问在线版 [油猴脚本设置页面](https://fishjar.github.io/kiss-translator/options.html)。
+
+## 未来规划
+
+本项目为业余开源项目，无严格发布时间表，非常欢迎社区共建与提交 PR！
+
+- [x] **聚合发送文本**：优化请求策略，减少翻译接口调用次数，提升性能。
+- [x] **增强富文本翻译**：支持复杂页面结构与富文本格式的准确翻译。
+- [x] **强化自定义/AI 接口**：支持流式传输、上下文记忆、多轮对话等高级 AI 功能。
+- [x] **英文词典备灾机制**：当翻译服务失效时，可切换其他词典或 fallback 到本地词典查询。
+- [x] **优化 YouTube 字幕支持**：改进流式字幕的合并与翻译体验，减少断句。
+- [x] **支持边缘 AI 计算**：本地轻量 LLM、VLM、ASR、OCR、TTS、JEV 和版面分析辅助翻译。
+- [x] **支持文档与图片翻译**：支持 TXT、Markdown、PDF、EPUB 和 PNG/JPEG/WebP 图片翻译。
+- [ ] **分布式共享平台**：引入分布式共享机制，用于便捷分享字幕、规则等。
+- [ ] **翻译 Agent**：自研智能翻译 Agent，实现深层语境理解与上下文决策。
+- [ ] **项目架构现代化**：重新规划整理功能模块，使用现代技术栈重构项目架构。
+
+如果你对上述方向感兴趣，欢迎在 [Issues](https://github.com/fishjar/kiss-translator/issues) 中讨论或提交 PR！
+
+## 开发指引
+
+### 本地编译
+
+```sh
+git clone https://github.com/fishjar/kiss-translator.git
+cd kiss-translator
+git checkout dev # 提交 PR 建议基于 dev 分支
+pnpm install
+pnpm build
+```
+
+插件开发请阅读 [插件开发指南](docs/plugins/plugin-development-guide.md)，并参考 [OpenAI 兼容示例](docs/plugins/examples/openai-compatible-bundle/README.md) 或 [DeepSeek 声明式示例](docs/plugins/examples/deepseek/README.md)。
+
+### 外部触发示例
+
+网页脚本可通过触发自定义事件控制翻译器：
+
+```js
+// `toggle_translate`   切换网页翻译
+// `toggle_styles`      切换译文样式
+// `toggle_popup`       打开/关闭控制面板
+// `toggle_transbox`    打开/关闭独立翻译弹窗
+// `toggle_hover_node`  翻译鼠标悬停段落
+// `input_translate`    翻译当前输入框
+window.dispatchEvent(
+  new CustomEvent("kiss_translator", { detail: { action: "toggle_translate" } })
+);
+```
+
+## 交流
+
+- 加入 [Telegram 群组](https://t.me/+RRCu_4oNwrM2NmFl)
+
+## 赞赏
+
+如果您觉得 KISS Translator 对您有所帮助，欢迎赞赏支持作者继续维护！
+
+![appreciate](https://github.com/fishjar/kiss-translator/assets/1157624/ebaecabe-2934-4172-8085-af236f5ee399)
