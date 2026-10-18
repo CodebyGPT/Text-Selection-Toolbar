@@ -19,8 +19,6 @@ import { GLOBAL_KEY } from "./rules";
 import { defaultServices } from "./defaultServices";
 import { DEFAULT_CUSTOM_STYLES } from "./styles";
 
-export const TRANS_MIN_LENGTH = 2; // 触发网页翻译的最小文本字符数 (过短字符如单个字母不予处理)
-export const TRANS_MAX_LENGTH = 100000; // 单次翻译的最大字符数
 export const TRANS_NEWLINE_LENGTH = 20; // 文本被认定为需要单独换行的长度限制
 
 // --- 工具栏弹窗默认界面 ---
@@ -248,7 +246,6 @@ export const DEFAULT_SETTING = {
   uiLang: "auto", // 界面语言 ("auto" 跟随系统)
   // fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至rule，作废)
   // fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间(移至rule，作废)
-  // 段落长度阈值不再作为设置项，直接用 TRANS_MIN_LENGTH / TRANS_MAX_LENGTH。
   newlineLength: TRANS_NEWLINE_LENGTH,
   httpTimeout: DEFAULT_HTTP_TIMEOUT, // 接口请求超时时间
   clearCache: false, // 每次浏览器重启时，是否自动清空翻译结果的本地网络缓存

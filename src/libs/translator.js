@@ -18,8 +18,6 @@ import {
   OPT_MOUSE_HOVER_TRANS_REGION,
   OPT_SPLIT_PARAGRAPH_PUNCTUATION,
   OPT_SPLIT_PARAGRAPH_DISABLE,
-  TRANS_MIN_LENGTH,
-  TRANS_MAX_LENGTH,
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
   MSG_INJECT_CSS,
   MSG_UPDATE_ICON,
@@ -679,11 +677,8 @@ export class Translator {
   }
 
   #getPlainTextChunkLimit() {
-    // 单个纯文本块必须小于 TRANS_MAX_LENGTH，避免后续 #isInvalidText 直接过滤。
-    const hardLimit = Math.max(1, TRANS_MAX_LENGTH - 1);
-
     // 控制默认块大小，避免纯文本页面一次请求过长文本。
-    return Math.min(3000, hardLimit);
+    return 3000;
   }
 
   #findPlainTextBreakIndex(text, limit) {
@@ -2101,7 +2096,6 @@ export class Translator {
   // 收集区域内最外层（互不包含）的已观察翻译单元
   #collectHoverBlockUnits(container) {
     const units = [];
-    const maxLength = TRANS_MAX_LENGTH;
     const visit = (node, isRoot) => {
       if (!Translator.isElementOrFragment(node)) return;
       // 根节点需检查整条祖先链；递归进入的子节点其祖先已在上一层验证过，
@@ -2111,11 +2105,7 @@ export class Translator {
         : node.matches?.(this.#ignoreSelector);
       if (isIgnored) return;
       if (this.#observedNodes.has(node)) {
-        // 超大容器不适合作为单一翻译单元（会超过接口长度限制），继续下钻到子单元
-        const isOversized = (node.textContent || "").trim().length > maxLength;
-        if (!isOversized) {
-          units.push(node);
-        }
+        units.push(node);
       }
       // 即使节点自身被观察也继续下钻：混合容器（自身含直接文本 + 块级子节点）
       // 需要同时翻译其直接文本与子单元，避免只翻译第一行/跳过块级子节点。
@@ -2858,14 +2848,6 @@ export class Translator {
     const trimmedText = text.trim();
 
     if (!trimmedText) {
-      return true;
-    }
-
-    // 文本长度
-    if (
-      trimmedText.length < TRANS_MIN_LENGTH ||
-      trimmedText.length > TRANS_MAX_LENGTH
-    ) {
       return true;
     }
 
