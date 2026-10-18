@@ -63,7 +63,7 @@ const userscriptWebpack = (config, env) => {
 `;
 
   config.entry = {
-    "kiss-translator.user": paths.appSrc + "/userscript.js",
+    "text-selection-toolbar.user": paths.appSrc + "/userscript.js",
   };
 
   config.output.filename = "[name].js";
