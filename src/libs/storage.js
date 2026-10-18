@@ -528,6 +528,8 @@ const mergeSettingWithDefault = (setting) => {
   // 段落长度阈值已改为固定常量，清掉历史遗留值。
   delete mergedSetting.minLength;
   delete mergedSetting.maxLength;
+  // 全局默认翻译接口已移除：面板/字幕/网页规则各自选择接口。
+  delete mergedSetting.apiSlug;
   if (mergedSetting.uiLang === "zh-CN" || mergedSetting.uiLang === "zh_TW") {
     mergedSetting.uiLang = "zh";
   }

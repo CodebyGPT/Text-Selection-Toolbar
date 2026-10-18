@@ -135,7 +135,6 @@ const EN = {
   "高级": "Advanced",
   "高级设置（JSON）": "Advanced settings (JSON)",
   "黑名单": "Blacklist",
-  "默认翻译接口": "Default translation API",
   "鼠标位置": "Mouse position",
   "鼠标悬停翻译": "Hover translation",
   "删除": "Delete",

@@ -568,7 +568,7 @@ function PanelTab({ setting, update }) {
       </Row>
       <Row label="翻译接口">
         <Select
-          value={(panel.apiSlugs || [])[0] || setting.apiSlug}
+          value={(panel.apiSlugs || [])[0] || apis[0]?.apiSlug}
           onChange={(v) => updatePanel({ apiSlugs: [v] })}
           options={apis.map((api) => [
             api.apiSlug,
@@ -1044,18 +1044,6 @@ function StylesSection({ setting, update }) {
 function TranslationTab({ setting, update }) {
   return (
     <>
-      <Section title="翻译">
-        <Row label="默认翻译接口">
-          <Select
-            value={setting.apiSlug}
-            onChange={(v) => update({ apiSlug: v })}
-            options={(setting.transApis || []).map((api) => [
-              api.apiSlug,
-              api.apiName || api.apiType,
-            ])}
-          />
-        </Row>
-      </Section>
       <ApisTab setting={setting} update={update} />
       <PanelTab setting={setting} update={update} />
       <SubtitleTab setting={setting} update={update} />
