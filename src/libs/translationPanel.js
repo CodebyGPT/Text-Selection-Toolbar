@@ -83,7 +83,8 @@ function TranslationPanel({ text, rect, onClose }) {
 }
 
 export function showTranslationPanel(text, rect) {
-  if (!text?.trim()) return;
+  // An empty text opens a blank panel for manual input (menu entry).
+  if (text == null) text = "";
   if (current) {
     current.text = text;
     current.rect = rect;

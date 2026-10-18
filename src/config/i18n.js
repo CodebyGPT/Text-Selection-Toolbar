@@ -1821,6 +1821,10 @@ export const I18N = {
     zh: `切换样式`,
     en: `Toggle Style`
   },
+  open_trans_panel: {
+    zh: `打开翻译面板`,
+    en: `Open Translation Panel`
+  },
   open_menu: {
     zh: `打开翻译设置`,
     en: `Open Translation Settings`

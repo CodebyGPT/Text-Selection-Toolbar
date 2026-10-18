@@ -766,6 +766,11 @@ export default class TranslatorManager {
       GM.registerMenuCommand?.(i18n("transonly_alt"), () =>
         this.#processActions({ action: MSG_TRANS_TOGGLE_ONLY })
       ),
+      GM.registerMenuCommand?.(i18n("open_trans_panel"), () => {
+        import("../libs/translationPanel").then(({ showTranslationPanel }) =>
+          showTranslationPanel("", null)
+        );
+      }),
       GM.registerMenuCommand?.(i18n("open_menu"), () =>
         this.#processActions({ action: MSG_POPUP_TOGGLE })
       ),

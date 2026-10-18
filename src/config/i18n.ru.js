@@ -414,6 +414,7 @@ export const RU_I18N = {
   custom_option: `Свой вариант`,
   translate_selected_text: `Перевести выделенный текст`,
   toggle_style: `Сменить стиль`,
+  open_trans_panel: `Открыть панель перевода`,
   open_menu: `Открыть настройки перевода`,
   open_setting: `Открыть настройки скрипта`,
   follow_selection: `Окно перевода следует за выделением`,
