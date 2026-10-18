@@ -42,11 +42,6 @@ export const SETTINGS_APP_CSS = String.raw`
   font-size: 18px;
   font-weight: 700;
 }
-:host .kiss-st-saved {
-  margin-left: auto;
-  color: var(--st-muted);
-  font-size: 12px;
-}
 :host .kiss-st-tabs {
   display: flex;
   gap: 6px;

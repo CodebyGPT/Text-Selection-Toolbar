@@ -245,7 +245,7 @@ export const DEFAULT_SETTING = {
   // 输入框拉伸手柄样式（14 选 1，见 StylesSetting 页说明）
   textareaGripStyle: "concentric-smooth",
   darkMode: "auto", // 主题外观模式 ("light" 浅色, "dark" 深色, "auto" 跟随浏览器系统)
-  uiLang: "en", // 插件设置面板界面的显示语言
+  uiLang: "auto", // 界面语言 ("auto" 跟随系统)
   // fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至rule，作废)
   // fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间(移至rule，作废)
   minLength: TRANS_MIN_LENGTH, // 整页翻译的段落最小有效长度限制

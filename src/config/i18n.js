@@ -1822,12 +1822,12 @@ export const I18N = {
     en: `Toggle Style`
   },
   open_menu: {
-    zh: `打开弹窗菜单`,
-    en: `Open Popup Menu`
+    zh: `打开翻译设置`,
+    en: `Open Translation Settings`
   },
   open_setting: {
-    zh: `打开设置`,
-    en: `Open Setting`
+    zh: `打开脚本设置`,
+    en: `Open Script Settings`
   },
   follow_selection: {
     zh: `翻译框跟随选中文本`,
@@ -2789,6 +2789,15 @@ export function registerI18n(dict) {
   }
   Object.assign(I18N, dict);
 }
+// "auto" follows the browser UI language; the rest of the app uses uiLang raw.
+export const resolveUiLang = lang => {
+  if (lang && lang !== "auto") return lang;
+  const nav = String(globalThis.navigator?.language || "").toLowerCase();
+  if (nav.startsWith("zh")) return "zh";
+  if (nav.startsWith("ru")) return "ru";
+  return "en";
+};
 export const newI18n = lang => {
-  return (key, defaultText = key) => I18N[key]?.[lang] ?? defaultText;
+  const l = resolveUiLang(lang);
+  return (key, defaultText = key) => I18N[key]?.[l] ?? defaultText;
 };

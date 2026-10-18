@@ -760,31 +760,16 @@ export default class TranslatorManager {
     const i18n = newI18n(uiLang || "zh");
 
     this.#menuCommandIds = [
-      GM.registerMenuCommand?.(
-        i18n("translate_switch"),
-        () => this.#processActions({ action: MSG_TRANS_TOGGLE }),
-        "Q"
+      GM.registerMenuCommand?.(i18n("translate_switch"), () =>
+        this.#processActions({ action: MSG_TRANS_TOGGLE })
       ),
-      GM.registerMenuCommand?.(
-        i18n("transonly_alt"),
-        () => this.#processActions({ action: MSG_TRANS_TOGGLE_ONLY }),
-        "Q"
+      GM.registerMenuCommand?.(i18n("transonly_alt"), () =>
+        this.#processActions({ action: MSG_TRANS_TOGGLE_ONLY })
       ),
-      GM.registerMenuCommand?.(
-        i18n("toggle_style"),
-        () => this.#processActions({ action: MSG_TRANS_TOGGLE_STYLE }),
-        "C"
+      GM.registerMenuCommand?.(i18n("open_menu"), () =>
+        this.#processActions({ action: MSG_POPUP_TOGGLE })
       ),
-      GM.registerMenuCommand?.(
-        i18n("open_menu"),
-        () => this.#processActions({ action: MSG_POPUP_TOGGLE }),
-        "K"
-      ),
-      GM.registerMenuCommand?.(
-        i18n("open_setting"),
-        () => openSettingsLazy(),
-        "O"
-      ),
+      GM.registerMenuCommand?.(i18n("open_setting"), () => openSettingsLazy()),
     ];
   }
 

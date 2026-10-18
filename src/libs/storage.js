@@ -528,8 +528,8 @@ const mergeSettingWithDefault = (setting) => {
   if (mergedSetting.uiLang === "zh-CN" || mergedSetting.uiLang === "zh_TW") {
     mergedSetting.uiLang = "zh";
   }
-  if (!["zh", "en", "ru"].includes(mergedSetting.uiLang)) {
-    mergedSetting.uiLang = "en";
+  if (!["auto", "zh", "en", "ru"].includes(mergedSetting.uiLang)) {
+    mergedSetting.uiLang = "auto";
   }
   if (mergedSetting.inputRule) {
     mergedSetting.inputRule = {

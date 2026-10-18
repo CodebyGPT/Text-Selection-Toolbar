@@ -286,21 +286,36 @@ function ApiEditor({ api, onChange, onDelete, canDelete }) {
 }
 
 function GeneralTab({ setting, update }) {
+  // The toolbar keeps its own language key; keep it in step with the global one
+  // so there is a single "interface language" switch.
+  const setUiLang = (v) => {
+    const toolbarLang = v === "zh" ? "zh-CN" : v;
+    update({
+      uiLang: v,
+      toolbarSetting: {
+        ...DEFAULT_TOOLBAR_SETTING,
+        ...(setting.toolbarSetting || {}),
+        language: toolbarLang,
+      },
+    });
+  };
+
   return (
     <>
-      <Section title="界面">
+      <div className="kiss-st-card">
         <Row label="界面语言">
           <Select
             value={setting.uiLang}
-            onChange={(v) => update({ uiLang: v })}
+            onChange={setUiLang}
             options={[
+              ["auto", "跟随系统"],
               ["zh", "简体中文"],
               ["en", "English"],
               ["ru", "Русский"],
             ]}
           />
         </Row>
-        <Row label="主题">
+        <Row label="界面主题">
           <Select
             value={setting.darkMode}
             onChange={(v) => update({ darkMode: v })}
@@ -311,31 +326,7 @@ function GeneralTab({ setting, update }) {
             ]}
           />
         </Row>
-      </Section>
-      <Section title="翻译">
-        <Row label="默认翻译接口">
-          <Select
-            value={setting.apiSlug}
-            onChange={(v) => update({ apiSlug: v })}
-            options={(setting.transApis || []).map((api) => [
-              api.apiSlug,
-              api.apiName || api.apiType,
-            ])}
-          />
-        </Row>
-        <Row label="段落最小长度">
-          <NumberInput
-            value={setting.minLength}
-            onChange={(v) => update({ minLength: v })}
-          />
-        </Row>
-        <Row label="段落最大长度">
-          <NumberInput
-            value={setting.maxLength}
-            onChange={(v) => update({ maxLength: v })}
-          />
-        </Row>
-      </Section>
+      </div>
       <ToolbarTab setting={setting} update={update} />
     </>
   );
@@ -387,18 +378,6 @@ function ToolbarTab({ setting, update }) {
   return (
     <>
       <Section title="工具栏外观">
-        <Row label="界面语言">
-          <Select
-            value={value.language}
-            onChange={(v) => patch({ language: v })}
-            options={[
-              ["auto", "跟随页面"],
-              ["zh-CN", "简体中文"],
-              ["en", "English"],
-              ["ru", "Русский"],
-            ]}
-          />
-        </Row>
         <Row label="弹出位置">
           <Select
             value={value.positionMode}
@@ -454,8 +433,8 @@ function ToolbarTab({ setting, update }) {
         </Row>
       </Section>
 
-      <Section title="行为">
-        <Row label="显示翻译按钮" help="调用 KISS 翻译面板">
+      <Section title="功能开关">
+        <Row label="显示翻译按钮">
           <Toggle
             value={value.enableTranslate !== false}
             onChange={(v) => patch({ enableTranslate: v })}
@@ -500,7 +479,7 @@ function ToolbarTab({ setting, update }) {
       </Section>
 
       <Section title="搜索">
-        <Row label="搜索引擎">
+        <Row label="首选搜索引擎">
           <Select
             value={
               TOOLBAR_SEARCH_ENGINES[value.searchEngine]
@@ -527,14 +506,14 @@ function ToolbarTab({ setting, update }) {
             />
           </Row>
         )}
-        <Row label="智能引擎" help="纯英文时使用备用引擎">
+        <Row label="当选取的文本不含中文时调用备选搜索引擎">
           <Toggle
             value={value.smartEngine}
             onChange={(v) => patch({ smartEngine: v })}
           />
         </Row>
         {value.smartEngine && (
-          <Row label="备用引擎">
+          <Row label="备选搜索引擎">
             <Select
               value={value.fallbackEngine}
               onChange={(v) => patch({ fallbackEngine: v })}
@@ -544,18 +523,6 @@ function ToolbarTab({ setting, update }) {
             />
           </Row>
         )}
-      </Section>
-
-      <Section title="高级">
-        <div className="kiss-st-row">
-          <span className="kiss-st-spacer" />
-          <button
-            className="kiss-st-btn"
-            onClick={() => patch({ ...DEFAULT_TOOLBAR_SETTING })}
-          >
-            重置工具栏设置
-          </button>
-        </div>
       </Section>
     </>
   );
@@ -1068,6 +1035,30 @@ function StylesSection({ setting, update }) {
 function TranslationTab({ setting, update }) {
   return (
     <>
+      <Section title="翻译">
+        <Row label="默认翻译接口">
+          <Select
+            value={setting.apiSlug}
+            onChange={(v) => update({ apiSlug: v })}
+            options={(setting.transApis || []).map((api) => [
+              api.apiSlug,
+              api.apiName || api.apiType,
+            ])}
+          />
+        </Row>
+        <Row label="段落最小长度">
+          <NumberInput
+            value={setting.minLength}
+            onChange={(v) => update({ minLength: v })}
+          />
+        </Row>
+        <Row label="段落最大长度">
+          <NumberInput
+            value={setting.maxLength}
+            onChange={(v) => update({ maxLength: v })}
+          />
+        </Row>
+      </Section>
       <ApisTab setting={setting} update={update} />
       <PanelTab setting={setting} update={update} />
       <SubtitleTab setting={setting} update={update} />
@@ -1156,7 +1147,6 @@ function AdvancedTab({ setting, replaceSetting }) {
 export default function SettingsApp({ initialPath = "/" }) {
   const [tab, setTab] = useState(() => pathToTab(initialPath));
   const [setting, setSetting] = useState(null);
-  const [saved, setSaved] = useState(true);
   const themeRef = useRef(null);
 
   useEffect(() => {
@@ -1172,16 +1162,14 @@ export default function SettingsApp({ initialPath = "/" }) {
   const update = (patch) => {
     setSetting((previous) => {
       const next = { ...previous, ...patch };
-      setSaved(false);
-      persist(next).then(() => setSaved(true));
+      persist(next);
       return next;
     });
   };
 
   const replaceSetting = (next) => {
     setSetting(next);
-    setSaved(false);
-    persist(next).then(() => setSaved(true));
+    persist(next);
   };
 
   const dark = useMemo(() => {
@@ -1204,7 +1192,6 @@ export default function SettingsApp({ initialPath = "/" }) {
     <div className="kiss-st-app" data-theme={dark ? "dark" : "light"} ref={themeRef}>
       <header className="kiss-st-header">
         <h1>Text Selection Toolbar</h1>
-        <span className="kiss-st-saved">{saved ? "已保存" : "保存中…"}</span>
       </header>
       <nav className="kiss-st-tabs">
         {TABS.map(([key, label]) => (

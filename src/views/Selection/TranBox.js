@@ -89,10 +89,6 @@ export default function TranBox(props) {
         langDetector={props.langDetector}
         translateVariants={props.translateVariants}
         parseLatex={props.parseLatex}
-        enDict={props.tranboxSetting.enDict}
-        enSug={props.tranboxSetting.enSug}
-        aiDictApiSlug={props.tranboxSetting.aiDictApiSlug}
-        aiDictPromptSlug={props.tranboxSetting.aiDictPromptSlug}
         selectionContext={props.selectionContext}
       />
     </DraggableResizable>

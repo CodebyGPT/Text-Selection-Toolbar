@@ -1,13 +1,16 @@
 import { RU } from "./ru";
 
 const EN = {
+  "功能开关": "Feature switches",
+  "当选取的文本不含中文时调用备选搜索引擎": "Use the fallback engine when the selected text has no Chinese",
+  "备选搜索引擎": "Fallback search engine",
+  "首选搜索引擎": "Preferred search engine",
+  "界面主题": "Interface theme",
   "0 表示不自动消失": "0 = never auto-hide",
   "不启用": "Disabled",
   "不显示": "Hidden",
-  "主题": "Theme",
   "仅移动端": "Mobile only",
   "仅视口内重绘": "Repaint in viewport only",
-  "保存中…": "Saving…",
   "偏移量 (px)": "Offset (px)",
   "停留时长 (ms)": "Display time (ms)",
   "全局：忽略选择器": "Global: ignore selector",
@@ -31,7 +34,6 @@ const EN = {
   "启用输入框翻译": "Enable input-box translation",
   "启用鼠标悬停翻译": "Enable hover translation",
   "图标显示": "Icon visibility",
-  "备用引擎": "Fallback engine",
   "失焦自动隐藏": "Hide on blur",
   "如 ControlLeft": "e.g. ControlLeft",
   "如 ControlLeft / AltLeft / ShiftLeft，留空禁用": "e.g. ControlLeft / AltLeft / ShiftLeft; empty disables",
@@ -42,7 +44,6 @@ const EN = {
   "密码 / Token": "Password / Token",
   "展示方式": "Display mode",
   "工具栏外观": "Toolbar appearance",
-  "已保存": "Saved",
   "开启": "On",
   "弹出位置": "Popup position",
   "强制浅色按钮": "Force light toolbar",
@@ -57,7 +58,6 @@ const EN = {
   "提前翻译 (ms)": "Pre-translate (ms)",
   "提示词": "Prompts",
   "搜索": "Search",
-  "搜索引擎": "Search engine",
   "操作反馈": "Action feedback",
   "数据同步": "Data sync",
   "整篇区域": "Whole area",
@@ -66,7 +66,6 @@ const EN = {
   "显示删除按钮": "Show delete button",
   "显示翻译按钮": "Show translate button",
   "显示顺序": "Display order",
-  "智能引擎": "Smart engine",
   "极简样式": "Minimal style",
   "模糊译文": "Blur translation",
   "横排胶囊": "Horizontal capsule",
@@ -108,7 +107,6 @@ const EN = {
   "自动翻译": "Auto translate",
   "自定义": "Custom",
   "自定义 URL": "Custom URL",
-  "行为": "Behavior",
   "行内显示": "Inline",
   "规则已保存": "Rules saved",
   "规则断句": "Rule-based splitting",
@@ -143,7 +141,6 @@ const EN = {
   "鼠标悬停翻译": "Hover translation",
   "删除": "Delete",
   "还原": "Restore",
-  "重置工具栏设置": "Reset toolbar settings",
   "添加 Custom": "Add Custom",
   "测试中…": "Testing…",
   "测试翻译": "Test translation",
@@ -215,6 +212,10 @@ function translateNode(node, lang) {
 
 export function translateDom(root, lang) {
   if (!root) return () => {};
+  if (lang === "auto") {
+    const nav = String(globalThis.navigator?.language || "").toLowerCase();
+    lang = nav.startsWith("ru") ? "ru" : nav.startsWith("zh") ? "zh" : "en";
+  }
   let applying = false;
   const run = () => {
     if (applying) return;

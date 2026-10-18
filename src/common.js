@@ -233,6 +233,17 @@ export async function run(isUserscript = false) {
       setting.mouseHoverSetting.useMouseHover = false;
     }
 
+    // Start the Text Selection Toolbar before any rule/subscription loading.
+    // It keeps its own Shadow DOM and only creates UI after a selection, so the
+    // page never waits on translation setup nor on the network for it.
+    installToolbar({
+      translateSelection: (text, rect) => {
+        import("./libs/translationPanel")
+          .then(({ showTranslationPanel }) => showTranslationPanel(text, rect))
+          .catch((err) => console.error("[Text Selection Toolbar]", err));
+      },
+    });
+
     // 7. 匹配当前网页专用的规则 (三级规则合并：个人 > 订阅 > 内置全局)
     const rule = await matchRule(href, setting);
 
@@ -254,16 +265,6 @@ export async function run(isUserscript = false) {
       transboxOnly: isPdfDocument,
     });
     translatorManager.start();
-
-    // Start the Text Selection Toolbar alongside KISS. It keeps its own
-    // Shadow DOM and only creates UI after a selection.
-    installToolbar({
-      translateSelection: (text, rect) => {
-        import("./libs/translationPanel").then(({ showTranslationPanel }) =>
-          showTranslationPanel(text, rect)
-        );
-      },
-    });
 
     // 9. 若当前页面是嵌套的 iframe，不进行视频字幕翻译，避免多个 iframe 里重复跑字幕服务造成冲突
     if (isIframe || isPdfDocument) {

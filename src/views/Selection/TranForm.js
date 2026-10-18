@@ -224,16 +224,12 @@ export default function TranForm({
     setToLang(initToLang);
     setToLang2(initToLang2);
     setLangDetector(initLangDetector);
-    setEnDict(initEnDict);
-    setEnSug(initEnSug);
   }, [
     initialSettingsReady,
     initFromLang,
     initToLang,
     initToLang2,
     initLangDetector,
-    initEnDict,
-    initEnSug,
   ]);
 
   // Focus the input at the end of its text when autofocus is enabled.
