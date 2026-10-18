@@ -1,13 +1,7 @@
-import {
-  apiBaiduSuggest,
-  apiYoudaoSuggest,
-} from "../builtin-plugins/discovery";
 import queryString from "query-string";
 import { fetchData } from "../libs/fetch";
 import {
   URL_CACHE_TRAN,
-  URL_CACHE_BINGDICT,
-  URL_CACHE_DICT,
   OPT_LANGS_TO_SPEC,
   OPT_LANGS_FROM_SPEC,
   OPT_LANGS_SPEC_DEFAULT,
@@ -21,7 +15,6 @@ import {
   OPT_LANGS_TO_CODE,
   OPT_LANGDETECTOR_MAP,
   defaultNobatchUserPrompt,
-  defaultDictUserPrompt,
 } from "../config";
 import { getSetting } from "../libs/storage";
 import { kissLog } from "../libs/log";
@@ -33,7 +26,6 @@ import {
 import { getCacheDigest } from "../libs/cacheDigest";
 import {
   handleTranslate,
-  handleDict,
   handleSubtitle,
   buildSubtitleSystemPrompt,
   formatIndexSubtitleEvents,
@@ -52,15 +44,10 @@ import { supportsApiCapability } from "../config/serviceSelection";
 import { trustedTypesHelper } from "../libs/trustedTypes";
 import { getDocInfo } from "../libs/docInfo";
 import { providerCacheSignature } from "../providers/cache";
-export {
-  apiBaiduSuggest,
-  apiYoudaoSuggest,
-};
 
 const PROMPT_CACHE_SALT = "prompt-cache";
 const PROMPT_CACHE_SCOPE_BATCH = "batch";
 const PROMPT_CACHE_SCOPE_NOBATCH = "nobatch";
-const PROMPT_CACHE_SCOPE_DICT = "dict";
 const PROMPT_CACHE_SCOPE_PLAIN = "plain";
 const PROMPT_CACHE_SCOPE_QWEN_MT = "qwen-mt";
 
@@ -121,12 +108,6 @@ function getPromptCacheFields(apiSetting = {}, promptScope, glossary = {}) {
     fields = [
       apiSetting.nobatchPrompt || "",
       apiSetting.nobatchUserPrompt ?? defaultNobatchUserPrompt,
-    ];
-  } else if (promptScope === PROMPT_CACHE_SCOPE_DICT) {
-    return [
-      apiSetting.dictPrompt || "",
-      apiSetting.dictUserPrompt ?? defaultDictUserPrompt,
-      apiSetting.aiTerms || "",
     ];
   } else if (promptScope === PROMPT_CACHE_SCOPE_QWEN_MT) {
     fields = [];
@@ -549,24 +530,6 @@ export const apiTranslate = async ({
   return { trText, srLang, srCode, isSame };
 };
 
-/**
- * AI 词典查询入口。
- *
- * 该函数负责完成参数校验、语言名映射、缓存 Key 构造与上下文签名计算，
- * 真正的模型请求由 `handleDict` 处理，避免 UI 层直接接触不同 AI 接口差异。
- *
- * @param {Object} params 查询参数
- * @param {string} params.text 待解析的单词、短语或长文本
- * @param {string} [params.fromLang="auto"] 源语言代码
- * @param {string} params.toLang 目标语言代码
- * @param {Object} [params.apiSetting] 已解析出提示词的 API 配置
- * @param {Object} [params.docInfo] 外部传入的页面上下文信息
- * @param {string} [params.context] 当前选区所在段落上下文
- * @param {Function} [params.onStreamChunk] 流式增量 Markdown 回调
- * @param {boolean} [params.useCache=true] 是否读写本地缓存
- * @param {AbortSignal} [params.signal] 取消信号
- * @returns {Promise<string>} AI 词典返回的 Markdown 文本
- */
 export const apiSubtitle = async ({
   videoId,
   chunkSign,
