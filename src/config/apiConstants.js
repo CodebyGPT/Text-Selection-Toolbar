@@ -51,6 +51,17 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_CUSTOMIZE,
 ];
 
+// The browser translation API only ships in Chromium 138 and newer, so the
+// preset is hidden and unusable everywhere else.
+export const BUILTIN_AI_MIN_CHROMIUM_VERSION = 138;
+export function isBuiltinAISupported() {
+  const ua = String(globalThis.navigator?.userAgent || "");
+  const match = ua.match(/(?:Chrome|Chromium|CriOS)\/(\d+)/);
+  return Boolean(
+    match && Number(match[1]) >= BUILTIN_AI_MIN_CHROMIUM_VERSION
+  );
+}
+
 export const OPT_LANGDETECTOR_ALL = [OPT_TRANS_BUILTINAI];
 
 export const OPT_LANGDETECTOR_MAP = new Set(OPT_LANGDETECTOR_ALL);

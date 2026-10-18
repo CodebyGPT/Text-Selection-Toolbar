@@ -1,4 +1,4 @@
-import { OPT_TRANS_BUILTINAI } from "./apiConstants";
+import { OPT_TRANS_BUILTINAI, isBuiltinAISupported } from "./apiConstants";
 import {
   PROVIDER_CAPABILITIES,
   supportsProviderCapability,
@@ -86,6 +86,7 @@ export const isApiAvailableFor = (
   if (!projected.provider?.implementation?.kind) return false;
   if (projected.provider.implementation.kind !== "native") return false;
   if (api.apiType === OPT_TRANS_BUILTINAI) {
+    if (!isBuiltinAISupported()) return false;
     if (capability === "translate")
       return typeof globalThis.Translator !== "undefined";
     if (capability === "summarize")

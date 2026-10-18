@@ -34,6 +34,11 @@ import {
   BUILTIN_PLACETAGS,
   PRESET_PROMPTS,
   isPresetPromptSlug,
+  getAllPrompts,
+  getBatchPromptOptions,
+  getNobatchPromptOptions,
+  getSubtitlePromptOptions,
+  isBuiltinAISupported,
 } from "../config";
 import {
   DEFAULT_TOOLBAR_SETTING,
@@ -345,7 +350,7 @@ function ModelFields({ api, patch }) {
   return (
     <Fields>
       <label>
-        Temperature
+        温度
         <NumberInput
           value={api.temperature}
           min={0}
@@ -354,7 +359,7 @@ function ModelFields({ api, patch }) {
         />
       </label>
       <label>
-        Max Tokens
+        最大 Token 数
         <NumberInput
           value={api.maxTokens}
           min={0}
@@ -417,14 +422,14 @@ function CodeFields({ api, patch }) {
         />
       </label>
       <label>
-        Request Hook
+        请求钩子
         <TextArea
           value={api.reqHook}
           onChange={(v) => patch("reqHook", v)}
         />
       </label>
       <label>
-        Response Hook
+        响应钩子
         <TextArea
           value={api.resHook}
           onChange={(v) => patch("resHook", v)}
@@ -434,7 +439,41 @@ function CodeFields({ api, patch }) {
   );
 }
 
-function ApiEditor({ api, onChange, onDelete, canDelete }) {
+function PromptFields({ api, patch, prompts }) {
+  const toOptions = (list) =>
+    list.map((prompt) => [prompt.slug, prompt.name || prompt.slug]);
+
+  return (
+    <Fields>
+      <label>
+        批量翻译提示词
+        <Select
+          value={api.batchPromptSlug}
+          onChange={(v) => patch("batchPromptSlug", v)}
+          options={toOptions(getBatchPromptOptions(prompts))}
+        />
+      </label>
+      <label>
+        单句翻译提示词
+        <Select
+          value={api.nobatchPromptSlug}
+          onChange={(v) => patch("nobatchPromptSlug", v)}
+          options={toOptions(getNobatchPromptOptions(prompts))}
+        />
+      </label>
+      <label>
+        字幕翻译提示词
+        <Select
+          value={api.subtitlePromptSlug}
+          onChange={(v) => patch("subtitlePromptSlug", v)}
+          options={toOptions(getSubtitlePromptOptions(prompts))}
+        />
+      </label>
+    </Fields>
+  );
+}
+
+function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
   const [open, setOpen] = useState(false);
   const [test, setTest] = useState({ loading: false, text: "", error: "" });
   const patch = (key, value) => onChange({ ...api, [key]: value });
@@ -548,6 +587,9 @@ function ApiEditor({ api, onChange, onDelete, canDelete }) {
           {!isBuiltinAI && <StreamFields api={api} patch={patch} />}
           {!isBuiltinAI && <ModelFields api={api} patch={patch} />}
           {!isBuiltinAI && <ContextFields api={api} patch={patch} />}
+          {!isBuiltinAI && (
+            <PromptFields api={api} patch={patch} prompts={prompts} />
+          )}
           {isCustom && <CodeFields api={api} patch={patch} />}
 
           <div className="kiss-st-inline">
@@ -616,6 +658,13 @@ function GeneralTab({ setting, update }) {
 
 function ApisTab({ setting, update }) {
   const apis = setting.transApis || [];
+  const prompts = getAllPrompts(setting.prompts);
+  // Browser translation needs Chromium 138+; hide the preset elsewhere.
+  const visible = apis
+    .map((api, index) => ({ api, index }))
+    .filter(
+      ({ api }) => api.apiType !== OPT_TRANS_BUILTINAI || isBuiltinAISupported()
+    );
   const updateApi = (index, next) =>
     update({
       transApis: apis.map((api, i) => (i === index ? next : api)),
@@ -634,10 +683,11 @@ function ApisTab({ setting, update }) {
 
   return (
     <Section title="翻译接口">
-      {apis.map((api, index) => (
+      {visible.map(({ api, index }) => (
         <ApiEditor
           key={api.apiSlug}
           api={api}
+          prompts={prompts}
           onChange={(next) => updateApi(index, next)}
           onDelete={() => removeApi(index)}
           canDelete={api.apiType === OPT_TRANS_CUSTOMIZE}
@@ -844,7 +894,11 @@ function PanelTab({ setting, update }) {
   const panel = setting.tranboxSetting || {};
   const updatePanel = (patch) =>
     update({ tranboxSetting: { ...panel, ...patch } });
-  const apis = (setting.transApis || []).filter((api) => !api.isDisabled);
+  const apis = (setting.transApis || []).filter(
+    (api) =>
+      !api.isDisabled &&
+      (api.apiType !== OPT_TRANS_BUILTINAI || isBuiltinAISupported())
+  );
 
   return (
     <Section title="翻译面板">
@@ -902,7 +956,12 @@ function PanelTab({ setting, update }) {
 }
 
 function apiOptions(setting, includeGlobal = false) {
-  const options = (setting.transApis || []).map((api) => [
+  const options = (setting.transApis || [])
+    .filter(
+      (api) =>
+        api.apiType !== OPT_TRANS_BUILTINAI || isBuiltinAISupported()
+    )
+    .map((api) => [
     api.apiSlug,
     api.apiName || api.apiType,
   ]);
@@ -1263,14 +1322,14 @@ function PromptRow({ prompt, isPreset, dirty, onPatch, onReset, onDelete }) {
             />
           </label>
           <label>
-            System Prompt
+            系统提示词
             <TextArea
               value={prompt.systemPrompt}
               onChange={(v) => onPatch({ systemPrompt: v })}
             />
           </label>
           <label>
-            User Prompt
+            用户提示词
             <TextArea
               value={prompt.userPrompt}
               onChange={(v) => onPatch({ userPrompt: v })}
