@@ -374,6 +374,13 @@ function ToolbarTab({ setting, update }) {
   const value = { ...DEFAULT_TOOLBAR_SETTING, ...(setting.toolbarSetting || {}) };
   const patch = (changes) =>
     update({ toolbarSetting: { ...value, ...changes } });
+  // The fallback search engine is a Chinese-user feature: Baidu-first means
+  // English queries need a second engine. Everywhere else the primary engine
+  // is already authoritative, so the switch stays hidden and inert.
+  const zhUi =
+    value.language === "zh-CN" ||
+    (value.language === "auto" &&
+      String(globalThis.navigator?.language || "").startsWith("zh"));
 
   return (
     <>
@@ -506,13 +513,15 @@ function ToolbarTab({ setting, update }) {
             />
           </Row>
         )}
-        <Row label="当选取的文本不含中文时调用备选搜索引擎">
-          <Toggle
-            value={value.smartEngine}
-            onChange={(v) => patch({ smartEngine: v })}
-          />
-        </Row>
-        {value.smartEngine && (
+        {zhUi && (
+          <Row label="当选取的文本不含中文时调用备选搜索引擎">
+            <Toggle
+              value={value.smartEngine}
+              onChange={(v) => patch({ smartEngine: v })}
+            />
+          </Row>
+        )}
+        {zhUi && value.smartEngine && (
           <Row label="备选搜索引擎">
             <Select
               value={value.fallbackEngine}

@@ -190,7 +190,9 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                 const query = getConfig('enableCache') ? (cachedSelection.text || text) : text;
                 const rawText = getConfig('enableCache') ? (cachedSelection.text || text) : text;
                 let engine;
-                if (getConfig('smartEngine') && !/[\u4e00-\u9fa5]/.test(rawText)) {
+                // The fallback engine only exists for Chinese users, where the
+                // primary engine is a Chinese-focused one.
+                if (isChineseUI() && getConfig('smartEngine') && !/[\u4e00-\u9fa5]/.test(rawText)) {
                     engine = getConfig('fallbackEngine');
                 } else {
                     engine = getConfig('searchEngine');
@@ -239,8 +241,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             } else {
                 // 2. Detect URLs (supports multiple links)
                 // Chinese mode enables cloud drive extraction code; non-Chinese mode extracts plain URLs only
-                const curLangForLink = getConfig('language');
-                const isChineseForLink = curLangForLink === 'zh-CN' || (curLangForLink === 'auto' && navigator.language.startsWith('zh'));
+                const isChineseForLink = isChineseUI();
                 const linkData = isChineseForLink ? extractLinkAndCode(text) : (() => {
                     const urls = extractUrlsFromText(text);
                     return urls.length > 0 ? { urls, password: null } : null;
@@ -305,8 +306,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         }
 
         // Check if "correct" button should be shown
-        const curLang = getConfig('language');
-        const isChineseEnv = curLang === 'zh-CN' || (curLang === 'auto' && navigator.language.startsWith('zh'));
+        const isChineseEnv = isChineseUI();
         if (isChineseEnv && targetInput) {
             const isInputType = targetInput.tagName === 'INPUT';
             if (smartCorrectText(text, isInputType) !== null) {

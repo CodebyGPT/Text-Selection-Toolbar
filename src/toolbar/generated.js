@@ -49,6 +49,13 @@ const DEFAULT_CONFIG = {
     enableTranslate: true, // show the KISS translate action
 };
 
+// Chinese-only extras (cloud-drive codes, smart fallback engine) follow the
+// interface language: explicit zh-CN, or "auto" on a Chinese browser.
+const isChineseUI = () => {
+    const lang = configCache['language'] || 'auto';
+    return lang === 'zh-CN' || (lang === 'auto' && String(navigator.language || '').startsWith('zh'));
+};
+
 const SCROLL_REPAINT_MODE = {
     ALWAYS: 'always',      // 1. Always repaint (default)
     VIEWPORT: 'viewport',  // 2. Repaint only when anchor is within viewport
@@ -1902,7 +1909,9 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                 const query = getConfig('enableCache') ? (cachedSelection.text || text) : text;
                 const rawText = getConfig('enableCache') ? (cachedSelection.text || text) : text;
                 let engine;
-                if (getConfig('smartEngine') && !/[\u4e00-\u9fa5]/.test(rawText)) {
+                // The fallback engine only exists for Chinese users, where the
+                // primary engine is a Chinese-focused one.
+                if (isChineseUI() && getConfig('smartEngine') && !/[\u4e00-\u9fa5]/.test(rawText)) {
                     engine = getConfig('fallbackEngine');
                 } else {
                     engine = getConfig('searchEngine');
@@ -1951,8 +1960,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             } else {
                 // 2. Detect URLs (supports multiple links)
                 // Chinese mode enables cloud drive extraction code; non-Chinese mode extracts plain URLs only
-                const curLangForLink = getConfig('language');
-                const isChineseForLink = curLangForLink === 'zh-CN' || (curLangForLink === 'auto' && navigator.language.startsWith('zh'));
+                const isChineseForLink = isChineseUI();
                 const linkData = isChineseForLink ? extractLinkAndCode(text) : (() => {
                     const urls = extractUrlsFromText(text);
                     return urls.length > 0 ? { urls, password: null } : null;
@@ -2017,8 +2025,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         }
 
         // Check if "correct" button should be shown
-        const curLang = getConfig('language');
-        const isChineseEnv = curLang === 'zh-CN' || (curLang === 'auto' && navigator.language.startsWith('zh'));
+        const isChineseEnv = isChineseUI();
         if (isChineseEnv && targetInput) {
             const isInputType = targetInput.tagName === 'INPUT';
             if (smartCorrectText(text, isInputType) !== null) {
@@ -2235,8 +2242,7 @@ function handleSelectionMouseUp(e) {
         if (getConfig('enablePaste')) {
             cache = await safeGetValue('smart_paste_cache', null);
         }
-        const curLang = getConfig('language');
-        const isChineseEnv = curLang === 'zh-CN' || (curLang === 'auto' && navigator.language.startsWith('zh'));
+        const isChineseEnv = isChineseUI();
         const cacheValid = cache && cache.text && (Date.now() - cache.timestamp < 8000) && !(isChineseEnv && cache.type === 'pan_code');
         const target = document.activeElement;
         const isInput = target && (
@@ -2324,8 +2330,7 @@ function handleInputPasteMouseUp(e) {
         if (Date.now() - cache.timestamp > 8000) return;
 
         // Cloud drive extraction code cache (Chinese mode only): force single paste button (key icon)
-        const curLang = getConfig('language');
-        const isChineseEnv = curLang === 'zh-CN' || (curLang === 'auto' && navigator.language.startsWith('zh'));
+        const isChineseEnv = isChineseUI();
         if (isChineseEnv && cache.type === 'pan_code') {
             initContainer();
             const rect = target.getBoundingClientRect();

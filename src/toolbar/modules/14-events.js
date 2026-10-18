@@ -41,8 +41,7 @@ function handleSelectionMouseUp(e) {
         if (getConfig('enablePaste')) {
             cache = await safeGetValue('smart_paste_cache', null);
         }
-        const curLang = getConfig('language');
-        const isChineseEnv = curLang === 'zh-CN' || (curLang === 'auto' && navigator.language.startsWith('zh'));
+        const isChineseEnv = isChineseUI();
         const cacheValid = cache && cache.text && (Date.now() - cache.timestamp < 8000) && !(isChineseEnv && cache.type === 'pan_code');
         const target = document.activeElement;
         const isInput = target && (
@@ -130,8 +129,7 @@ function handleInputPasteMouseUp(e) {
         if (Date.now() - cache.timestamp > 8000) return;
 
         // Cloud drive extraction code cache (Chinese mode only): force single paste button (key icon)
-        const curLang = getConfig('language');
-        const isChineseEnv = curLang === 'zh-CN' || (curLang === 'auto' && navigator.language.startsWith('zh'));
+        const isChineseEnv = isChineseUI();
         if (isChineseEnv && cache.type === 'pan_code') {
             initContainer();
             const rect = target.getBoundingClientRect();

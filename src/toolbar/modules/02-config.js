@@ -21,6 +21,13 @@ const DEFAULT_CONFIG = {
     enableTranslate: true, // show the KISS translate action
 };
 
+// Chinese-only extras (cloud-drive codes, smart fallback engine) follow the
+// interface language: explicit zh-CN, or "auto" on a Chinese browser.
+const isChineseUI = () => {
+    const lang = configCache['language'] || 'auto';
+    return lang === 'zh-CN' || (lang === 'auto' && String(navigator.language || '').startsWith('zh'));
+};
+
 const SCROLL_REPAINT_MODE = {
     ALWAYS: 'always',      // 1. Always repaint (default)
     VIEWPORT: 'viewport',  // 2. Repaint only when anchor is within viewport
