@@ -1,0 +1,26 @@
+{
+  "name": "text_selection_toolbar-main",
+  "version": "1.0.0",
+  "description": "![GitHub License](https://img.shields.io/github/license/CodebyGPT/Text_Selection_Toolbar) ![GitHub Repo stars](https://img.shields.io/github/stars/CodebyGPT/Text_Selection_Toolbar) ![Greasy Fork Downloads](https://img.shields.io/greasyfork/dt/558720) ![Greasy Fork Rating](https://img.shields.io/greasyfork/rating-count/558720)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "build": "node modules/build.js",
+    "build:watch": "node modules/build.js --watch",
+    "build:minify": "node modules/build.js --minify",
+    "build:all": "node modules/build.js --all",
+    "lint": "node modules/build.js --lint-only",
+    "test": "npm run lint"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "eslint": "^10.5.0",
+    "eslint-plugin-userscripts": "^0.5.6",
+    "globals": "^17.6.0"
+  }
+}

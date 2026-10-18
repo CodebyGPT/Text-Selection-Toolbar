@@ -1,0 +1,10 @@
+已修复的问题（旧版本无法正确识别）：
+
+1、【 天翼云盘：https://cloud.189.cn/t/3yqYreieuUFv(访问码:cpn0) 】→错误：URL被误吞入(访问码  → 正确：URL【https://cloud.189.cn/t/3yqYreieuUFv】，密码【cpn0】
+2、【 5日iPhone 历代壁纸https://www.aliyundrive.com/s/rxUp6HNpwP8点击链接保存,或者复制本段内容,打开「阿里云盘」APP ,无 】→错误：URL路径吸入"「」APP"  → 正确：URL【https://www.aliyundrive.com/s/rxUp6HNpwP8】
+3、无协议URL：【9楼: cloud.189.cn/t/m6Bbmi3qAB3m 码 7515】→ 正确：URL【http://cloud.189.cn/t/m6Bbmi3qAB3m】，密码【7515】
+4、多链接：【百度:https://pan.baidu.com/s/1qThpoHNUKVmhcI-OlBJylQ提取码: hkai 天翼:https://cloud.189.cn/web/share?code=YBFveyJjuMbi】→ 正确：URL×2，密码【hkai】
+
+# 以下为参考用例（旧版本已可正确识别）：
+## 【htt删p:/去/pan这.bai几du.co个m/s/hff字H57gb?=yhgfdxcc54。（提取码:5u8m）】→链接【http://pan.baidu.com/s/hffH57gb?=yhgfdxcc54】，密码【5u8m】
+## 【3天前2、天翼云盘: https://cloud.189.cn/web/share?code=YBFveyJjuMbi(访问码:1q56) ...】→ URL【https://cloud.189.cn/web/share?code=YBFveyJjuMbi】，密码【1q56】
