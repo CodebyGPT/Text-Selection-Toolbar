@@ -71,6 +71,9 @@ export const SETTINGS_APP_CSS = String.raw`
   margin: 0 auto;
 }
 :host .kiss-st-section { margin-bottom: 26px; }
+/* A headerless card (interface language / theme) still needs the gap that a
+   section title would otherwise provide. */
+:host .kiss-st-card + .kiss-st-section { margin-top: 26px; }
 :host .kiss-st-section h2 {
   margin: 0 0 10px;
   font-size: 12px;
