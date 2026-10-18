@@ -4,7 +4,7 @@ import process from "node:process";
 
 function gitHash() {
   try {
-    return execFileSync("git", ["-C", "..", "rev-parse", "--short", "HEAD"], {
+    return execFileSync("git", ["rev-parse", "--short", "HEAD"], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     }).trim();
