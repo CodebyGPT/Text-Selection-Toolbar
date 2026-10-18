@@ -18,6 +18,8 @@ import {
   OPT_MOUSE_HOVER_TRANS_REGION,
   OPT_SPLIT_PARAGRAPH_PUNCTUATION,
   OPT_SPLIT_PARAGRAPH_DISABLE,
+  TRANS_MIN_LENGTH,
+  TRANS_MAX_LENGTH,
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
   MSG_INJECT_CSS,
   MSG_UPDATE_ICON,
@@ -677,11 +679,8 @@ export class Translator {
   }
 
   #getPlainTextChunkLimit() {
-    const maxLength = Number(this.#setting.maxLength);
-    // 单个纯文本块必须小于 maxLength，避免后续 #isInvalidText 直接过滤。
-    const hardLimit = Number.isFinite(maxLength)
-      ? Math.max(1, maxLength - 1)
-      : 3000;
+    // 单个纯文本块必须小于 TRANS_MAX_LENGTH，避免后续 #isInvalidText 直接过滤。
+    const hardLimit = Math.max(1, TRANS_MAX_LENGTH - 1);
 
     // 控制默认块大小，避免纯文本页面一次请求过长文本。
     return Math.min(3000, hardLimit);
@@ -2102,7 +2101,7 @@ export class Translator {
   // 收集区域内最外层（互不包含）的已观察翻译单元
   #collectHoverBlockUnits(container) {
     const units = [];
-    const maxLength = Number(this.#setting.maxLength) || 100000;
+    const maxLength = TRANS_MAX_LENGTH;
     const visit = (node, isRoot) => {
       if (!Translator.isElementOrFragment(node)) return;
       // 根节点需检查整条祖先链；递归进入的子节点其祖先已在上一层验证过，
@@ -2864,8 +2863,8 @@ export class Translator {
 
     // 文本长度
     if (
-      trimmedText.length < this.#setting.minLength ||
-      trimmedText.length > this.#setting.maxLength
+      trimmedText.length < TRANS_MIN_LENGTH ||
+      trimmedText.length > TRANS_MAX_LENGTH
     ) {
       return true;
     }

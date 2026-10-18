@@ -523,8 +523,11 @@ const mergeSettingWithDefault = (setting) => {
 
   // KISS 原版快捷键全部关闭；工具栏的超级取词键在 toolbarSetting 中，不受影响。
   mergedSetting.shortcuts = {};
-  // 划词工具栏不需要网页翻译的预初始化。
+  // 划分词工具栏不需要网页翻译的预初始化。
   mergedSetting.preInit = false;
+  // 段落长度阈值已改为固定常量，清掉历史遗留值。
+  delete mergedSetting.minLength;
+  delete mergedSetting.maxLength;
   if (mergedSetting.uiLang === "zh-CN" || mergedSetting.uiLang === "zh_TW") {
     mergedSetting.uiLang = "zh";
   }

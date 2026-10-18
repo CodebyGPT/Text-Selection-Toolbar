@@ -248,8 +248,7 @@ export const DEFAULT_SETTING = {
   uiLang: "auto", // 界面语言 ("auto" 跟随系统)
   // fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至rule，作废)
   // fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间(移至rule，作废)
-  minLength: TRANS_MIN_LENGTH, // 整页翻译的段落最小有效长度限制
-  maxLength: TRANS_MAX_LENGTH, // 整页翻译的段落最大有效长度限制
+  // 段落长度阈值不再作为设置项，直接用 TRANS_MIN_LENGTH / TRANS_MAX_LENGTH。
   newlineLength: TRANS_NEWLINE_LENGTH,
   httpTimeout: DEFAULT_HTTP_TIMEOUT, // 接口请求超时时间
   clearCache: false, // 每次浏览器重启时，是否自动清空翻译结果的本地网络缓存
