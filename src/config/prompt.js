@@ -35,11 +35,6 @@ export const PROMPT_SLUG_BATCH_TRANSLATION_JSON = "batch-translation-json";
 export const PROMPT_SLUG_BATCH_TRANSLATION_XML = "batch-translation-xml";
 export const PROMPT_SLUG_BATCH_TRANSLATION_LINE = "batch-translation-line";
 export const PROMPT_SLUG_SUBTITLE_SEGMENTATION = "subtitle-segmentation";
-export const PROMPT_SLUG_DICTIONARY_EN_ZH = "dictionary-en-zh";
-export const PROMPT_SLUG_DICTIONARY_EN_JA = "dictionary-en-ja";
-export const PROMPT_SLUG_DICTIONARY_EN_KO = "dictionary-en-ko";
-export const PROMPT_SLUG_DICTIONARY_EN_VI = "dictionary-en-vi";
-export const PROMPT_SLUG_DICTIONARY_EN_RU = "dictionary-en-ru";
 
 // 提示词应用模式：跟随接口内部配置，或使用全局统一配置
 export const PROMPT_MODE_FOLLOW_API = "follow_api";
@@ -49,18 +44,13 @@ export const PROMPT_MODE_GLOBAL = "global";
 export const PROMPT_CATEGORY_BATCH_SYSTEM = "batch system prompt";
 export const PROMPT_CATEGORY_USER = "user prompt";
 export const PROMPT_CATEGORY_SUBTITLE = "subtitle prompt";
-export const PROMPT_CATEGORY_DICTIONARY = "dictionary prompt";
 export const PROMPT_CATEGORY_SUMMARY = "summary prompt";
-export const PROMPT_CATEGORY_VLM = "vlm prompt";
-export const DEFAULT_VLM_PROMPT_SLUG = "vlm-document";
 // 允许在设置界面“提示词管理”中展示和维护的分类列表
 export const PROMPT_TEMPLATE_CATEGORIES = [
   PROMPT_CATEGORY_USER,
   PROMPT_CATEGORY_BATCH_SYSTEM,
   PROMPT_CATEGORY_SUBTITLE,
-  PROMPT_CATEGORY_DICTIONARY,
   PROMPT_CATEGORY_SUMMARY,
-  PROMPT_CATEGORY_VLM,
 ];
 
 // 各类功能默认使用的提示词 Slug，当未配置时作为后备默认值
@@ -68,7 +58,6 @@ export const DEFAULT_NOBATCH_PROMPT_SLUG =
   PROMPT_SLUG_NOBATCH_TRANSLATION_CONCISE;
 export const DEFAULT_BATCH_PROMPT_SLUG = PROMPT_SLUG_BATCH_TRANSLATION_JSON;
 export const DEFAULT_SUBTITLE_PROMPT_SLUG = PROMPT_SLUG_SUBTITLE_SEGMENTATION;
-export const DEFAULT_DICTIONARY_PROMPT_SLUG = PROMPT_SLUG_DICTIONARY_EN_ZH;
 export const PROMPT_SLUG_DEFAULT_VIDEO_SUMMARY = "default_video_summary";
 export const DEFAULT_SUMMARY_PROMPT_SLUG = PROMPT_SLUG_DEFAULT_VIDEO_SUMMARY;
 
@@ -106,28 +95,6 @@ export const CURRENT_SETTINGS_VERSION = SETTINGS_VERSION_V5;
  * 用户不能删除预设提示词，但可以基于它们复制出自定义的模板。
  */
 export const PRESET_PROMPTS = [
-  {
-    slug: DEFAULT_VLM_PROMPT_SLUG,
-    category: PROMPT_CATEGORY_VLM,
-    nameKey: "preset_prompt_vlm_document",
-    name: "视觉解析（Markdown）",
-    systemPrompt: "",
-    userPrompt:
-      "Extract all visible text from the image in its original language. Preserve reading order, paragraph breaks, and table structure. Do not translate, summarize, or invent missing or unreadable content. Return only the extracted content in Markdown, without explanations or Markdown code fences.",
-  },
-  ...[
-    ["vlm-glm-text", "GLM-OCR Document", "Text Recognition:"],
-    ["vlm-paddle-text", "PaddleOCR-VL Document", "OCR:"],
-    ["vlm-table", "Table Recognition", "Table Recognition:"],
-    ["vlm-formula", "Formula Recognition", "Formula Recognition:"],
-    ["vlm-unlimited-document", "Unlimited-OCR Document", "document parsing."],
-  ].map(([slug, name, userPrompt]) => ({
-    slug,
-    name,
-    userPrompt,
-    category: PROMPT_CATEGORY_VLM,
-    systemPrompt: "",
-  })),
   {
     slug: PROMPT_SLUG_NOBATCH_TRANSLATION_CONCISE,
     category: PROMPT_CATEGORY_USER,
@@ -455,9 +422,7 @@ export function getPromptCategoryDisplayName(category, i18n) {
     [PROMPT_CATEGORY_BATCH_SYSTEM]: "prompt_category_batch_system",
     [PROMPT_CATEGORY_USER]: "prompt_category_user",
     [PROMPT_CATEGORY_SUBTITLE]: "prompt_category_subtitle",
-    [PROMPT_CATEGORY_DICTIONARY]: "prompt_category_dictionary",
     [PROMPT_CATEGORY_SUMMARY]: "prompt_category_summary",
-    [PROMPT_CATEGORY_VLM]: "prompt_category_vlm",
   };
 
   return i18n(keyMap[category], category || "");
@@ -534,37 +499,6 @@ export function getSubtitlePromptOptions(prompts = []) {
   return getPromptOptions(prompts, PROMPT_CATEGORY_SUBTITLE);
 }
 
-/**
- * 获取 AI 词典可选提示词列表。
- *
- * 仅返回词典分类，供接口配置页和划词翻译框设置页复用。
- *
- * @param {Array<Object>} prompts 用户与预设提示词集合
- * @returns {Array<Object>} 可用于 AI 词典的提示词选项
- */
-export function getDictionaryPromptOptions(prompts = []) {
-  return getPromptOptions(prompts, PROMPT_CATEGORY_DICTIONARY);
-}
-
-/**
- * 获取所有可用的“视频/长文总结”提示词选项
- *
- * @param {Array} prompts 全部可用提示词列表
- * @returns {Array}
- */
-export function getVlmPromptOptions(prompts = []) {
-  return getPromptOptions(prompts, PROMPT_CATEGORY_VLM);
-}
-
-export function resolveVlmPrompt(userPrompts = [], slug) {
-  const prompt = findPromptBySlug(userPrompts, slug);
-  return (
-    prompt?.category === PROMPT_CATEGORY_VLM
-      ? prompt
-      : findPromptBySlug([], DEFAULT_VLM_PROMPT_SLUG)
-  ).userPrompt;
-}
-
 export function getSummaryPromptOptions(prompts = []) {
   return getPromptOptions(prompts, PROMPT_CATEGORY_SUMMARY);
 }
@@ -623,14 +557,6 @@ const LEGACY_API_PROMPT_MIGRATIONS = [
     systemPromptFieldName: "subtitlePrompt",
     userPromptFieldName: "",
     promptSlugFieldName: "subtitlePromptSlug",
-  },
-  {
-    promptType: "dict",
-    promptLabel: "Dictionary prompt",
-    category: PROMPT_CATEGORY_DICTIONARY,
-    systemPromptFieldName: "dictPrompt",
-    userPromptFieldName: "dictUserPrompt",
-    promptSlugFieldName: "dictPromptSlug",
   },
 ];
 
@@ -932,14 +858,8 @@ export function migrateSettingToV5(setting = {}) {
   if (!setting || typeof setting !== "object") return setting;
   const previous = migrateSettingToV4(setting);
   if (getSettingVersion(previous) >= SETTINGS_VERSION_V5) return previous;
-  return {
-    ...previous,
-    version: SETTINGS_VERSION_V5,
-    transApis: previous.transApis?.map((api) => ({
-      ...api,
-      vlmPromptSlug: api.vlmPromptSlug ?? DEFAULT_VLM_PROMPT_SLUG,
-    })),
-  };
+  // Document/image translation was removed, so no VLM prompt is injected.
+  return { ...previous, version: SETTINGS_VERSION_V5 };
 }
 
 export function removePromptReferences(setting = {}, promptSlug) {
@@ -984,20 +904,6 @@ export function removePromptReferences(setting = {}, promptSlug) {
       hasApiChanges = true;
     }
 
-    if (hasPromptReference(api, "dictPromptSlug", promptSlug)) {
-      nextApi = {
-        ...nextApi,
-        dictPromptSlug: DEFAULT_DICTIONARY_PROMPT_SLUG,
-      };
-      delete nextApi.dictPrompt;
-      delete nextApi.dictUserPrompt;
-      hasApiChanges = true;
-    }
-
-    if (hasPromptReference(api, "vlmPromptSlug", promptSlug)) {
-      nextApi = { ...nextApi, vlmPromptSlug: DEFAULT_VLM_PROMPT_SLUG };
-      hasApiChanges = true;
-    }
     return nextApi;
   });
 
@@ -1093,9 +999,7 @@ export function resolveApiPromptSettings(
     for (const [slugKey, systemKey, userKey, slot] of [
       ["batchPromptSlug", "systemPrompt", "batchUserPrompt", "batch"],
       ["nobatchPromptSlug", "nobatchPrompt", "nobatchUserPrompt", "nobatch"],
-      ["dictPromptSlug", "dictPrompt", "dictUserPrompt", "dictionary"],
       ["subtitlePromptSlug", "subtitlePrompt", undefined, "subtitle"],
-      ["vlmPromptSlug", "vlmPrompt", undefined, "vlm"],
     ]) {
       const prompt = next[slugKey]
         ? findPromptBySlug(userPrompts, next[slugKey])
@@ -1237,29 +1141,6 @@ export function resolveApiPromptSettings(
     nextApiSetting.subtitlePrompt = subtitlePrompt.systemPrompt;
   }
 
-  const hasDictPromptReference = hasPromptReferenceField(
-    nextApiSetting,
-    "dictPromptSlug"
-  );
-  const hasDictPromptInlineValue =
-    hasOwn(nextApiSetting, "dictPrompt") ||
-    hasOwn(nextApiSetting, "dictUserPrompt");
-  const dictPromptSlug = getPromptFieldValue(
-    nextApiSetting,
-    "dictPromptSlug",
-    DEFAULT_DICTIONARY_PROMPT_SLUG
-  );
-  const dictPrompt = findPromptBySlugOrDefault(
-    userPrompts,
-    dictPromptSlug,
-    DEFAULT_DICTIONARY_PROMPT_SLUG
-  );
-
-  if (dictPrompt && (hasDictPromptReference || !hasDictPromptInlineValue)) {
-    nextApiSetting.dictPromptSlug = dictPrompt.slug;
-    nextApiSetting.dictPrompt = dictPrompt.systemPrompt;
-    nextApiSetting.dictUserPrompt = dictPrompt.userPrompt;
-  }
 
   // Scene callers already resolve prompts here. Project old built-ins at the same
   // read-only boundary so existing apiSlug references enter compiled routing.
