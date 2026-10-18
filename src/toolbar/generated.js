@@ -46,7 +46,6 @@ const DEFAULT_CONFIG = {
     smartEngine: false,        // whether to enable smart engine assignment
     fallbackEngine: 'bing',   // fallback engine when text contains no Chinese
     enableDeleteBtn: true, // whether to show delete button
-    customTLDs: [], // user-defined TLD list
     enableTranslate: true, // show the KISS translate action
 };
 
@@ -65,22 +64,10 @@ const SEARCH_ENGINES = {
     brave: { name: 'Brave', url: 'https://search.brave.com/search?q=%s' },
 };
 
-// Top-level domain whitelist
-const TLD_SET = new Set([
-    'com', 'cn', 'de', 'tk', 'uk', 'net', 'org', 'top', 'ru',
-    'info', 'br', 'xyz', 'ga', 'nl', 'it', 'ws', 'ml', 'shop',
-    'cf', 'fr', 'co', 'eu', 'in', 'online', 'au', 'gq', 'ph',
-    'us', 'ca', 'vip', 'club', 'pl', 'cc', 'biz', 'store', 'za',
-    'site', 'ch', 'se', 'es', 'tw', 'loan', 'jp', 'me', 'be',
-    'live', 'buzz', 'at', 'ir', 'work', 'app', 'sbs', 'cz', 'pro',
-    'click', 'id', 'dk', 'io', 'mx', 'bond', 'kr', 'wang', 'lol',
-    'no', 'tr', 'cfd', 'nu', 'hu', 'life', 'ai', 'asia', 'my',
-    'cl', 'ua', 'ro', 'icu', 'cloud', 'win', 'link', 'ar', 'nz',
-    'vn', 'ltd', 'world', 'dev', 'fun', 'mobi', 'space', 'tv',
-    'cyou', 'fi', 'tech', 'sk', 'today', 'gr', 'one', 'digital',
-    'gov', 'edu'
-]);
-const TLD_SET_EXTENDED = new Set(TLD_SET); // Extendable copy, merged with custom TLDs
+// Known TLDs, generated from the Public Suffix List (ICANN section).
+// Source: https://publicsuffix.org/list/public_suffix_list.dat (MPL-2.0)
+// Regenerate with: node scripts/update-tlds.mjs
+const TLD_SET = new Set(("aaa,aarp,abb,abbott,abbvie,abc,able,abogado,abudhabi,ac,academy,accenture,accountant,accountants,aco,actor,ad,ads,adult,ae,aeg,aero,aetna,af,afl,africa,ag,agakhan,agency,ai,aig,airbus,airforce,airtel,akdn,al,alibaba,alipay,allfinanz,allstate,ally,alsace,alstom,am,amazon,americanexpress,americanfamily,amex,amfam,amica,amsterdam,analytics,android,anquan,anz,ao,aol,apartments,app,apple,aq,aquarelle,ar,arab,aramco,archi,army,arpa,art,arte,as,asda,asia,associates,at,athleta,attorney,au,auction,audi,audible,audio,auspost,author,auto,autos,aw,aws,ax,axa,az,azure,ba,baby,baidu,banamex,band,bank,bar,barcelona,barclaycard,barclays,barefoot,bargains,baseball,basketball,bauhaus,bayern,bb,bbc,bbt,bbva,bcg,bcn,bd,be,beats,beauty,beer,berlin,best,bestbuy,bet,bf,bg,bh,bharti,bi,bible,bid,bike,bing,bingo,bio,biz,bj,black,blackfriday,blockbuster,blog,bloomberg,blue,bm,bms,bmw,bn,bnpparibas,bo,boats,boehringer,bofa,bom,bond,boo,book,booking,bosch,bostik,boston,bot,boutique,box,br,bradesco,bridgestone,broadway,broker,brother,brussels,bs,bt,build,builders,business,buy,buzz,bv,bw,by,bz,bzh,ca,cab,cafe,cal,call,calvinklein,cam,camera,camp,canon,capetown,capital,capitalone,car,caravan,cards,care,career,careers,cars,casa,case,cash,casino,cat,catering,catholic,cba,cbn,cbre,cc,cd,center,ceo,cern,cf,cfa,cfd,cg,ch,chanel,channel,charity,chase,chat,cheap,chintai,christmas,chrome,church,ci,cipriani,circle,cisco,citadel,citi,citic,city,ck,cl,claims,cleaning,click,clinic,clinique,clothing,cloud,club,clubmed,cm,cn,co,coach,codes,coffee,college,cologne,com,commbank,community,company,compare,computer,comsec,condos,construction,consulting,contact,contractors,cooking,cool,coop,corsica,country,coupon,coupons,courses,cpa,cr,credit,creditcard,creditunion,cricket,crown,crs,cruise,cruises,cu,cuisinella,cv,cw,cx,cy,cymru,cyou,cz,dad,dance,data,date,dating,datsun,day,dclk,dds,de,deal,dealer,deals,degree,delivery,dell,deloitte,delta,democrat,dental,dentist,desi,design,dev,dhl,diamonds,diet,digital,direct,directory,discount,discover,dish,diy,dj,dk,dm,dnp,do,docs,doctor,dog,domains,dot,download,drive,dtv,dubai,dupont,durban,dvag,dvr,dz,earth,eat,ec,eco,edeka,edu,education,ee,eg,email,emerck,energy,engineer,engineering,enterprises,epson,equipment,ericsson,erni,es,esq,estate,et,eu,eurovision,eus,events,exchange,expert,exposed,express,extraspace,fage,fail,fairwinds,faith,family,fan,fans,farm,farmers,fashion,fast,fedex,feedback,ferrari,ferrero,fi,fidelity,fido,film,final,finance,financial,fire,firestone,firmdale,fish,fishing,fit,fitness,fj,flickr,flights,flir,florist,flowers,fly,fm,fo,foo,food,football,ford,forex,forsale,forum,foundation,fox,fr,free,fresenius,frl,frogans,frontier,ftr,fujitsu,fun,fund,furniture,futbol,fyi,ga,gal,gallery,gallo,gallup,game,games,gap,garden,gay,gb,gbiz,gd,gdn,ge,gea,gent,genting,george,gf,gg,ggee,gh,gi,gift,gifts,gives,giving,gl,glass,gle,global,globo,gm,gmail,gmbh,gmo,gmx,gn,godaddy,gold,goldpoint,golf,goodyear,goog,google,gop,got,gov,gp,gq,gr,grainger,graphics,gratis,green,gripe,grocery,group,gs,gt,gu,gucci,guge,guide,guitars,guru,gw,gy,hair,hamburg,hangout,haus,hbo,hdfc,hdfcbank,health,healthcare,help,helsinki,here,hermes,hiphop,hisamitsu,hitachi,hiv,hk,hkt,hm,hn,hockey,holdings,holiday,homedepot,homegoods,homes,homesense,honda,horse,hospital,host,hosting,hot,hotel,hotels,hotmail,house,how,hr,hsbc,ht,hu,hughes,hyatt,hyundai,ibm,icbc,ice,icu,id,ie,ieee,ifm,ikano,il,im,imamat,imdb,immo,immobilien,in,inc,industries,infiniti,info,ing,ink,institute,insurance,insure,int,international,intuit,investments,io,ipiranga,iq,ir,irish,is,ismaili,ist,istanbul,it,itau,itv,jaguar,java,jcb,je,jeep,jetzt,jewelry,jio,jll,jmp,jnj,jo,jobs,joburg,jot,joy,jp,jpmorgan,jprs,juegos,kaufen,kddi,ke,kerryhotels,kerryproperties,kfh,kg,kh,ki,kia,kids,kim,kindle,kitchen,kiwi,km,kn,koeln,komatsu,kosher,kp,kpmg,kpn,kr,krd,kred,kuokgroup,kw,ky,kyoto,kz,la,lacaixa,lamborghini,lamer,land,landrover,lanxess,lasalle,lat,latino,latrobe,law,lawyer,lb,lc,lds,lease,leclerc,lefrak,legal,lego,lexus,lgbt,li,lidl,life,lifeinsurance,lifestyle,lighting,like,lilly,limited,limo,lincoln,link,live,living,lk,llc,llp,loan,loans,locker,locus,lol,london,lotte,lotto,love,lpl,lplfinancial,lr,ls,lt,ltd,ltda,lu,lundbeck,luxe,luxury,lv,ly,ma,madrid,maif,maison,makeup,man,management,mango,map,market,marketing,markets,marriott,marshalls,mattel,mba,mc,mckinsey,md,me,med,media,meet,melbourne,meme,memorial,men,menu,merck,merckmsd,mg,mh,miami,microsoft,mil,mini,mint,mit,mitsubishi,mk,ml,mlb,mls,mma,mn,mo,mobi,mobile,moda,moe,moi,mom,monash,money,monster,mormon,mortgage,moscow,moto,motorcycles,mov,movie,mp,mq,mr,ms,msd,mt,mtn,mtr,mu,museum,music,mv,mw,mx,my,mz,na,nab,nagoya,name,navy,nba,nc,ne,nec,net,netbank,netflix,network,neustar,new,news,next,nextdirect,nexus,nf,nfl,ng,ngo,nhk,ni,nico,nike,nikon,ninja,nissan,nissay,nl,no,nokia,norton,now,nowruz,nowtv,nr,nra,nrw,ntt,nu,nyc,nz,obi,observer,office,okinawa,olayan,olayangroup,ollo,om,omega,one,ong,onion,onl,online,ooo,open,oracle,orange,org,organic,origins,osaka,otsuka,ott,ovh,pa,page,panasonic,paris,pars,partners,parts,party,pay,pccw,pe,pet,pf,pfizer,ph,pharmacy,phd,philips,phone,photo,photography,photos,physio,pics,pictet,pictures,pid,pin,ping,pink,pioneer,pizza,pk,pl,place,play,playstation,plumbing,plus,pm,pn,pnc,pohl,poker,politie,porn,post,pr,praxi,press,prime,pro,prod,productions,prof,progressive,promo,properties,property,protection,pru,prudential,ps,pt,pub,pw,pwc,py,qa,qpon,quebec,quest,racing,radio,re,read,realestate,realtor,realty,recipes,red,redumbrella,rehab,reise,reisen,reit,reliance,ren,rent,rentals,repair,report,republican,rest,restaurant,review,reviews,rexroth,rich,richardli,ricoh,ril,rio,rip,ro,rocks,rodeo,rogers,room,rs,rsvp,ru,rugby,ruhr,run,rw,rwe,ryukyu,sa,saarland,safe,safety,sakura,sale,salon,samsclub,samsung,sandvik,sandvikcoromant,sanofi,sap,sarl,sas,save,saxo,sb,sbi,sbs,sc,scb,schaeffler,schmidt,scholarships,school,schule,schwarz,science,scot,sd,se,search,seat,secure,security,seek,select,sener,services,seven,sew,sex,sexy,sfr,sg,sh,shangrila,sharp,shell,shia,shiksha,shoes,shop,shopping,shouji,show,si,silk,sina,singles,site,sj,sk,ski,skin,sky,skype,sl,sling,sm,smart,smile,sn,sncf,so,soccer,social,softbank,software,sohu,solar,solutions,song,sony,soy,spa,space,sport,spot,sr,srl,ss,st,stada,staples,star,statebank,statefarm,stc,stcgroup,stockholm,storage,store,stream,studio,study,style,su,sucks,supplies,supply,support,surf,surgery,suzuki,sv,swatch,swiss,sx,sy,sydney,systems,sz,tab,taipei,talk,taobao,target,tatamotors,tatar,tattoo,tax,taxi,tc,tci,td,tdk,team,tech,technology,tel,temasek,tennis,teva,tf,tg,th,thd,theater,theatre,tiaa,tickets,tienda,tips,tires,tirol,tj,tjmaxx,tjx,tk,tkmaxx,tl,tm,tmall,tn,to,today,tokyo,tools,top,toray,toshiba,total,tours,town,toyota,toys,tr,trade,trading,training,travel,travelers,travelersinsurance,trust,trv,tt,tube,tui,tunes,tushu,tv,tvs,tw,tz,ua,ubank,ubs,ug,uk,unicom,university,uno,uol,ups,us,uy,uz,va,vacations,vana,vanguard,vc,ve,vegas,ventures,verisign,versicherung,vet,vg,vi,viajes,video,vig,viking,villas,vin,vip,virgin,visa,vision,viva,vivo,vlaanderen,vn,vodka,volvo,vote,voting,voto,voyage,vu,wales,walmart,walter,wang,wanggou,watch,watches,weather,weatherchannel,web,webcam,weber,website,wed,wedding,weibo,weir,wf,whoswho,wien,wiki,williamhill,win,windows,wine,winners,wme,woodside,work,works,world,wow,ws,wtc,wtf,xbox,xerox,xihuan,xin,xxx,xyz,yachts,yahoo,yamaxun,yandex,ye,yodobashi,yoga,yokohama,you,youtube,yt,yun,za,zappos,zara,zero,zip,zm,zone,zuerich,zw").split(","));
 
 // Runtime state
 let cachedSelection = { text: '', html: '' };
@@ -166,10 +153,6 @@ const I18N = {
         btn_email: '@ 复制邮箱',
         toast_email_copied: '邮箱地址已复制',
         toast_password_pasted: '已粘贴提取码',
-        menu_tld_add: '➕ 添加自定义顶级域名',
-        prompt_tld_add: '请输入要添加的顶级域名 (如 xyz 或 .xyz):',
-        toast_tld_added: '已添加域名: %s',
-        err_tld_invalid: '无效的域名格式。请输入如 xyz 或 .xyz',
         menu_drag_preview: '🔗 拖拽预览',
         btn_cut: '剪切',
         menu_edit: '✏️ 编辑网页',
@@ -246,10 +229,6 @@ const I18N = {
         btn_email: '@ Copy Email',
         toast_email_copied: 'Email Copied',
         toast_password_pasted: 'Code Pasted',
-        menu_tld_add: '➕ Add Custom TLD',
-        prompt_tld_add: 'Enter TLD to add (e.g. xyz or .xyz):',
-        toast_tld_added: 'TLD added: %s',
-        err_tld_invalid: 'Invalid TLD format. Use e.g. xyz or .xyz',
         menu_drag_preview: '🔗 Drag Link Preview',
         btn_cut: 'Cut',
         menu_edit: '✏️ Edit Page',
@@ -326,10 +305,6 @@ const I18N = {
         btn_email: '@ Копировать Email',
         toast_email_copied: 'Email скопирован',
         toast_password_pasted: 'Код вставлен',
-        menu_tld_add: '➕ Добавить свой TLD',
-        prompt_tld_add: 'Введите TLD (например xyz или .xyz):',
-        toast_tld_added: 'TLD добавлен: %s',
-        err_tld_invalid: 'Неверный формат TLD. Используйте напр. xyz или .xyz',
         menu_drag_preview: '🔗 Предпросмотр ссылки',
         btn_cut: 'Вырезать',
         menu_edit: '✏️ Редактировать',
@@ -538,11 +513,6 @@ async function initConfiguration() {
 
     const blockedRules = await safeGetValue('blocked_elements', {});
     configCache['blocked_elements'] = blockedRules;
-
-    const customTLDs = configCache['customTLDs'] || [];
-    if (customTLDs.length > 0) {
-        customTLDs.forEach(t => TLD_SET_EXTENDED.add(t.toLowerCase().replace(/^\./, '')));
-    }
 }
 
 async function initDefaultSearchEngine() {
@@ -590,13 +560,23 @@ function registerMenus() {
 // ---- 06-extractors.js ----
 // Module 06: Link & Password Extractors
 
-// Get merged complete TLD set (built-in + user-defined)
-function getEffectiveTLDs() {
-    const custom = getConfig('customTLDs') || [];
-    if (custom.length === 0) return TLD_SET_EXTENDED;
-    const merged = new Set(TLD_SET_EXTENDED);
-    custom.forEach(t => merged.add(t.toLowerCase().replace(/^\./, '')));
-    return merged;
+// Host without port / trailing dot, lowercased
+function normalizeHost(host) {
+    return host.replace(/:\d+$/, '').replace(/\.+$/, '').toLowerCase();
+}
+
+// Same rule browsers use for "Go to <url>" vs "Search for <text>":
+// a scheme-less host counts as a URL only when its TLD is in the Public
+// Suffix List (or is one of the RFC 6761 / 6762 special-use names).
+function isKnownHost(host) {
+    const h = normalizeHost(host);
+    if (!h) return false;
+    if (h === 'localhost') return true;
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) return true;
+    const dot = h.lastIndexOf('.');
+    if (dot <= 0) return false;
+    const tld = h.slice(dot + 1);
+    return TLD_SET.has(tld) || /^(example|test|local|internal)$/.test(tld);
 }
 
 // RFC 3986 URL safe character detection (unreserved + reserved)
@@ -658,15 +638,15 @@ function scanUrlPath(text, startPos) {
     return urlEnd;
 }
 
-// Protocol anchor regex
-const PROTO_ANCHOR_PATTERN = /https?:\/\/[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}/gi;
+// Protocol anchor regex (scheme present => URL, host may be localhost/IP)
+const PROTO_ANCHOR_PATTERN = /https?:\/\/(?:[a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+(?::\d+)?/gi;
 
-// Protocol-less domain anchor regex (for patterns like cloud.189.cn/t/xxx)
-const DOMAIN_ANCHOR_PATTERN = /(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}/gi;
+// Protocol-less domain anchor regex (for patterns like cloud.189.cn/t/xxx),
+// plus bare IPv4 hosts, which browsers also open directly.
+const DOMAIN_ANCHOR_PATTERN = /(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}|\d{1,3}(?:\.\d{1,3}){3}/gi;
 
 // Extract all URLs from text
 function extractUrlsFromText(text) {
-    const effectiveTLDs = getEffectiveTLDs();
     const results = [];
 
     // Collect all anchors (proto + proto-less)
@@ -717,41 +697,24 @@ function extractUrlsFromText(text) {
     for (const anchor of deduped) {
         // Skip anchors already covered by the previous full URL
         if (anchor.start < lastUrlEnd) continue;
-        const host = anchor.hostAndProto.replace(/^https?:\/\//, '').split('/')[0];
-        const tld = host.split('.').pop().toLowerCase();
-        if (!effectiveTLDs.has(tld)) continue;
-        if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\.|0\.)/.test(host)) continue;
 
         const pathEnd = scanUrlPath(text, anchor.end);
         let url = text.substring(anchor.start, pathEnd);
         url = url.replace(/[\u4e00-\u9fa5]+/g, '');
         url = trimUrlTail(url);
 
-        // Validate: URL must have path beyond domain
-        if (!anchor.hasProto) {
-            const urlHost = url.split('/')[0];
-            // URL after protocol must contain at least one / path or ? param
-            if (url === urlHost || url.length <= urlHost.length) {
-                // No path; check for ? params
-                const questionIdx = text.indexOf('?', anchor.end);
-                if (questionIdx !== -1 && questionIdx < anchor.end + 50) {
-                    // May have params after, but scanner didn't catch them. Conservative skip.
-                }
-                // Bare domain not treated as link (e.g., "cloud.189.cn" alone)
-                if (!/[/?#]/.test(url)) continue;
-            }
-        }
-
-        const finalHost = url.replace(/^https?:\/\//, '').split('/')[0];
-        const finalTld = finalHost.split('.').pop().toLowerCase();
-        if (!effectiveTLDs.has(finalTld)) continue;
+        // Same acceptance rule as the browsers: an explicit scheme is always a
+        // URL; a scheme-less host needs a known TLD.
+        const hostStart = anchor.hasProto ? url.indexOf('://') + 3 : 0;
+        const finalHost = normalizeHost(url.slice(hostStart).split(/[/?#]/)[0]);
+        if (!finalHost) continue;
+        if (!anchor.hasProto && !isKnownHost(finalHost)) continue;
+        if (!anchor.hasProto && !finalHost.includes('.')) continue;
 
         const fullUrl = url.startsWith('http') ? url : 'http://' + url;
-        const displayUrl = anchor.hasProto ? url : url; // Display shows with http:// if needed
 
         results.push({
-            display: fullUrl.replace(/^https?:\/\//, '') === url.replace(/^https?:\/\//, '')
-                ? url : fullUrl,
+            display: url,
             url: fullUrl,
             host: finalHost,
             anchorStart: anchor.start  // Keep anchor position in original text for password assignment

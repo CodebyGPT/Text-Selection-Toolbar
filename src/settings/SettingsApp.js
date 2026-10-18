@@ -547,23 +547,6 @@ function ToolbarTab({ setting, update }) {
       </Section>
 
       <Section title="高级">
-        <Row label="自定义顶级域名" help="逗号分隔，如 xyz, shop">
-          <TextInput
-            value={
-              Array.isArray(value.customTLDs)
-                ? value.customTLDs.join(", ")
-                : value.customTLDs
-            }
-            onChange={(v) =>
-              patch({
-                customTLDs: v
-                  .split(",")
-                  .map((item) => item.trim().replace(/^\./, ""))
-                  .filter(Boolean),
-              })
-            }
-          />
-        </Row>
         <div className="kiss-st-row">
           <span className="kiss-st-spacer" />
           <button

@@ -13,11 +13,6 @@ async function initConfiguration() {
 
     const blockedRules = await safeGetValue('blocked_elements', {});
     configCache['blocked_elements'] = blockedRules;
-
-    const customTLDs = configCache['customTLDs'] || [];
-    if (customTLDs.length > 0) {
-        customTLDs.forEach(t => TLD_SET_EXTENDED.add(t.toLowerCase().replace(/^\./, '')));
-    }
 }
 
 async function initDefaultSearchEngine() {

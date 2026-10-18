@@ -108,7 +108,6 @@ const EN = {
   "自动翻译": "Auto translate",
   "自定义": "Custom",
   "自定义 URL": "Custom URL",
-  "自定义顶级域名": "Custom TLDs",
   "行为": "Behavior",
   "行内显示": "Inline",
   "规则已保存": "Rules saved",

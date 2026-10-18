@@ -26,7 +26,8 @@
     "prestart": "node scripts/build-toolbar.mjs",
     "start": "cross-env REACT_APP_CLIENT=userscript react-app-rewired start",
     "prebuild": "node scripts/build-toolbar.mjs",
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/test-links.cjs"
   },
   "eslintConfig": {
     "extends": [

@@ -17,7 +17,6 @@ export const DEFAULT_TOOLBAR_SETTING = {
   smartEngine: false,
   fallbackEngine: "bing",
   enableDeleteBtn: true,
-  customTLDs: [],
   enableTranslate: true,
 };
 
