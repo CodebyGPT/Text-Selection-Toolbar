@@ -144,7 +144,7 @@ export default function Action({ translator, processActions }) {
               ref={panelRef}
               className="kt-popup-shell kt-popup-shell--content"
               role="dialog"
-              aria-label={process.env.REACT_APP_NAME || "KISS Translator"}
+              aria-label={process.env.REACT_APP_NAME || "Text Selection Toolbar"}
               tabIndex={-1}
               onKeyDown={(event) => {
                 if (event.key === "Escape") {

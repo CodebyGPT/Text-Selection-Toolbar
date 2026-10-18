@@ -237,62 +237,6 @@ export const DEFAULT_MOUSE_HOVER_SETTING = {
   bubbleStyle: DEFAULT_MOUSE_HOVER_BUBBLE_STYLE, // 气泡模式的容器 CSS
 };
 
-export const DEFAULT_FILE_TRANSLATE_SETTING = {
-  pdf: {
-    fromLang: "auto",
-    toLang: "zh-CN",
-    apiSlug: OPT_TRANS_OLLAMA,
-    promptSlug: "",
-    textStyle: "style_none",
-    parseMode: "smart",
-    enableJev: "false",
-    layoutModel: "pp-doclayout-v3-onnx",
-    layoutDevice: "wasm",
-    layoutApiSlug: "",
-    recognitionService: null,
-    visionServiceSlug: "",
-    vlmPromptSlug: "",
-    decisionModel: "laya-multilingual-int8",
-  },
-  txt: {
-    apiSlug: OPT_TRANS_OLLAMA,
-    fromLang: "auto",
-    toLang: "zh-CN",
-    promptSlug: "",
-    textStyle: "style_none",
-  },
-  image: {
-    apiSlug: OPT_TRANS_OLLAMA,
-    fromLang: "auto",
-    toLang: "zh-CN",
-    promptSlug: "",
-    vlmPromptSlug: "",
-    recognitionService: null,
-    fontFamily: "default",
-  },
-  markdown: {
-    apiSlug: OPT_TRANS_OLLAMA,
-    fromLang: "auto",
-    toLang: "zh-CN",
-    promptSlug: "",
-    textStyle: "style_none",
-  },
-  epub: {
-    apiSlug: OPT_TRANS_OLLAMA,
-    fromLang: "auto",
-    toLang: "zh-CN",
-    promptSlug: "",
-    textStyle: "style_none",
-    hasRichText: "true",
-    viewMode: "bilingual",
-    readerPreferences: {
-      pageWidth: 840,
-      fontSize: 16,
-      fontFamily: "default",
-      themeId: "default",
-    },
-  },
-};
 
 // --- 全局默认设置对象，存储于 local storage ---
 export const DEFAULT_SETTING = {
@@ -327,8 +271,7 @@ export const DEFAULT_SETTING = {
   prompts: [], // 用户自定义提示词；预设提示词由 config/prompt.js 提供，不写入本地配置
   // mouseKey: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译(移至rule，作废)
   shortcuts: {}, // KISS 原版快捷键已移除；工具栏超级取词键在 toolbarSetting
-  tranboxSetting: DEFAULT_TRANBOX_SETTING, // 划词翻译及字典结果面板配置
-  fileTranslateSetting: DEFAULT_FILE_TRANSLATE_SETTING,
+  tranboxSetting: DEFAULT_TRANBOX_SETTING, // 划词翻译面板配置
   // touchTranslate: 2, // 触屏翻译 {5:单指双击，6:单指三击，7:双指双击} (作废)
   // touch gesture translation removed
   blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用整页双语翻译的网址/黑名单列表

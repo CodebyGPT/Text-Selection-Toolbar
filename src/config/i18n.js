@@ -1,19 +1,15 @@
 import { YOUTUBE_CAPTIONS_I18N } from "./locales/youtubeCaptions";
-import { PROVIDER_PLUGINS_I18N } from "./locales/providerPlugins";
 import { POPUP_I18N } from "./i18n.popup";
 /**
  * @file i18n.js
- * @description 国际化本地化字典文件，包含支持的界面语言、自定义 API 请求帮助文档，以及多语言文案对照（支持中文、英文、繁体中文、日文、韩文）。
+ * @description 国际化本地化字典文件，包含支持的界面语言与多语言文案对照。
  */
 
-import { SETTINGS_I18N } from "./locales/settings";
 import { RU_I18N } from "./i18n.ru";
 export const UI_LANGS = [["en", "English"], ["zh", "简体中文"], ["ru", "Русский"]];
 export const I18N = {
   ...YOUTUBE_CAPTIONS_I18N,
   ...POPUP_I18N,
-  ...SETTINGS_I18N,
-  ...PROVIDER_PLUGINS_I18N,
   app_name: {
     zh: `划词工具栏`,
     en: `Text Selection Toolbar`

@@ -918,16 +918,6 @@ export function migrateSettingToV5(setting = {}) {
       ...api,
       vlmPromptSlug: api.vlmPromptSlug ?? DEFAULT_VLM_PROMPT_SLUG,
     })),
-    ...(previous.fileTranslateSetting && {
-      fileTranslateSetting: {
-        ...previous.fileTranslateSetting,
-        image: {
-          ...previous.fileTranslateSetting.image,
-          vlmPromptSlug:
-            previous.fileTranslateSetting.image?.vlmPromptSlug ?? "",
-        },
-      },
-    }),
   };
 }
 
@@ -990,19 +980,9 @@ export function removePromptReferences(setting = {}, promptSlug) {
     return nextApi;
   });
 
-  const hasVlmSceneReference = hasPromptReference(
-    setting.fileTranslateSetting?.image,
-    "vlmPromptSlug",
-    promptSlug
-  );
   const hasSubtitlePromptReference = hasPromptReference(
     setting?.subtitleSetting,
     "segPromptSlug",
-    promptSlug
-  );
-  const hasTranboxDictPromptReference = hasPromptReference(
-    setting?.tranboxSetting,
-    "aiDictPromptSlug",
     promptSlug
   );
   const hasTranboxPromptReference = hasPromptReference(
@@ -1013,21 +993,13 @@ export function removePromptReferences(setting = {}, promptSlug) {
 
   if (
     !hasApiChanges &&
-    !hasVlmSceneReference &&
     !hasSubtitlePromptReference &&
-    !hasTranboxDictPromptReference &&
     !hasTranboxPromptReference
   ) {
     return setting;
   }
 
   const nextSetting = { ...setting };
-  if (hasVlmSceneReference) {
-    nextSetting.fileTranslateSetting = {
-      ...setting.fileTranslateSetting,
-      image: { ...setting.fileTranslateSetting.image, vlmPromptSlug: "" },
-    };
-  }
 
   if (hasApiChanges) {
     nextSetting.transApis = transApis;

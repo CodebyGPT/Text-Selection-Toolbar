@@ -36,7 +36,7 @@ class Logger {
   constructor(options = {}) {
     this.config = {
       level: options.level || LogLevel.INFO,
-      prefix: options.prefix || "KISS-Translator",
+      prefix: options.prefix || "Text Selection Toolbar",
     };
   }
 

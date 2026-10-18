@@ -2,62 +2,14 @@ import {
   getSettingWithDefault,
 } from "./libs/storage";
 import { isIframe } from "./libs/iframe";
-import { genEventName } from "./libs/utils";
-import { handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { isInBlacklist } from "./libs/blacklist";
 import { createBlacklistStartupRecovery } from "./libs/blacklistStartup";
 import { runSubtitle } from "./subtitle/subtitle";
 import { logger } from "./libs/log";
-import { injectInlineJs } from "./libs/injector";
 import TranslatorManager from "./libs/translatorManager";
 import { installToolbar } from "./toolbar";
-
-/**
- * 油猴脚本特权桥接设置。
- * 当用户在浏览器中打开插件设置页时（打包后的 options.html 或是 dev 调试页面），
- * 该函数负责把油猴特权 GM 接口暴露给页面环境，以便设置页面能直接读写油猴配置项。
- */
-function runSettingPage() {
-  // 若油猴实际提供了 unsafeWindow (直通宿主 window 权限)，则直接挂载
-  if (hasUnsafeWindowBridge()) {
-    unsafeWindow.GM = GM;
-    unsafeWindow.APP_INFO = {
-      name: process.env.REACT_APP_NAME,
-      version: process.env.REACT_APP_VERSION,
-    };
-  } else {
-    // 否则，回退到注册 CustomEvent 监听器进行间接通信代理
-    const ping = genEventName();
-    window.addEventListener(ping, handlePing);
-    injectInlineJs(
-      `(${injectScript})("${ping}")`,
-      "kiss-translator-options-injector"
-    );
-  }
-}
-
-function hasUnsafeWindowBridge() {
-  return typeof unsafeWindow !== "undefined";
-}
-
-/**
- * 检查指定的 URL 是否属于扩展/脚本的设置页面。
- * 用于匹配本地开发、打包产物及外置挂载的不同设置页路由。
- * @param {string} href 需要检测的当前页面完整 URL
- * @returns {boolean} 若当前处于设置页面则返回 true
- */
-function isOptionsPageHref(href) {
-  return [
-    process.env.REACT_APP_OPTIONSPAGE,
-    process.env.REACT_APP_OPTIONSPAGE_GITHUB,
-    process.env.REACT_APP_OPTIONSPAGE_DEV,
-    process.env.REACT_APP_OPTIONSPAGE_LOCAL,
-  ]
-    .filter(Boolean)
-    .some((optionsPage) => href.startsWith(optionsPage));
-}
 
 /**
  * 建立旧式 GM_* API 到现代 GM 对象的兼容垫片。
@@ -90,7 +42,7 @@ function ensureUserscriptGM() {
  * @param {string} message 错误内容信息
  */
 function showErr(message) {
-  const bannerId = "KISS-Translator-Message";
+  const bannerId = "text-selection-toolbar-message";
   const existingBanner = document.getElementById(bannerId);
   if (existingBanner) {
     existingBanner.remove();
@@ -231,12 +183,6 @@ export async function run(isUserscript = false) {
 
     if (isUserscript) {
       ensureUserscriptGM();
-
-      // 如果当前是设置面板 URL，先建立设置页专用代理，避免 storage 读写抢跑 GM 桥接。
-      if (isOptionsPageHref(href)) {
-        runSettingPage();
-        return;
-      }
 
       // 0. 执行核心数据迁移 (针对油猴等无后台更新事件的场景)
       const { runDataMigration } = await import("./libs/storage");
