@@ -1,6 +1,9 @@
 import { RU } from "./ru";
 
 const EN = {
+  "显示网页自带划词栏隐藏工具": "Show page toolbar hiding tools",
+  "显示网页编辑工具": "Show page editing tool",
+  "此选项仅影响功能入口的可见性，不会清空或禁用现存规则": "This only hides the menu entry; saved rules stay active",
   "关闭设置": "Close settings",
   "功能开关": "Feature switches",
   "当选取的文本不含中文时调用备选搜索引擎": "Use the fallback engine when the selected text has no Chinese",

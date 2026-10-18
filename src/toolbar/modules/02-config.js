@@ -19,6 +19,8 @@ const DEFAULT_CONFIG = {
     fallbackEngine: 'bing',   // fallback engine when text contains no Chinese
     enableDeleteBtn: true, // whether to show delete button
     enableTranslate: true, // show the KISS translate action
+    showBlockMenu: true,   // show the "hide page selection toolbar" menu entries
+    showEditMenu: true,    // show the "edit page" menu entry
 };
 
 // Chinese-only extras (cloud-drive codes, smart fallback engine) follow the

@@ -18,6 +18,8 @@ export const DEFAULT_TOOLBAR_SETTING = {
   fallbackEngine: "bing",
   enableDeleteBtn: true,
   enableTranslate: true,
+  showBlockMenu: true,
+  showEditMenu: true,
 };
 
 export const TOOLBAR_SEARCH_ENGINES = {

@@ -47,6 +47,8 @@ const DEFAULT_CONFIG = {
     fallbackEngine: 'bing',   // fallback engine when text contains no Chinese
     enableDeleteBtn: true, // whether to show delete button
     enableTranslate: true, // show the KISS translate action
+    showBlockMenu: true,   // show the "hide page selection toolbar" menu entries
+    showEditMenu: true,    // show the "edit page" menu entry
 };
 
 // Chinese-only extras (cloud-drive codes, smart fallback engine) follow the
@@ -539,28 +541,34 @@ function registerMenus() {
     if (typeof GM_registerMenuCommand !== 'function') return;
     if (window.top !== window) return;
 
-    GM_registerMenuCommand(t('menu_block'), () => {
-        activateElementPicker();
-    });
+    // Entry points only. Turning these off never touches saved block rules;
+    // applySavedBlockingRules() keeps running regardless.
+    if (getConfig('showBlockMenu') !== false) {
+        GM_registerMenuCommand(t('menu_block'), () => {
+            activateElementPicker();
+        });
 
-    GM_registerMenuCommand(t('menu_clear'), async () => {
-        const domain = location.hostname;
-        if (!confirm(t('confirm_clear', domain))) return;
-        const rules = await safeGetValue('blocked_elements', {});
-        if (!rules[domain]) {
-            alert(t('alert_no_rules'));
-            return;
-        }
-        delete rules[domain];
-        await safeSetValue('blocked_elements', rules);
-        if (typeof configCache !== 'undefined') configCache['blocked_elements'] = rules;
-        alert(t('alert_cleared'));
-        location.reload();
-    });
+        GM_registerMenuCommand(t('menu_clear'), async () => {
+            const domain = location.hostname;
+            if (!confirm(t('confirm_clear', domain))) return;
+            const rules = await safeGetValue('blocked_elements', {});
+            if (!rules[domain]) {
+                alert(t('alert_no_rules'));
+                return;
+            }
+            delete rules[domain];
+            await safeSetValue('blocked_elements', rules);
+            if (typeof configCache !== 'undefined') configCache['blocked_elements'] = rules;
+            alert(t('alert_cleared'));
+            location.reload();
+        });
+    }
 
-    GM_registerMenuCommand(t('menu_edit'), () => {
-        toggleEditMode(!isEditMode);
-    });
+    if (getConfig('showEditMenu') !== false) {
+        GM_registerMenuCommand(t('menu_edit'), () => {
+            toggleEditMode(!isEditMode);
+        });
+    }
 }
 
 

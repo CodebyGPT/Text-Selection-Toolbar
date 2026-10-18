@@ -122,6 +122,9 @@ export const SETTINGS_APP_CSS = String.raw`
   color: var(--st-muted);
   font-size: 12px;
 }
+:host .kiss-st-row__label .kiss-st-warn {
+  color: #e8a33d;
+}
 :host .kiss-st-row__control { flex: 0 0 auto; }
 :host .kiss-st-input,
 :host .kiss-st-select {

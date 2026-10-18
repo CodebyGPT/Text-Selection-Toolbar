@@ -73,11 +73,12 @@ function Section({ title, children }) {
   );
 }
 
-function Row({ label, help, children }) {
+function Row({ label, help, warn, children }) {
   return (
     <div className="kiss-st-row">
       <div className="kiss-st-row__label">
         <span>{label}</span>
+        {warn && <small className="kiss-st-warn">{warn}</small>}
         {help && <small>{help}</small>}
       </div>
       <div className="kiss-st-row__control">{children}</div>
@@ -381,6 +382,10 @@ function ToolbarTab({ setting, update }) {
     value.language === "zh-CN" ||
     (value.language === "auto" &&
       String(globalThis.navigator?.language || "").startsWith("zh"));
+  // Saved block rules live in the same toolbar settings object.
+  const hasBlockRules = Object.values(value.blocked_elements || {}).some(
+    (selectors) => Array.isArray(selectors) && selectors.length > 0
+  );
 
   return (
     <>
@@ -475,6 +480,25 @@ function ToolbarTab({ setting, update }) {
           <Toggle
             value={value.enableDragPreview}
             onChange={(v) => patch({ enableDragPreview: v })}
+          />
+        </Row>
+        <Row
+          label="显示网页自带划词栏隐藏工具"
+          warn={
+            hasBlockRules && value.showBlockMenu === false
+              ? "此选项仅影响功能入口的可见性，不会清空或禁用现存规则"
+              : null
+          }
+        >
+          <Toggle
+            value={value.showBlockMenu !== false}
+            onChange={(v) => patch({ showBlockMenu: v })}
+          />
+        </Row>
+        <Row label="显示网页编辑工具">
+          <Toggle
+            value={value.showEditMenu !== false}
+            onChange={(v) => patch({ showEditMenu: v })}
           />
         </Row>
         <Row label="超级取词键" help="如 ControlLeft / AltLeft / ShiftLeft，留空禁用">
