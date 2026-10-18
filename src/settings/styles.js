@@ -42,6 +42,20 @@ export const SETTINGS_APP_CSS = String.raw`
   font-size: 18px;
   font-weight: 700;
 }
+:host .kiss-st-close {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--st-border);
+  border-radius: 10px;
+  cursor: pointer;
+  font: 20px/1 system-ui, sans-serif;
+  color: var(--st-text);
+  background: var(--st-panel);
+}
+:host .kiss-st-close:hover {
+  background: var(--st-input);
+}
 :host .kiss-st-tabs {
   display: flex;
   gap: 6px;

@@ -42,24 +42,6 @@ function open(path = "/") {
       color: CanvasText;
       overscroll-behavior: contain;
     }
-    :host .kiss-settings-close {
-      position: fixed;
-      top: 12px;
-      right: 12px;
-      z-index: 2147483647;
-      width: 36px;
-      height: 36px;
-      border: 0;
-      border-radius: 10px;
-      cursor: pointer;
-      font: 22px/1 system-ui, sans-serif;
-      color: CanvasText;
-      background: color-mix(in srgb, Canvas 88%, CanvasText 12%);
-      box-shadow: 0 2px 10px rgb(0 0 0 / 18%);
-    }
-    :host .kiss-settings-close:hover {
-      background: color-mix(in srgb, Canvas 80%, CanvasText 20%);
-    }
     ${SETTINGS_APP_CSS}
     ${SETTINGS_TEXTAREA_CSS}
   `;
@@ -71,19 +53,10 @@ function open(path = "/") {
   viewport.appendChild(rootElement);
   shadow.appendChild(viewport);
 
-  const closeButton = document.createElement("button");
-  closeButton.className = "kiss-settings-close";
-  closeButton.type = "button";
-  closeButton.title = "关闭设置";
-  closeButton.setAttribute("aria-label", "关闭设置");
-  closeButton.textContent = "×";
-  closeButton.addEventListener("click", close);
-  shadow.appendChild(closeButton);
-
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <React.StrictMode>
-      <SettingsApp initialPath={path} />
+      <SettingsApp initialPath={path} onClose={close} />
     </React.StrictMode>
   );
 

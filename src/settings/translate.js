@@ -1,6 +1,7 @@
 import { RU } from "./ru";
 
 const EN = {
+  "关闭设置": "Close settings",
   "功能开关": "Feature switches",
   "当选取的文本不含中文时调用备选搜索引擎": "Use the fallback engine when the selected text has no Chinese",
   "备选搜索引擎": "Fallback search engine",

@@ -1153,7 +1153,7 @@ function AdvancedTab({ setting, replaceSetting }) {
   );
 }
 
-export default function SettingsApp({ initialPath = "/" }) {
+export default function SettingsApp({ initialPath = "/", onClose }) {
   const [tab, setTab] = useState(() => pathToTab(initialPath));
   const [setting, setSetting] = useState(null);
   const themeRef = useRef(null);
@@ -1201,6 +1201,15 @@ export default function SettingsApp({ initialPath = "/" }) {
     <div className="kiss-st-app" data-theme={dark ? "dark" : "light"} ref={themeRef}>
       <header className="kiss-st-header">
         <h1>Text Selection Toolbar</h1>
+        <button
+          className="kiss-st-close"
+          type="button"
+          title="关闭设置"
+          aria-label="关闭设置"
+          onClick={onClose}
+        >
+          ×
+        </button>
       </header>
       <nav className="kiss-st-tabs">
         {TABS.map(([key, label]) => (
