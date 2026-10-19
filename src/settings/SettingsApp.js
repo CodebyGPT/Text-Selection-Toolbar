@@ -76,11 +76,12 @@ function pathToTab(path) {
   return "general";
 }
 
-function Section({ title, children }) {
+function Section({ title, children, footer }) {
   return (
     <section className="kiss-st-section">
       <h2>{title}</h2>
       <div className="kiss-st-card">{children}</div>
+      {footer}
     </section>
   );
 }
@@ -481,8 +482,10 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
   const isTranslatorAPI = api.apiType === OPT_TRANS_TRANSLATOR_API;
   const isPreset = PRESET_API_TYPES.has(api.apiType);
   const isCustom = api.apiType === OPT_TRANS_CUSTOMIZE;
+  const isOllama = api.apiType === OPT_TRANS_OLLAMA;
 
   const runTest = async () => {
+    setOpen(true);
     setTest({ loading: true, text: "", error: "" });
     try {
       const result = await apiTranslate({
@@ -516,6 +519,17 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
         {isPreset && <span className="kiss-st-badge">预设</span>}
         <span className="kiss-st-badge">{api.apiType}</span>
         <span className="kiss-st-spacer" />
+        <span className="kiss-st-chev">展开/收起</span>
+        <button
+          className="kiss-st-btn"
+          onClick={(event) => {
+            event.stopPropagation();
+            runTest();
+          }}
+          disabled={test.loading}
+        >
+          {test.loading ? "测试中…" : "测试接口"}
+        </button>
         <span
           onClick={(event) => event.stopPropagation()}
           style={{ display: "inline-flex" }}
@@ -525,7 +539,6 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
             onChange={(enabled) => patch("isDisabled", !enabled)}
           />
         </span>
-        <span className="kiss-st-chev">{open ? "收起" : "展开"}</span>
         {canDelete && (
           <button
             className="kiss-st-btn kiss-st-btn--danger"
@@ -541,20 +554,23 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
 
       {open && (
         <div className="kiss-st-stack">
-          {!isPreset && !isTranslatorAPI && (
-            <Fields>
-              <label>
-                名称
-                <TextInput
-                  value={api.apiName}
-                  onChange={(v) => patch("apiName", v)}
-                />
-              </label>
-              <label>
-                URL
-                <TextInput value={api.url} onChange={(v) => patch("url", v)} />
-              </label>
-              {isCustom && (
+          <Fields>
+            <label>
+              名称
+              <TextInput
+                value={api.apiName}
+                onChange={(v) => patch("apiName", v)}
+              />
+            </label>
+            {(isCustom || isOllama) && (
+              <>
+                <label>
+                  URL
+                  <TextInput
+                    value={api.url}
+                    onChange={(v) => patch("url", v)}
+                  />
+                </label>
                 <label>
                   Key
                   <TextInput
@@ -562,24 +578,25 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
                     type="password"
                     onChange={(v) => patch("key", v)}
                   />
+                  <small>支持用英文逗号“,”分隔，轮询调用。</small>
                 </label>
-              )}
-              <label>
-                模型
-                <TextInput
-                  value={api.model}
-                  onChange={(v) => patch("model", v)}
-                />
-              </label>
-              <label>
-                模型列表 URL
-                <TextInput
-                  value={api.modelListUrl}
-                  onChange={(v) => patch("modelListUrl", v)}
-                />
-              </label>
-            </Fields>
-          )}
+                <label>
+                  模型
+                  <TextInput
+                    value={api.model}
+                    onChange={(v) => patch("model", v)}
+                  />
+                </label>
+                <label>
+                  模型列表 URL
+                  <TextInput
+                    value={api.modelListUrl}
+                    onChange={(v) => patch("modelListUrl", v)}
+                  />
+                </label>
+              </>
+            )}
+          </Fields>
 
           <RuntimeFields api={api} patch={patch} />
           <RequestFields api={api} patch={patch} />
@@ -590,17 +607,8 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
           {!isTranslatorAPI && (
             <PromptFields api={api} patch={patch} prompts={prompts} />
           )}
-          {isCustom && <CodeFields api={api} patch={patch} />}
+          {(isCustom || isOllama) && <CodeFields api={api} patch={patch} />}
 
-          <div className="kiss-st-inline">
-            <button
-              className="kiss-st-btn"
-              onClick={runTest}
-              disabled={test.loading}
-            >
-              {test.loading ? "测试中…" : "测试翻译"}
-            </button>
-          </div>
           {test.text && <div className="kiss-st-ok">→ {test.text}</div>}
           {test.error && <div className="kiss-st-error">{test.error}</div>}
         </div>
@@ -682,7 +690,16 @@ function ApisTab({ setting, update }) {
     update({ transApis: apis.filter((_, i) => i !== index) });
 
   return (
-    <Section title="翻译接口">
+    <Section
+      title="翻译接口"
+      footer={
+        <div className="kiss-st-inline">
+          <button className="kiss-st-btn kiss-st-btn--primary" onClick={addCustom}>
+            + 添加自定义接口
+          </button>
+        </div>
+      }
+    >
       {visible.map(({ api, index }) => (
         <ApiEditor
           key={api.apiSlug}
@@ -693,9 +710,6 @@ function ApisTab({ setting, update }) {
           canDelete={api.apiType === OPT_TRANS_CUSTOMIZE}
         />
       ))}
-      <button className="kiss-st-btn kiss-st-btn--primary" onClick={addCustom}>
-        + 添加自定义接口
-      </button>
     </Section>
   );
 }
@@ -1131,7 +1145,22 @@ function RulesSection({ setting }) {
   ];
 
   return (
-    <Section title="网页翻译规则">
+    <Section
+      title="网页翻译规则"
+      footer={
+        <>
+          <div className="kiss-st-inline">
+            <button className="kiss-st-btn" onClick={addRule}>
+              + 添加自定义规则
+            </button>
+            <button className="kiss-st-btn kiss-st-btn--primary" onClick={save}>
+              保存网页规则
+            </button>
+          </div>
+          {status && <div className="kiss-st-ok">{status}</div>}
+        </>
+      }
+    >
       <div className="kiss-st-hint">
         全局规则决定默认的网页翻译行为；下面的自定义规则按网址覆盖全局。
       </div>
@@ -1251,16 +1280,6 @@ function RulesSection({ setting }) {
           </div>
         </div>
       ))}
-
-      <div className="kiss-st-inline">
-        <button className="kiss-st-btn" onClick={addRule}>
-          + 添加自定义规则
-        </button>
-        <button className="kiss-st-btn kiss-st-btn--primary" onClick={save}>
-          保存网页规则
-        </button>
-      </div>
-      {status && <div className="kiss-st-ok">{status}</div>}
     </Section>
   );
 }
@@ -1286,7 +1305,7 @@ function PromptRow({ prompt, isPreset, dirty, onPatch, onReset, onDelete }) {
         {isPreset && <span className="kiss-st-badge">预设</span>}
         {dirty && <span className="kiss-st-badge kiss-st-badge--warn">已修改</span>}
         <span className="kiss-st-spacer" />
-        <span className="kiss-st-chev">{open ? "收起" : "展开"}</span>
+        <span className="kiss-st-chev">展开/收起</span>
         {isPreset ? (
           dirty && (
             <button
@@ -1380,7 +1399,16 @@ function PromptsSection({ setting, update }) {
     });
 
   return (
-    <Section title="提示词">
+    <Section
+      title="提示词"
+      footer={
+        <div className="kiss-st-inline">
+          <button className="kiss-st-btn kiss-st-btn--primary" onClick={add}>
+            + 添加自定义提示词
+          </button>
+        </div>
+      }
+    >
       {PRESET_PROMPTS.map((preset) => {
         const override = overrides.get(preset.slug);
         return (
@@ -1402,11 +1430,6 @@ function PromptsSection({ setting, update }) {
           onDelete={() => removeCustom(prompt.slug)}
         />
       ))}
-      <div className="kiss-st-inline">
-        <button className="kiss-st-btn kiss-st-btn--primary" onClick={add}>
-          + 添加自定义提示词
-        </button>
-      </div>
     </Section>
   );
 }
@@ -1434,7 +1457,16 @@ function StylesSection({ setting, update }) {
     update({ customStyles: styles.filter((_, i) => i !== index) });
 
   return (
-    <Section title="译文样式">
+    <Section
+      title="译文样式"
+      footer={
+        <div className="kiss-st-inline">
+          <button className="kiss-st-btn kiss-st-btn--primary" onClick={add}>
+            + 添加自定义样式
+          </button>
+        </div>
+      }
+    >
       <div className="kiss-st-hint">
         每条样式是一段 CSS；保存后可以在网页规则的“译文样式”中引用。
       </div>
@@ -1466,11 +1498,6 @@ function StylesSection({ setting, update }) {
           </label>
         </div>
       ))}
-      <div className="kiss-st-inline">
-        <button className="kiss-st-btn kiss-st-btn--primary" onClick={add}>
-          + 添加自定义样式
-        </button>
-      </div>
     </Section>
   );
 }
