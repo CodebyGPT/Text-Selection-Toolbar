@@ -143,6 +143,11 @@ export const SETTINGS_APP_CSS = String.raw`
   outline: 2px solid var(--st-accent);
   outline-offset: 1px;
 }
+:host .kiss-st-input:disabled,
+:host .kiss-st-select:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
 :host .kiss-st-switch {
   position: relative;
   display: inline-flex;

@@ -123,7 +123,7 @@ function TextInput({
   );
 }
 
-function NumberInput({ value, onChange, min, max, placeholder }) {
+function NumberInput({ value, onChange, min, max, placeholder, disabled }) {
   return (
     <input
       className="kiss-st-input kiss-st-number"
@@ -132,6 +132,7 @@ function NumberInput({ value, onChange, min, max, placeholder }) {
       min={min}
       max={max}
       placeholder={placeholder}
+      disabled={disabled}
       onChange={(event) =>
         onChange(event.target.value === "" ? "" : Number(event.target.value))
       }
@@ -152,11 +153,12 @@ function TextArea({ value, onChange, rows = 4, placeholder }) {
   );
 }
 
-function Select({ value, onChange, options }) {
+function Select({ value, onChange, options, disabled }) {
   return (
     <select
       className="kiss-st-select"
       value={value ?? ""}
+      disabled={disabled}
       onChange={(event) => onChange(event.target.value)}
     >
       {options.map(([key, label]) => (
@@ -201,6 +203,8 @@ function CheckField({ label, checked, onChange }) {
 }
 
 function RuntimeFields({ api, patch }) {
+  const autoTranslate = api.transAllnow === true;
+
   return (
     <Fields>
       <label>
@@ -220,6 +224,7 @@ function RuntimeFields({ api, patch }) {
           value={api.rootMargin}
           min={0}
           max={10000}
+          disabled={autoTranslate}
           onChange={(v) => patch("rootMargin", v)}
         />
       </label>
@@ -289,6 +294,8 @@ function RequestFields({ api, patch }) {
 }
 
 function BatchFields({ api, patch }) {
+  const batchOff = !api.useBatchFetch;
+
   return (
     <Fields>
       <CheckField
@@ -302,6 +309,7 @@ function BatchFields({ api, patch }) {
           value={api.batchConcurrency}
           min={1}
           max={100}
+          disabled={batchOff}
           onChange={(v) => patch("batchConcurrency", v)}
         />
       </label>
@@ -311,6 +319,7 @@ function BatchFields({ api, patch }) {
           value={api.batchInterval}
           min={10}
           max={10000}
+          disabled={batchOff}
           onChange={(v) => patch("batchInterval", v)}
         />
       </label>
@@ -320,6 +329,7 @@ function BatchFields({ api, patch }) {
           value={api.batchSize}
           min={1}
           max={100}
+          disabled={batchOff}
           onChange={(v) => patch("batchSize", v)}
         />
       </label>
@@ -337,6 +347,8 @@ function BatchFields({ api, patch }) {
 }
 
 function StreamFields({ api, patch }) {
+  const streamOff = api.useStream === false;
+
   return (
     <Fields>
       <CheckField
@@ -348,6 +360,7 @@ function StreamFields({ api, patch }) {
         流式渲染模式
         <Select
           value={api.streamRenderMode || "disabled"}
+          disabled={streamOff}
           onChange={(v) => patch("streamRenderMode", v)}
           options={[
             ["disabled", "关闭"],
@@ -399,6 +412,8 @@ function ModelFields({ api, patch }) {
 }
 
 function ContextFields({ api, patch }) {
+  const contextOff = !api.useContext;
+
   return (
     <Fields>
       <CheckField
@@ -412,6 +427,7 @@ function ContextFields({ api, patch }) {
           value={api.contextSize}
           min={1}
           max={20}
+          disabled={contextOff}
           onChange={(v) => patch("contextSize", v)}
         />
       </label>
@@ -478,13 +494,15 @@ async ({ res, ...args }) => {
 function PromptFields({ api, patch, prompts }) {
   const toOptions = (list) =>
     list.map((prompt) => [prompt.slug, prompt.name || prompt.slug]);
+  const batchMode = Boolean(api.useBatchFetch);
 
   return (
     <Fields>
       <label>
-        批量翻译提示词
+        聚合翻译提示词
         <Select
           value={api.batchPromptSlug}
+          disabled={!batchMode}
           onChange={(v) => patch("batchPromptSlug", v)}
           options={toOptions(getBatchPromptOptions(prompts))}
         />
@@ -493,6 +511,7 @@ function PromptFields({ api, patch, prompts }) {
         单句翻译提示词
         <Select
           value={api.nobatchPromptSlug}
+          disabled={batchMode}
           onChange={(v) => patch("nobatchPromptSlug", v)}
           options={toOptions(getNobatchPromptOptions(prompts))}
         />

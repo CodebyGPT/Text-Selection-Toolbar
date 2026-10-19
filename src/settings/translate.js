@@ -18,7 +18,7 @@ const EN = {
   "思考模式": "Thinking mode",
   "流式渲染模式": "Stream render mode",
   "触发方式": "Trigger",
-  "批量翻译提示词": "Batch translation prompt",
+  "聚合翻译提示词": "Batch translation prompt",
   "单句翻译提示词": "Single-sentence translation prompt",
   "字幕翻译提示词": "Subtitle translation prompt",
   "+ 添加自定义接口": "Add custom API",
