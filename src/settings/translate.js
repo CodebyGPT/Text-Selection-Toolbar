@@ -10,6 +10,8 @@ const EN = {
   "预设": "Preset",
   "展开": "Expand",
   "收起": "Collapse",
+  "启用": "Enabled",
+  "禁用": "Disabled",
   "展开/收起": "Expand/Collapse",
   "支持用英文逗号“,”分隔，轮询调用":
     'Supports polling calls separated by English commas ",".',

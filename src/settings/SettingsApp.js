@@ -189,19 +189,6 @@ function Fields({ children }) {
   return <div className="kiss-st-grid">{children}</div>;
 }
 
-function CheckField({ label, checked, onChange }) {
-  return (
-    <label className="kiss-st-check">
-      <input
-        type="checkbox"
-        checked={Boolean(checked)}
-        onChange={(event) => onChange(event.target.checked)}
-      />
-      {label}
-    </label>
-  );
-}
-
 function RuntimeFields({ api, patch }) {
   const autoTranslate = api.transAllnow === true;
 
@@ -298,11 +285,17 @@ function BatchFields({ api, patch }) {
 
   return (
     <Fields>
-      <CheckField
-        label="聚合发送翻译请求"
-        checked={api.useBatchFetch}
-        onChange={(v) => patch("useBatchFetch", v)}
-      />
+      <label>
+        聚合发送翻译请求
+        <Select
+          value={String(Boolean(api.useBatchFetch))}
+          onChange={(v) => patch("useBatchFetch", v === "true")}
+          options={[
+            ["true", "启用"],
+            ["false", "禁用"],
+          ]}
+        />
+      </label>
       <label>
         聚合批次并发数
         <NumberInput
@@ -352,11 +345,17 @@ function StreamFields({ api, patch }) {
 
   return (
     <Fields>
-      <CheckField
-        label="流式响应"
-        checked={api.useStream !== false}
-        onChange={(v) => patch("useStream", v)}
-      />
+      <label>
+        流式响应
+        <Select
+          value={String(api.useStream !== false)}
+          onChange={(v) => patch("useStream", v === "true")}
+          options={[
+            ["true", "启用"],
+            ["false", "禁用"],
+          ]}
+        />
+      </label>
       <label>
         流式渲染模式
         <Select
@@ -417,11 +416,17 @@ function ContextFields({ api, patch }) {
 
   return (
     <Fields>
-      <CheckField
-        label="智能上下文"
-        checked={api.useContext}
-        onChange={(v) => patch("useContext", v)}
-      />
+      <label>
+        智能上下文
+        <Select
+          value={String(Boolean(api.useContext))}
+          onChange={(v) => patch("useContext", v === "true")}
+          options={[
+            ["true", "启用"],
+            ["false", "禁用"],
+          ]}
+        />
+      </label>
       <label>
         上下文会话数量
         <NumberInput
