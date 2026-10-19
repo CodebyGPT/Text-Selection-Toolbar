@@ -101,6 +101,8 @@ const EN = {
   "浅色": "Light",
   "测试中…": "Testing…",
   "测试接口": "Test API",
+  "获取模型中…": "Fetching models…",
+  "未找到模型，可手动输入。": "No models found. You can enter one manually.",
   "深色": "Dark",
   "源语言": "Source language",
   "滚动即隐藏": "Hide on scroll",

@@ -6,6 +6,8 @@ import {
   setRules,
 } from "../libs/storage";
 import { apiTranslate } from "../apis";
+import { fetchData } from "../libs/fetch";
+import { parseJsonObj } from "../libs/utils";
 import { createBuiltinInstance } from "../builtin-plugins";
 import {
   OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
@@ -100,13 +102,22 @@ function Row({ label, help, warn, children }) {
   );
 }
 
-function TextInput({ value, onChange, placeholder, type = "text" }) {
+function TextInput({
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  list,
+  onFocus,
+}) {
   return (
     <input
       className="kiss-st-input"
       type={type}
       value={value ?? ""}
       placeholder={placeholder}
+      list={list}
+      onFocus={onFocus}
       onChange={(event) => onChange(event.target.value)}
     />
   );
@@ -498,10 +509,53 @@ function PromptFields({ api, patch, prompts }) {
   );
 }
 
+function extractModelIds(data) {
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.data)
+      ? data.data
+      : Array.isArray(data?.models)
+        ? data.models
+        : [];
+  const ids = list
+    .map((item) =>
+      typeof item === "string" ? item : item?.id || item?.name || item?.model
+    )
+    .filter(Boolean);
+  return [...new Set(ids)];
+}
+
 function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
   const [open, setOpen] = useState(false);
   const [test, setTest] = useState({ loading: false, text: "", error: "" });
+  const [models, setModels] = useState([]);
+  const [modelNote, setModelNote] = useState("");
+  const modelsUrlRef = useRef("");
   const patch = (key, value) => onChange({ ...api, [key]: value });
+
+  const loadModels = async () => {
+    const url = (api.modelListUrl || "").trim();
+    if (!url || modelsUrlRef.current === url) return;
+    modelsUrlRef.current = url;
+    setModelNote("获取模型中…");
+    try {
+      const headers = {};
+      const key = (api.key || "")
+        .split(/\n|,/)
+        .map((item) => item.trim())
+        .filter(Boolean)[0];
+      if (key) headers.Authorization = `Bearer ${key}`;
+      Object.assign(headers, parseJsonObj(api.customHeader));
+      const data = await fetchData(url, { headers });
+      const ids = extractModelIds(data);
+      setModels(ids);
+      setModelNote(ids.length ? "" : "未找到模型，可手动输入。");
+    } catch (error) {
+      modelsUrlRef.current = "";
+      setModels([]);
+      setModelNote(`获取模型失败：${error.message}`);
+    }
+  };
 
   const isTranslatorAPI = api.apiType === OPT_TRANS_TRANSLATOR_API;
   const isPreset = PRESET_API_TYPES.has(api.apiType);
@@ -642,8 +696,16 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
                   模型
                   <TextInput
                     value={api.model}
+                    list={`kiss-models-${api.apiSlug}`}
+                    onFocus={loadModels}
                     onChange={(v) => patch("model", v)}
                   />
+                  <datalist id={`kiss-models-${api.apiSlug}`}>
+                    {models.map((model) => (
+                      <option key={model} value={model} />
+                    ))}
+                  </datalist>
+                  {modelNote && <small>{modelNote}</small>}
                 </label>
               </>
             )}
