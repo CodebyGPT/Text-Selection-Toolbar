@@ -1235,7 +1235,7 @@ export async function* handleNativeTranslate(
     useStream,
   } = apiSetting;
   if (useContext && getBuiltinServiceDefinition(apiType)?.supportsContext) {
-    history = getMsgHistory(historyKey, contextSize);
+    history = getMsgHistory(apiSlug, contextSize);
     hisMsgs = history.getAll();
   }
 

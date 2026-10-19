@@ -940,13 +940,6 @@ export function removePromptReferences(setting = {}, promptSlug) {
     };
   }
 
-  if (hasTranboxDictPromptReference) {
-    nextSetting.tranboxSetting = {
-      ...(nextSetting.tranboxSetting || setting?.tranboxSetting || {}),
-      aiDictPromptSlug: PROMPT_MODE_FOLLOW_API,
-    };
-  }
-
   if (hasTranboxPromptReference) {
     nextSetting.tranboxSetting = {
       ...(nextSetting.tranboxSetting || setting?.tranboxSetting || {}),
