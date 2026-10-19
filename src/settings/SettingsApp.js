@@ -27,6 +27,7 @@ import {
   GLOBAL_KEY,
   GLOBLA_RULE,
   DEFAULT_RULE,
+  DEFAULT_API_LIST,
   OPT_TRANS_TRANSLATOR_API,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
@@ -111,7 +112,7 @@ function TextInput({ value, onChange, placeholder, type = "text" }) {
   );
 }
 
-function NumberInput({ value, onChange, min, max }) {
+function NumberInput({ value, onChange, min, max, placeholder }) {
   return (
     <input
       className="kiss-st-input kiss-st-number"
@@ -119,6 +120,7 @@ function NumberInput({ value, onChange, min, max }) {
       value={value ?? ""}
       min={min}
       max={max}
+      placeholder={placeholder}
       onChange={(event) =>
         onChange(event.target.value === "" ? "" : Number(event.target.value))
       }
@@ -356,6 +358,7 @@ function ModelFields({ api, patch }) {
           value={api.temperature}
           min={0}
           max={2}
+          placeholder="0.0-2.0"
           onChange={(v) => patch("temperature", v)}
         />
       </label>
@@ -412,6 +415,7 @@ function CodeFields({ api, patch }) {
         自定义请求头
         <TextArea
           value={api.customHeader}
+          placeholder={`使用JSON格式，例如 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"`}
           onChange={(v) => patch("customHeader", v)}
         />
       </label>
@@ -419,6 +423,7 @@ function CodeFields({ api, patch }) {
         自定义请求体
         <TextArea
           value={api.customBody}
+          placeholder={`使用JSON格式，例如 "top_p": 0.7`}
           onChange={(v) => patch("customBody", v)}
         />
       </label>
@@ -426,6 +431,14 @@ function CodeFields({ api, patch }) {
         请求钩子
         <TextArea
           value={api.reqHook}
+          placeholder={`1、第一个参数包含如下字段：'texts', 'from', 'to', 'url', 'key', 'model', 'systemPrompt', ...
+2、返回值必须是包含以下字段的对象： 'url', 'body', 'headers', 'method'
+3、如返回空值，则hook函数不会产生任何效果。
+
+// 示例
+async (args, { url, body, headers, userMsg, method } = {}) => {
+  return { url, body, headers, userMsg, method };
+}`}
           onChange={(v) => patch("reqHook", v)}
         />
       </label>
@@ -433,6 +446,17 @@ function CodeFields({ api, patch }) {
         响应钩子
         <TextArea
           value={api.resHook}
+          placeholder={`1、第一个参数包含如下字段：'res', ...
+2、返回值必须是包含以下字段的对象： 'translations'
+  （'translations' 应为一个二维数组：[[译文, 原文语言]]）
+3、如返回空值，则hook函数不会产生任何效果。
+
+// 示例
+async ({ res, ...args }) => {
+  const translations = [["你好", "en"]];
+  const modelMsg = {}; // 用于AI上下文
+  return { translations, modelMsg };
+}`}
           onChange={(v) => patch("resHook", v)}
         />
       </label>
@@ -501,6 +525,18 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
     }
   };
 
+  const resetPreset = () => {
+    const preset = DEFAULT_API_LIST.find((item) => item.apiType === api.apiType);
+    onChange({
+      ...createBuiltinInstance(
+        api.apiType,
+        api.apiSlug,
+        preset?.apiName || api.apiType
+      ),
+      isDisabled: api.isDisabled,
+    });
+  };
+
   return (
     <div className="kiss-st-api">
       <div
@@ -539,6 +575,17 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
             onChange={(enabled) => patch("isDisabled", !enabled)}
           />
         </span>
+        {isPreset && (
+          <button
+            className="kiss-st-btn kiss-st-btn--danger"
+            onClick={(event) => {
+              event.stopPropagation();
+              resetPreset();
+            }}
+          >
+            重置
+          </button>
+        )}
         {canDelete && (
           <button
             className="kiss-st-btn kiss-st-btn--danger"
@@ -554,6 +601,8 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
 
       {open && (
         <div className="kiss-st-stack">
+          {test.text && <div className="kiss-st-ok">→ {test.text}</div>}
+          {test.error && <div className="kiss-st-error">{test.error}</div>}
           <Fields>
             <label>
               名称
@@ -568,6 +617,7 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
                   URL
                   <TextInput
                     value={api.url}
+                    placeholder="http://localhost:port/v1/chat/completions"
                     onChange={(v) => patch("url", v)}
                   />
                 </label>
@@ -576,22 +626,23 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
                   <TextInput
                     value={api.key}
                     type="password"
+                    placeholder="支持用英文逗号“,”分隔，轮询调用"
                     onChange={(v) => patch("key", v)}
-                  />
-                  <small>支持用英文逗号“,”分隔，轮询调用。</small>
-                </label>
-                <label>
-                  模型
-                  <TextInput
-                    value={api.model}
-                    onChange={(v) => patch("model", v)}
                   />
                 </label>
                 <label>
                   模型列表 URL
                   <TextInput
                     value={api.modelListUrl}
+                    placeholder="http://localhost:port/v1/models"
                     onChange={(v) => patch("modelListUrl", v)}
+                  />
+                </label>
+                <label>
+                  模型
+                  <TextInput
+                    value={api.model}
+                    onChange={(v) => patch("model", v)}
                   />
                 </label>
               </>
@@ -609,8 +660,6 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
           )}
           {(isCustom || isOllama) && <CodeFields api={api} patch={patch} />}
 
-          {test.text && <div className="kiss-st-ok">→ {test.text}</div>}
-          {test.error && <div className="kiss-st-error">{test.error}</div>}
         </div>
       )}
     </div>
@@ -973,7 +1022,8 @@ function apiOptions(setting, includeGlobal = false) {
   const options = (setting.transApis || [])
     .filter(
       (api) =>
-        api.apiType !== OPT_TRANS_TRANSLATOR_API || isTranslatorAPISupported()
+        !api.isDisabled &&
+        (api.apiType !== OPT_TRANS_TRANSLATOR_API || isTranslatorAPISupported())
     )
     .map((api) => [
     api.apiSlug,

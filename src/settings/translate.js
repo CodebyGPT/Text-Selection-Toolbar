@@ -11,7 +11,7 @@ const EN = {
   "展开": "Expand",
   "收起": "Collapse",
   "展开/收起": "Expand/Collapse",
-  "支持用英文逗号“,”分隔，轮询调用。":
+  "支持用英文逗号“,”分隔，轮询调用":
     'Supports polling calls separated by English commas ",".',
   "已修改": "Modified",
   "重置": "Reset",
