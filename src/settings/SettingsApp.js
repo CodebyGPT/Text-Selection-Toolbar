@@ -3,7 +3,7 @@ import {
   getSettingWithDefault,
   putSetting,
   getRulesWithDefault,
-  setRules,
+  setRules as saveRulesToStorage,
 } from "../libs/storage";
 import { apiTranslate } from "../apis";
 import { fetchData } from "../libs/fetch";
@@ -61,7 +61,7 @@ function persist(next) {
 const TABS = [
   ["general", "通用"],
   ["translation", "翻译"],
-  ["advanced", "高级"],
+  ["about", "关于"],
 ];
 
 function pathToTab(path) {
@@ -77,6 +77,24 @@ function pathToTab(path) {
   )
     return "translation";
   return "general";
+}
+
+function readScriptMeta() {
+  const info = typeof GM_info !== "undefined" ? GM_info : globalThis.GM_info;
+  const script = info?.script || {};
+  const meta = script.meta || {};
+  const raw = info?.scriptSource || info?.scriptMetaStr || "";
+  const read = (key) => {
+    const match = raw.match(new RegExp(`^\\s*//\\s*@${key}\\s+(.+)$`, "m"));
+    return match ? match[1].trim() : "";
+  };
+  return {
+    name: read("name") || script.name || "Text Selection Toolbar",
+    version: read("version") || script.version || "",
+    homepage: read("homepageURL") || script.homepage || meta.homepageURL || "",
+    license: read("license") || script.license || meta.license || "",
+    icon: read("icon") || script.icon || meta.icon || "",
+  };
 }
 
 function Section({ title, children, footer }) {
@@ -1271,7 +1289,7 @@ function RulesSection({ setting }) {
     });
 
   const save = async () => {
-    await setRules(rules);
+    await saveRulesToStorage(rules);
     setStatus("网页规则已保存");
   };
 
@@ -1283,7 +1301,7 @@ function RulesSection({ setting }) {
 
   return (
     <Section
-      title="网页翻译规则"
+      title="网页翻译"
       footer={
         <>
           <div className="kiss-st-inline">
@@ -1537,7 +1555,7 @@ function PromptsSection({ setting, update }) {
 
   return (
     <Section
-      title="提示词"
+      title="提示词管理"
       footer={
         <div className="kiss-st-inline">
           <button className="kiss-st-btn kiss-st-btn--primary" onClick={add}>
@@ -1571,158 +1589,42 @@ function PromptsSection({ setting, update }) {
   );
 }
 
-function StylesSection({ setting, update }) {
-  const styles = setting.customStyles || [];
-  const patch = (index, changes) =>
-    update({
-      customStyles: styles.map((style, i) =>
-        i === index ? { ...style, ...changes } : style
-      ),
-    });
-  const add = () =>
-    update({
-      customStyles: [
-        ...styles,
-        {
-          styleSlug: `custom-${Date.now()}`,
-          styleName: `自定义样式 ${styles.length + 1}`,
-          styleCode: "color: #209CEE;",
-        },
-      ],
-    });
-  const remove = (index) =>
-    update({ customStyles: styles.filter((_, i) => i !== index) });
-
-  return (
-    <Section
-      title="译文样式"
-      footer={
-        <div className="kiss-st-inline">
-          <button className="kiss-st-btn kiss-st-btn--primary" onClick={add}>
-            + 添加自定义样式
-          </button>
-        </div>
-      }
-    >
-      <div className="kiss-st-hint">
-        每条样式是一段 CSS；保存后可以在网页规则的“译文样式”中引用。
-      </div>
-      {styles.map((style, index) => (
-        <div key={style.styleSlug || index} className="kiss-st-api">
-          <div className="kiss-st-api__head">
-            <strong>{style.styleName || style.styleSlug}</strong>
-            <span className="kiss-st-spacer" />
-            <button
-              className="kiss-st-btn kiss-st-btn--danger"
-              onClick={() => remove(index)}
-            >
-              删除
-            </button>
-          </div>
-          <label style={{ display: "grid", gap: 6 }}>
-            名称
-            <TextInput
-              value={style.styleName}
-              onChange={(v) => patch(index, { styleName: v })}
-            />
-          </label>
-          <label style={{ display: "grid", gap: 6, marginTop: 8 }}>
-            CSS
-            <TextArea
-              value={style.styleCode}
-              onChange={(v) => patch(index, { styleCode: v })}
-            />
-          </label>
-        </div>
-      ))}
-    </Section>
-  );
-}
-
 function TranslationTab({ setting, update }) {
   return (
     <>
       <ApisTab setting={setting} update={update} />
-      <PanelTab setting={setting} update={update} />
-      <SubtitleTab setting={setting} update={update} />
-      <RulesSection setting={setting} />
       <PromptsSection setting={setting} update={update} />
-      <StylesSection setting={setting} update={update} />
+      <PanelTab setting={setting} update={update} />
+      <RulesSection setting={setting} />
+      <SubtitleTab setting={setting} update={update} />
     </>
   );
 }
 
-function AdvancedTab({ setting, replaceSetting }) {
-  const [text, setText] = useState(() => JSON.stringify(setting, null, 2));
-  const [rules, setRulesText] = useState("");
-  const [status, setStatus] = useState("");
-
-  useEffect(() => {
-    getRulesWithDefault().then((value) =>
-      setRulesText(JSON.stringify(value, null, 2))
-    );
-  }, []);
-
-  const saveSetting = async () => {
-    try {
-      const next = JSON.parse(text);
-      replaceSetting(next);
-      setStatus("设置已保存");
-    } catch (error) {
-      setStatus(`JSON 错误：${error.message}`);
-    }
-  };
-
-  const saveRules = async () => {
-    try {
-      await setRules(JSON.parse(rules));
-      setStatus("规则已保存");
-    } catch (error) {
-      setStatus(`JSON 错误：${error.message}`);
-    }
-  };
+function AboutTab() {
+  const meta = readScriptMeta();
 
   return (
-    <Section title="高级设置（JSON）">
-      <div className="kiss-st-hint">
-        这里可以直接编辑完整设置和网页翻译规则，确保原版 KISS 的所有选项都仍然可改。
-      </div>
-      <div className="kiss-st-row" style={{ flexDirection: "column", alignItems: "stretch" }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          <strong>完整设置</strong>
-          <textarea
-            className="kiss-st-textarea"
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            spellCheck={false}
-          />
-        </label>
-        <div className="kiss-st-inline">
-          <button className="kiss-st-btn kiss-st-btn--primary" onClick={saveSetting}>
-            保存设置 JSON
-          </button>
-          <button className="kiss-st-btn" onClick={() => setText(JSON.stringify(setting, null, 2))}>
-            还原
-          </button>
+    <Section title="关于">
+      <div className="kiss-st-about">
+        {meta.icon && (
+          <img className="kiss-st-about__icon" src={meta.icon} alt="" />
+        )}
+        <div className="kiss-st-about__meta">
+          <strong>{meta.name}</strong>
         </div>
       </div>
-      <div className="kiss-st-row" style={{ flexDirection: "column", alignItems: "stretch" }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          <strong>网页翻译规则</strong>
-          <textarea
-            className="kiss-st-textarea"
-            value={rules}
-            onChange={(event) => setRulesText(event.target.value)}
-            spellCheck={false}
-          />
-        </label>
-        <div className="kiss-st-inline">
-          <button className="kiss-st-btn kiss-st-btn--primary" onClick={saveRules}>
-            保存规则 JSON
-          </button>
-        </div>
-      </div>
-      {status && <div className="kiss-st-ok">{status}</div>}
+      <Row label="版本号">{meta.version || "—"}</Row>
+      <Row label="主页">
+        {meta.homepage ? (
+          <a href={meta.homepage} target="_blank" rel="noreferrer">
+            {meta.homepage}
+          </a>
+        ) : (
+          "—"
+        )}
+      </Row>
+      <Row label="许可证">{meta.license || "—"}</Row>
     </Section>
   );
 }
@@ -1731,6 +1633,7 @@ export default function SettingsApp({ initialPath = "/", onClose }) {
   const [tab, setTab] = useState(() => pathToTab(initialPath));
   const [setting, setSetting] = useState(null);
   const themeRef = useRef(null);
+  const meta = useMemo(readScriptMeta, []);
 
   useEffect(() => {
     let active = true;
@@ -1748,11 +1651,6 @@ export default function SettingsApp({ initialPath = "/", onClose }) {
       persist(next);
       return next;
     });
-  };
-
-  const replaceSetting = (next) => {
-    setSetting(next);
-    persist(next);
   };
 
   const dark = useMemo(() => {
@@ -1774,7 +1672,10 @@ export default function SettingsApp({ initialPath = "/", onClose }) {
   return (
     <div className="kiss-st-app" data-theme={dark ? "dark" : "light"} ref={themeRef}>
       <header className="kiss-st-header">
-        <h1>Text Selection Toolbar</h1>
+        {meta.icon && (
+          <img className="kiss-st-logo" src={meta.icon} alt="" />
+        )}
+        <h1>{meta.name}</h1>
         <button
           className="kiss-st-close"
           type="button"
@@ -1803,8 +1704,8 @@ export default function SettingsApp({ initialPath = "/", onClose }) {
         {tab === "translation" && (
           <TranslationTab setting={setting} update={update} />
         )}
-        {tab === "advanced" && (
-          <AdvancedTab setting={setting} replaceSetting={replaceSetting} />
+        {tab === "about" && (
+          <AboutTab />
         )}
       </main>
     </div>

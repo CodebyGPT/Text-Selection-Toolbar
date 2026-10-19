@@ -42,6 +42,36 @@ export const SETTINGS_APP_CSS = String.raw`
   font-size: 18px;
   font-weight: 700;
 }
+:host .kiss-st-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+:host .kiss-st-about {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border-bottom: 1px solid var(--st-border);
+}
+:host .kiss-st-about__icon {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+:host .kiss-st-about__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+:host .kiss-st-about__meta span {
+  color: var(--st-muted);
+  font-size: 12px;
+}
+:host .kiss-st-row a {
+  color: var(--st-accent);
+  word-break: break-all;
+}
 :host .kiss-st-close {
   margin-left: auto;
   width: 32px;
