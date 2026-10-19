@@ -24,17 +24,8 @@ function handleSelectionMouseUp(e) {
                 html: container.innerHTML
             };
         }
-        let rect = null;
-        if (getConfig('positionMode') === 'endchar') {
-            const smartState = getSmartSelectionState(selection, e);
-            if (smartState) {
-                rect = smartState.rect;
-                if (rect) {
-                    rect.isBackward = smartState.isBackward;
-                    rect.isVertical = smartState.isVertical;
-                }
-            }
-        }
+        // Selection endpoint wins; null makes renderButton use the release point.
+        const rect = getSmartSelectionState(selection);
 
         initContainer();
         let cache = null;
@@ -91,10 +82,8 @@ const handleResizeOrScroll = () => {
         isScrolling = false;
         const selection = window.getSelection();
         if (selection && selection.toString().trim().length > 0) {
-            const range = selection.getRangeAt(0);
-            const rects = range.getClientRects();
-            if (rects.length > 0) {
-                const rect = rects[rects.length - 1];
+            const rect = getSmartSelectionState(selection);
+            if (rect) {
                 renderButton(rect, rect.right, rect.top,
                     selection.toString(),
                     getConfig('enableCache') ? cachedSelection.html : '');
@@ -159,17 +148,9 @@ function handleInputPasteMouseUp(e) {
         const mode = (hasSelection && !isReplaceIntent) ? PASTE_MODE_THREE_BTNS : 'paste';
         const textArg = (mode === 'paste') ? cache.text : selectedText;
 
-        let rect = null;
-        if (target.isContentEditable && hasSelection) {
-            const sel = window.getSelection();
-            if (sel.rangeCount > 0) {
-                const range = sel.getRangeAt(0);
-                const rects = range.getClientRects();
-                if (rects.length > 0) {
-                    rect = rects[rects.length - 1];
-                }
-            }
-        }
+        const rect = (target.isContentEditable && hasSelection)
+            ? getSmartSelectionState(window.getSelection())
+            : null;
         if (!hostElement) initContainer();
         renderButton(rect, e.clientX, e.clientY, textArg, '', mode, target, false, cache);
     }, 20);

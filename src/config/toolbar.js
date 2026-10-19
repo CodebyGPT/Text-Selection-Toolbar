@@ -2,7 +2,6 @@
 // Keep in sync with src/toolbar/modules/02-config.js.
 export const DEFAULT_TOOLBAR_SETTING = {
   language: "auto",
-  positionMode: "endchar",
   offset: 12,
   timeout: 2400,
   buttonStyle: "row",

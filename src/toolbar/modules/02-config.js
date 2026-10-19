@@ -2,7 +2,6 @@
 
 const DEFAULT_CONFIG = {
     language: 'auto', // 'auto' (default) | 'zh-CN' | 'en' | 'ru'
-    positionMode: 'endchar', // 'endchar' | 'mouse'
     offset: 12, // px
     timeout: 2400, // ms, 0 = stays indefinitely
     buttonStyle: 'row', // 'row' (capsule) | 'col' (rounded rect)

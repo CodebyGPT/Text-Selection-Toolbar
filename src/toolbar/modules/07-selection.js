@@ -1,82 +1,50 @@
 // Module 07: Selection Geometry Calculator
-// Three-tier fallback: Smart Rect -> Bounding Box -> Mouse Position
+// Prefer the selection endpoint; return null when it cannot be trusted so the
+// renderer falls back to the mouse-release position.
 
-function getSmartSelectionState(selection, mouseEvent) {
+function getSmartSelectionState(selection) {
     if (!selection || selection.rangeCount === 0) return null;
 
     const range = selection.getRangeAt(0);
-    // 1. Get fine-grained rect list (may be empty, especially in Input/Textarea or during framework DOM updates)
-    let rects = range.getClientRects();
+    const anchor = selection.anchorNode;
+    const focus = selection.focusNode;
+    if (!anchor || !focus || !anchor.isConnected || !focus.isConnected) return null;
 
-    let targetRect = null;
-    let isBackward = false;
+    // Fine-grained line rects are the only reliable source for the endpoint:
+    // a bounding box is the whole selection, not where it ends.
+    const rects = range.getClientRects();
+    if (!rects.length) return null;
+
+    let isBackward;
+    if (anchor === focus) {
+        isBackward = selection.anchorOffset > selection.focusOffset;
+    } else {
+        isBackward = Boolean(anchor.compareDocumentPosition(focus) & Node.DOCUMENT_POSITION_PRECEDING);
+    }
+
+    // Focus is the moving end of the selection: the last line forward, first backward.
+    const rect = isBackward ? rects[0] : rects[rects.length - 1];
+    if (!isUsableSelectionRect(rect)) return null;
+
+    const focusEl = focus.nodeType === 1 ? focus : focus.parentElement;
     let isVertical = false;
-
-    // --- Tier A: Smart directional positioning ---
-    if (rects.length > 0) {
-        const anchor = selection.anchorNode;
-        const focus = selection.focusNode;
-
-        // Determine selection direction
-        if (anchor === focus) {
-            isBackward = selection.anchorOffset > selection.focusOffset;
-        } else {
-            // Use bitmask to determine node position
-            const pos = anchor.compareDocumentPosition(focus);
-            if (pos & Node.DOCUMENT_POSITION_PRECEDING) isBackward = true;
-        }
-
-        // Detect vertical writing mode (check focusNode only)
-        let focusEl = focus.nodeType === 1 ? focus : focus.parentElement;
-        if (focusEl) {
-            const style = window.getComputedStyle(focusEl);
-            const writingMode = style.writingMode || 'horizontal-tb';
-            isVertical = writingMode.startsWith('vertical');
-        }
-
-        // Get head or tail rect based on direction
-        targetRect = isBackward ? rects[0] : rects[rects.length - 1];
+    if (focusEl) {
+        const style = window.getComputedStyle(focusEl);
+        isVertical = (style.writingMode || 'horizontal-tb').startsWith('vertical');
     }
 
-    // Helper: check if Rect is invalid (0x0 at 0,0 usually means the node has been detached from the document flow)
-    const isInvalidRect = (r) => {
-        return !r || (r.width === 0 && r.height === 0 && r.top === 0 && r.left === 0);
-    };
+    rect.isBackward = isBackward;
+    rect.isVertical = isVertical;
+    return rect;
+}
 
-    // --- Tier B: Classic bounding box fallback ---
-    if (isInvalidRect(targetRect)) {
-        const bounding = range.getBoundingClientRect();
-        // Only use if bounding box is also valid
-        if (!isInvalidRect(bounding)) {
-            targetRect = bounding;
-            isBackward = false;
-            isVertical = false;
-        }
-    }
-
-    // --- Tier C: Mouse position fallback ---
-    if (isInvalidRect(targetRect) && mouseEvent) {
-        const size = 20; // Simulate cursor height
-        targetRect = {
-            top: mouseEvent.clientY - size,
-            bottom: mouseEvent.clientY,
-            left: mouseEvent.clientX,
-            right: mouseEvent.clientX,
-            width: 0,
-            height: size,
-            x: mouseEvent.clientX,
-            y: mouseEvent.clientY - size
-        };
-        isBackward = false;
-        isVertical = false;
-    }
-
-    // If all attempts fail (extremely rare), return null
-    if (isInvalidRect(targetRect)) return null;
-
-    return {
-        rect: targetRect,
-        isBackward: isBackward,
-        isVertical: isVertical
-    };
+function isUsableSelectionRect(rect) {
+    if (!rect) return false;
+    const { left, top, width, height } = rect;
+    if (![left, top, width, height].every(Number.isFinite)) return false;
+    if (width <= 0 || height <= 0) return false;
+    // A stale/detached rect can sit outside the viewport even though the
+    // release happened on screen; the mouse position is safer then.
+    return rect.bottom >= 0 && rect.right >= 0 &&
+        rect.top <= window.innerHeight && rect.left <= window.innerWidth;
 }

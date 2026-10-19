@@ -887,16 +887,6 @@ function ToolbarTab({ setting, update }) {
   return (
     <>
       <Section title="工具栏外观">
-        <Row label="弹出位置">
-          <Select
-            value={value.positionMode}
-            onChange={(v) => patch({ positionMode: v })}
-            options={[
-              ["endchar", "选区字符末尾"],
-              ["mouse", "鼠标位置"],
-            ]}
-          />
-        </Row>
         <Row label="偏移量 (px)">
           <NumberInput
             value={value.offset}
