@@ -339,6 +339,7 @@ function BatchFields({ api, patch }) {
           value={api.batchLength}
           min={1000}
           max={100000}
+          disabled={batchOff}
           onChange={(v) => patch("batchLength", v)}
         />
       </label>
