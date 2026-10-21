@@ -1,9 +1,11 @@
-import { getSettingWithDefault, putSetting } from "../libs/storage";
+import { getSettingWithDefault, putSetting, storage } from "../libs/storage";
 import { quickDetectLang, countScriptChars } from "../libs/detectFast";
 import { installTextSelectionToolbar } from "./generated";
 
+// Lightning paste hands off between tabs, so its cache must use the shared
+// GM/extension storage. A per-tab Map silently breaks the cross-tab case.
 const TRANSIENT_KEYS = new Set(["smart_paste_cache"]);
-const transientValues = new Map();
+const TRANSIENT_KEY_PREFIX = "kiss_toolbar_";
 let writeQueue = Promise.resolve();
 let readPromise = null;
 
@@ -24,7 +26,7 @@ function readToolbarSetting() {
 
 export async function getToolbarValue(key, fallback) {
   if (TRANSIENT_KEYS.has(key)) {
-    return transientValues.has(key) ? transientValues.get(key) : fallback;
+    return (await storage.getObj(TRANSIENT_KEY_PREFIX + key)) ?? fallback;
   }
   const toolbar = await readToolbarSetting();
   return Object.prototype.hasOwnProperty.call(toolbar, key)
@@ -34,8 +36,7 @@ export async function getToolbarValue(key, fallback) {
 
 export function setToolbarValue(key, value) {
   if (TRANSIENT_KEYS.has(key)) {
-    transientValues.set(key, value);
-    return Promise.resolve();
+    return storage.setObj(TRANSIENT_KEY_PREFIX + key, value);
   }
   writeQueue = writeQueue.then(async () => {
     readPromise = null;
