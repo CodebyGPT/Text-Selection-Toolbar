@@ -112,6 +112,53 @@ function getStyles() {
         .sc-btn-label.sc-pan-code {
             font-weight: 700;
         }
+        /* Multi-link picker: always a vertical rounded list, regardless of the
+           toolbar style currently selected. */
+        .sc-link-menu {
+            flex-direction: column !important;
+            border-radius: 12px !important;
+            max-width: min(90vw, 520px);
+            max-height: min(70vh, 520px);
+            overflow-y: auto !important;
+        }
+        .sc-link-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+        }
+        .sc-link-item:last-child {
+            border-bottom: none;
+        }
+        .sc-link-item:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .theme-dark-ui .sc-link-item {
+            border-bottom-color: rgba(255, 255, 255, 0.12);
+        }
+        .theme-dark-ui .sc-link-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .sc-link-index {
+            flex: none;
+            min-width: 1.2em;
+            text-align: right;
+            opacity: 0.7;
+            font-variant-numeric: tabular-nums;
+        }
+        .sc-link-url {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 13px;
+            line-height: 1.3;
+        }
+        .sc-link-url strong {
+            font-weight: 700;
+        }
         .sc-btn:hover {
             background: rgba(255, 255, 255, 0.3);
             transform: scale(1.03);

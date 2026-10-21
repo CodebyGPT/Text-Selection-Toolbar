@@ -1,5 +1,97 @@
 // Module 13: Button Renderer
 
+const LINK_MENU_MAX = 12;
+const LINK_DISPLAY_MAX = 42;
+
+// Keep a multi-link menu readable without changing the real URL that opens.
+function truncateLinkDisplay(text) {
+    const chars = Array.from(text);
+    return chars.length > LINK_DISPLAY_MAX
+        ? chars.slice(0, LINK_DISPLAY_MAX - 1).join('') + '…'
+        : text;
+}
+
+// Hide the protocol for display and split the host from the rest so only the
+// domain is rendered in bold.
+function parseLinkDisplay(display) {
+    const withoutProto = String(display || '').replace(/^https?:\/\//i, '');
+    const clipped = truncateLinkDisplay(withoutProto);
+    const hostEnd = clipped.search(/[/?#]/);
+    return {
+        domain: hostEnd === -1 ? clipped : clipped.slice(0, hostEnd),
+        rest: hostEnd === -1 ? '' : clipped.slice(hostEnd)
+    };
+}
+
+// Secondary menu for 2-12 links. It always uses the vertical rounded list
+// look, even when the toolbar itself is the horizontal capsule.
+function showLinkMenu(urls, anchorRect) {
+    const old = shadowRoot.querySelector('.sc-container');
+    if (old) old.remove();
+
+    const menu = document.createElement('div');
+    menu.className = 'sc-container sc-link-menu';
+    if (getConfig('forceWhiteBlack')) {
+        menu.classList.add('theme-light-ui');
+    } else {
+        menu.classList.add(getBestContrastTheme());
+    }
+
+    urls.forEach((url, index) => {
+        const item = document.createElement('div');
+        item.className = 'sc-link-item';
+        item.title = url.url;
+
+        const number = document.createElement('span');
+        number.className = 'sc-link-index';
+        number.textContent = String(index + 1);
+        item.appendChild(number);
+
+        const label = document.createElement('span');
+        label.className = 'sc-link-url';
+        const { domain, rest } = parseLinkDisplay(url.display || url.url);
+
+        const domainEl = document.createElement('strong');
+        domainEl.textContent = domain;
+        label.appendChild(domainEl);
+        if (rest) label.appendChild(document.createTextNode(rest));
+        item.appendChild(label);
+
+        item.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+        item.onclick = (e) => {
+            e.stopPropagation();
+            safeOpenTab(url.url, { active: true });
+            hideUI();
+        };
+        menu.appendChild(item);
+    });
+
+    shadowRoot.appendChild(menu);
+    menu.style.left = '-9999px';
+
+    requestAnimationFrame(() => {
+        const rect = menu.getBoundingClientRect();
+        const offset = getConfig('offset');
+        let left = anchorRect.left;
+        let top = anchorRect.bottom + offset;
+        if (top + rect.height > window.innerHeight - 10) {
+            top = anchorRect.top - rect.height - offset;
+        }
+        left = Math.max(10, Math.min(left, window.innerWidth - rect.width - 10));
+        top = Math.max(10, Math.min(top, window.innerHeight - rect.height - 10));
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+        menu.classList.add('visible');
+
+        const timeout = getConfig('timeout');
+        if (timeout > 0) {
+            if (uiTimer) clearTimeout(uiTimer);
+            uiTimer = setTimeout(hideUI, timeout);
+        }
+    });
+}
+
+
 // Render buttons (supports Copy/Search mode and Paste mode)
 function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', targetInput = null, isEditable = false, pasteCache = null) {
     // Clean up old button
@@ -305,7 +397,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                     const urls = extractUrlsFromText(text);
                     return urls.length > 0 ? { urls, password: null } : null;
                 })();
-                if (linkData && linkData.urls && linkData.urls.length > 0) {
+                if (linkData && linkData.urls && linkData.urls.length > 0 && linkData.urls.length <= LINK_MENU_MAX) {
                     const div = document.createElement('div');
                     div.className = isCol ? 'divider divider-h' : 'divider divider-v';
                     container.appendChild(div);
@@ -351,13 +443,16 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                                 showToast(t('toast_password_pasted'));
                             }
                         }
-                        // Batch open links (200ms interval to avoid popup blocking)
-                        linkData.urls.forEach((u, i) => {
-                            setTimeout(() => {
-                                safeOpenTab(u.url, { active: i === 0 });
-                            }, i * 200);
-                        });
-                        hideUI();
+
+                        if (isSingleLink) {
+                            safeOpenTab(linkData.urls[0].url, { active: true });
+                            hideUI();
+                            return;
+                        }
+
+                        // 2-12 links: replace the toolbar with a numbered menu.
+                        const anchorRect = container.getBoundingClientRect();
+                        showLinkMenu(linkData.urls, anchorRect);
                     };
                     container.appendChild(chainBtn);
                 }
