@@ -48,9 +48,6 @@ const DEFAULT_CONFIG = {
     fallbackEngine: 'bing',   // fallback engine when text contains no Chinese
     enableDeleteBtn: true, // whether to show delete button
     enableTranslate: true, // show the KISS translate action
-    // Hide translation when the selected text is already in the current
-    // language. Uses the synchronous script detector; unknown stays visible.
-    hideTranslateForCurrentLanguage: true,
     // Sensitivity for the language-match gate: 15 / 35 / 55 / 75 (%).
     translateHideThreshold: 15,
     showBlockMenu: true,   // show the "hide page selection toolbar" menu entries
@@ -107,7 +104,6 @@ const countLanguageChars = (text) =>
 const shouldHideTranslate = (text) => {
     const totalLetters = countLanguageChars(text);
     if (totalLetters <= 1) return true; // pure noise / single character
-    if (getConfig('hideTranslateForCurrentLanguage') === false) return false;
 
     const currentLang = baseLanguageTag(getCurrentLanguage());
     if (!currentLang) return false;

@@ -45,7 +45,6 @@ const snippet = source.slice(start, end);
 function load({
   uiLang = "zh-CN",
   browserLang = "zh-CN",
-  option = true,
   threshold = 15,
   pageLang,
   metaLang = "",
@@ -57,7 +56,6 @@ function load({
   const sandbox = {
     configCache: {
       language: uiLang,
-      hideTranslateForCurrentLanguage: option,
       translateHideThreshold: threshold,
     },
     navigator: { language: browserLang },
@@ -146,14 +144,13 @@ assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("１２３"), t
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("😀\t\n。"), true, "mixed noise-only");
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("😀ab"), false, "noise plus two letters is meaningful");
 
-// Option off still filters noise, but keeps meaningful text.
-assert.strictEqual(load({ option: false }).shouldHideTranslate("你好世界"), false);
-assert.strictEqual(load({ option: false }).shouldHideTranslate("12345"), true);
+// Detector failures keep the button; noise is still filtered.
 const broken = load({ uiLang: "zh-CN" });
 broken.detectLanguage = () => {
   throw new Error("boom");
 };
 assert.strictEqual(broken.shouldHideTranslate("你好世界"), false);
+assert.strictEqual(broken.shouldHideTranslate("12345"), true);
 
 // auto follows the browser language.
 assert.strictEqual(load({ uiLang: "auto", browserLang: "ja-JP" }).shouldHideTranslate("こんにちは"), true);

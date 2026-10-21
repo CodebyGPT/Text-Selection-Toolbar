@@ -1021,24 +1021,17 @@ function ToolbarTab({ setting, update }) {
           />
         </Row>
         <Row
-          label="当前语言文本不显示翻译按钮"
-          help="结合本地语言识别、当前语言字符占比和网页语言判断是否隐藏；纯标点、数字、表情/符号、空白或仅一个有效字符时始终隐藏。关闭后仍会过滤无意义文本"
+          label="翻译按钮隐藏阈值"
+          help="检测当前语言在选取文本中的占比，当占比达到阈值时隐藏工具栏中的翻译按钮"
         >
-          <Toggle
-            value={value.hideTranslateForCurrentLanguage !== false}
-            onChange={(v) => patch({ hideTranslateForCurrentLanguage: v })}
-          />
-        </Row>
-        <Row label="隐藏敏感度" help="敏感度越高，越容易隐藏翻译按钮">
           <Select
             value={value.translateHideThreshold ?? 15}
-            disabled={value.hideTranslateForCurrentLanguage === false}
             onChange={(v) => patch({ translateHideThreshold: Number(v) })}
             options={[
-              [15, "极高敏感度（推荐）"],
-              [35, "较高敏感度"],
-              [55, "较低敏感度"],
-              [75, "极低敏感度"],
+              [15, "极高"],
+              [35, "中高"],
+              [55, "中低"],
+              [75, "极低"],
             ]}
           />
         </Row>

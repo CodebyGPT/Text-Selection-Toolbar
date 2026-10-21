@@ -17,7 +17,6 @@ export const DEFAULT_TOOLBAR_SETTING = {
   fallbackEngine: "bing",
   enableDeleteBtn: true,
   enableTranslate: true,
-  hideTranslateForCurrentLanguage: true,
   translateHideThreshold: 15,
   showBlockMenu: true,
   showEditMenu: true,
