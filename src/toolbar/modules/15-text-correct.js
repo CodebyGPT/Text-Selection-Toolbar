@@ -132,12 +132,61 @@ async function handleTextCorrection(target, originalText) {
     hideUI();
 }
 
-// Core paste logic (three-tier fallback strategy)
+// Build the clipboard payload used by the synthetic paste event. DataTransfer
+// is preferred; the plain object keeps pages working in restricted sandboxes.
+function createPasteData(text) {
+    try {
+        if (typeof DataTransfer === 'function') {
+            const data = new DataTransfer();
+            data.setData('text/plain', text);
+            return data;
+        }
+    } catch (e) {}
+    return {
+        types: ['text/plain'],
+        getData: (type) => (type === 'text/plain' ? text : '')
+    };
+}
+
+// A native-like paste event is what controlled editors (Baidu Translate,
+// Vditor, ProseMirror, ...) listen to in order to update their own model.
+// execCommand('insertText') only mutates the DOM and can leave that model empty.
+function dispatchPasteEvent(target, text) {
+    const data = createPasteData(text);
+    let event;
+    try {
+        event = new ClipboardEvent('paste', {
+            bubbles: true,
+            cancelable: true,
+            clipboardData: data
+        });
+    } catch (e) {
+        event = new Event('paste', { bubbles: true, cancelable: true });
+    }
+    if (!event.clipboardData) {
+        try {
+            Object.defineProperty(event, 'clipboardData', { value: data });
+        } catch (e) {}
+    }
+    target.dispatchEvent(event);
+    return event.defaultPrevented;
+}
+
+// Core paste logic: synthetic paste first, then DOM/execCommand fallbacks.
 function performPaste(target, text) {
     if (!target) return;
     target.focus();
 
-    // Strategy 1: document.execCommand (preserves undo, safest)
+    // Strategy 1: emit the same event a real Ctrl+V would emit.
+    const valueBefore = target.isContentEditable ? target.textContent : target.value;
+    const pasteHandled = dispatchPasteEvent(target, text);
+    const valueAfter = target.isContentEditable ? target.textContent : target.value;
+    if (pasteHandled || valueAfter !== valueBefore) {
+        showToast(t('toast_pasted'));
+        return;
+    }
+
+    // Strategy 2: document.execCommand (preserves undo, fires native events)
     try {
         const success = document.execCommand('insertText', false, text);
         if (success) {
@@ -146,7 +195,7 @@ function performPaste(target, text) {
         }
     } catch (e) {}
 
-    // Strategy 2: Direct assignment + dispatch events (Vue/React compat)
+    // Strategy 3: Direct assignment + dispatch events (Vue/React compat)
     try {
         if (target.isContentEditable) {
             const sel = window.getSelection();

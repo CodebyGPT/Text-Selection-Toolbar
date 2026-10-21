@@ -14,8 +14,35 @@ class FakeEvent {
     this.type = type;
     this.bubbles = init.bubbles;
     this.cancelable = init.cancelable;
+    this.defaultPrevented = false;
+  }
+  preventDefault() {
+    this.defaultPrevented = true;
   }
 }
+
+class FakeDataTransfer {
+  constructor() {
+    this.data = {};
+  }
+  setData(type, value) {
+    this.data[type] = value;
+  }
+  getData(type) {
+    return this.data[type] || "";
+  }
+}
+
+class FakeClipboardEvent extends FakeEvent {
+  constructor(type, init = {}) {
+    super(type, init);
+    this.clipboardData = init.clipboardData;
+  }
+}
+
+const messages = [];
+const showToast = (message) => messages.push(message);
+const t = (key) => key;
 
 const inputProto = {};
 Object.defineProperty(inputProto, "value", {
@@ -30,14 +57,28 @@ const windowStub = {
   getSelection: () => null,
 };
 const documentStub = { execCommand: () => false };
-const { deleteSelectedText } = new Function(
+const { deleteSelectedText, performPaste } = new Function(
   "window",
   "document",
   "Range",
   "InputEvent",
   "Event",
-  `${src}\nreturn { deleteSelectedText };`
-)(windowStub, documentStub, class Range {}, undefined, FakeEvent);
+  "ClipboardEvent",
+  "DataTransfer",
+  "showToast",
+  "t",
+  `${src}\nreturn { deleteSelectedText, performPaste };`
+)(
+  windowStub,
+  documentStub,
+  class Range {},
+  undefined,
+  FakeEvent,
+  FakeClipboardEvent,
+  FakeDataTransfer,
+  showToast,
+  t
+);
 
 // Native input: value is replaced and DOM events are dispatched for frameworks.
 {
@@ -100,6 +141,57 @@ const { deleteSelectedText } = new Function(
   assert.strictEqual(deleteSelectedText(target, null), true);
   assert.strictEqual(deleted, true);
   assert.strictEqual(target.textContent, "");
+}
+
+// A controlled editor that handles the synthetic paste event must not also
+// receive the execCommand fallback (which is what left Baidu Translate's model
+// empty while the DOM showed text).
+{
+  let execCalls = 0;
+  documentStub.execCommand = () => {
+    execCalls++;
+    return true;
+  };
+  const target = {
+    tagName: "DIV",
+    isContentEditable: true,
+    textContent: "",
+    focus() {},
+    dispatchEvent(event) {
+      if (event.type === "paste") {
+        assert.strictEqual(event.clipboardData.getData("text/plain"), "hello");
+        event.preventDefault();
+      }
+      return true;
+    },
+  };
+  messages.length = 0;
+  performPaste(target, "hello");
+  assert.strictEqual(execCalls, 0);
+  assert.deepStrictEqual(messages, ["toast_pasted"]);
+}
+
+// When no editor handles paste, fall back to execCommand.
+{
+  let execCalls = 0;
+  documentStub.execCommand = (command, ui, value) => {
+    execCalls++;
+    assert.strictEqual(command, "insertText");
+    assert.strictEqual(value, "hello");
+    return true;
+  };
+  const target = {
+    tagName: "DIV",
+    isContentEditable: true,
+    focus() {},
+    dispatchEvent() {
+      return true;
+    },
+  };
+  messages.length = 0;
+  performPaste(target, "hello");
+  assert.strictEqual(execCalls, 1);
+  assert.deepStrictEqual(messages, ["toast_pasted"]);
 }
 
 console.log("cut compatibility check passed");
