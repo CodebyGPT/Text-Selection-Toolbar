@@ -17,17 +17,18 @@ const extractUrlsFromText = (text) => {
     return [];
   }
 };
-const { resolveHrefLink, mergeHiddenLinks } = new Function(
+const { resolveHrefLink, mergeHiddenLinks, formatAllLinks } = new Function(
   "document",
   "extractUrlsFromText",
   "window",
   "getConfig",
-  `${src}\nreturn { resolveHrefLink, mergeHiddenLinks };`
+  `${src}\nreturn { resolveHrefLink, mergeHiddenLinks, formatAllLinks };`
 )(documentStub, extractUrlsFromText, {}, () => true);
 
-const relative = resolveHrefLink("/a/b");
+const relative = resolveHrefLink("/a/b", "示例链接");
 assert.strictEqual(relative.url, "https://example.com/a/b");
 assert.strictEqual(relative.fromHref, true);
+assert.strictEqual(relative.hrefText, "示例链接");
 
 const protocolRelative = resolveHrefLink("//cdn.example.com/x");
 assert.strictEqual(protocolRelative.url, "https://cdn.example.com/x");
@@ -39,7 +40,7 @@ assert.strictEqual(resolveHrefLink(""), null);
 
 const textLink = { display: "https://example.com/a", url: "https://example.com/a" };
 const duplicate = resolveHrefLink("https://example.com/a");
-const hidden = resolveHrefLink("/hidden");
+const hidden = resolveHrefLink("/hidden", "示例链接");
 const merged = mergeHiddenLinks(
   { urls: [textLink], password: "abcd" },
   [duplicate, hidden]
@@ -52,5 +53,10 @@ assert.strictEqual(merged.password, "abcd");
 const onlyHidden = mergeHiddenLinks(null, [hidden]);
 assert.strictEqual(onlyHidden.urls.length, 1);
 assert.strictEqual(onlyHidden.password, null);
+
+assert.strictEqual(
+  formatAllLinks([textLink, hidden]),
+  "https://example.com/a\n（示例链接）https://example.com/hidden"
+);
 
 console.log("hidden link check passed");

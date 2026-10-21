@@ -24,14 +24,20 @@ function parseLinkDisplay(display) {
 }
 
 // Resolve an <a href> into the same shape as a text-derived link.
-function resolveHrefLink(href) {
+function resolveHrefLink(href, anchorText = '') {
     const raw = String(href || '').trim();
     if (!raw || raw.startsWith('#')) return null;
     try {
         const resolved = new URL(raw, document.baseURI);
         if (resolved.protocol !== 'http:' && resolved.protocol !== 'https:') return null;
         const urls = extractUrlsFromText(resolved.href);
-        return urls.length > 0 ? { ...urls[0], fromHref: true } : null;
+        return urls.length > 0
+            ? {
+                ...urls[0],
+                fromHref: true,
+                hrefText: String(anchorText || '').replace(/\s+/g, ' ').trim()
+            }
+            : null;
     } catch (e) {
         return null;
     }
@@ -46,10 +52,14 @@ function collectHrefLinks() {
     if (!selection || selection.rangeCount === 0) return [];
 
     const range = selection.getRangeAt(0);
-    const hrefs = new Set();
+    const anchors = new Map();
     const addAnchor = (anchor) => {
-        const href = anchor && anchor.getAttribute && anchor.getAttribute('href');
-        if (href) hrefs.add(href);
+        if (!anchor || !anchor.getAttribute) return;
+        const href = anchor.getAttribute('href');
+        if (!href) return;
+        if (!anchors.has(href)) {
+            anchors.set(href, String(anchor.textContent || '').replace(/\s+/g, ' ').trim());
+        }
     };
 
     try {
@@ -62,8 +72,8 @@ function collectHrefLinks() {
 
     const seen = new Set();
     const links = [];
-    hrefs.forEach((href) => {
-        const link = resolveHrefLink(href);
+    anchors.forEach((text, href) => {
+        const link = resolveHrefLink(href, text);
         if (link && !seen.has(link.url)) {
             seen.add(link.url);
             links.push(link);
@@ -85,6 +95,57 @@ function mergeHiddenLinks(linkData, hiddenLinks) {
         urls,
         password: linkData ? linkData.password : null
     };
+}
+
+async function copySingleLink(url) {
+    if (await copyToClipboard(url, '')) {
+        showToast(t('toast_link_copied'));
+    }
+}
+
+function formatAllLinks(urls) {
+    return urls.map((url) => {
+        if (url.fromHref && url.hrefText) {
+            return `（${url.hrefText}）${url.url}`;
+        }
+        return url.url;
+    }).join('\n');
+}
+
+async function copyAllLinks(urls) {
+    const text = formatAllLinks(urls);
+    if (await copyToClipboard(text, '')) {
+        showToast(t('toast_all_links_copied'));
+    }
+}
+
+// Long-press copy without affecting the normal click action.
+function bindLongPress(btn, onLongPress, duration = 2300) {
+    let timer = null;
+    const cancel = () => {
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+    };
+
+    btn.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        btn.__longPressTriggered = false;
+        if (uiTimer) {
+            clearTimeout(uiTimer);
+            uiTimer = null;
+        }
+        cancel();
+        timer = setTimeout(() => {
+            timer = null;
+            btn.__longPressTriggered = true;
+            onLongPress();
+        }, duration);
+    });
+    btn.addEventListener('mouseup', cancel);
+    btn.addEventListener('mouseleave', cancel);
+    btn.addEventListener('blur', cancel);
 }
 
 // Secondary menu for 2-12 links. It always uses the vertical rounded list
@@ -134,12 +195,17 @@ function showLinkMenu(urls, anchorRect) {
 
         item.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
         item.onclick = (e) => {
+            if (item.__longPressTriggered) {
+                item.__longPressTriggered = false;
+                return;
+            }
             e.stopPropagation();
             safeOpenTab(url.url, { active: true });
             // Keep the menu open so the user can open more links; the normal
             // timeout starts only after the first item click.
             startLinkMenuTimeout();
         };
+        bindLongPress(item, () => copySingleLink(url.url));
         menu.appendChild(item);
     });
 
@@ -526,6 +592,10 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                     applyButtonLabel(chainBtn, t('btn_open_link'), titlePrefix + t('btn_open_link'));
                     chainBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
                     chainBtn.onclick = async (e) => {
+                        if (chainBtn.__longPressTriggered) {
+                            chainBtn.__longPressTriggered = false;
+                            return;
+                        }
                         e.stopPropagation();
                         // Single link + Chinese mode: write extraction code to lightning paste cache
                         if (isSingleLink && isChineseForLink && getConfig('enablePaste') && linkData.password) {
@@ -550,6 +620,10 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                         const anchorRect = container.getBoundingClientRect();
                         showLinkMenu(linkData.urls, anchorRect);
                     };
+                    bindLongPress(chainBtn, () => {
+                        if (isSingleLink) copySingleLink(linkData.urls[0].url);
+                        else copyAllLinks(linkData.urls);
+                    });
                     container.appendChild(chainBtn);
                 }
             }
