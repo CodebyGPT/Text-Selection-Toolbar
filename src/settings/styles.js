@@ -178,6 +178,38 @@ export const SETTINGS_APP_CSS = String.raw`
   opacity: .45;
   cursor: not-allowed;
 }
+:host .kiss-st-combo { position: relative; }
+:host .kiss-st-combo .kiss-st-input { width: 100%; }
+:host .kiss-st-combo__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 220px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--st-border);
+  border-radius: 9px;
+  background: var(--st-panel);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
+}
+:host .kiss-st-combo__item {
+  display: block;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--st-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+:host .kiss-st-combo__item:hover,
+:host .kiss-st-combo__item[aria-selected="true"] {
+  background: var(--st-input);
+}
 :host .kiss-st-switch {
   position: relative;
   display: inline-flex;

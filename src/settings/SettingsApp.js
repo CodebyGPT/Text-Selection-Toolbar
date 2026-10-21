@@ -42,6 +42,7 @@ import {
   getNobatchPromptOptions,
   getSubtitlePromptOptions,
   isTranslatorAPISupported,
+  resolveApiPromptSettings,
 } from "../config";
 import {
   DEFAULT_TOOLBAR_SETTING,
@@ -127,6 +128,7 @@ function TextInput({
   type = "text",
   list,
   onFocus,
+  onClick,
 }) {
   return (
     <input
@@ -136,6 +138,7 @@ function TextInput({
       placeholder={placeholder}
       list={list}
       onFocus={onFocus}
+      onClick={onClick}
       onChange={(event) => onChange(event.target.value)}
     />
   );
@@ -568,13 +571,30 @@ function extractModelIds(data) {
   return [...new Set(ids)];
 }
 
-function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
+function ApiEditor({
+  api,
+  onChange,
+  onDelete,
+  canDelete,
+  prompts = [],
+  subtitleSetting,
+}) {
   const [open, setOpen] = useState(false);
   const [test, setTest] = useState({ loading: false, text: "", error: "" });
   const [models, setModels] = useState([]);
   const [modelNote, setModelNote] = useState("");
+  const [modelsOpen, setModelsOpen] = useState(false);
   const modelsUrlRef = useRef("");
+  const testAbortRef = useRef(null);
   const patch = (key, value) => onChange({ ...api, [key]: value });
+
+  useEffect(
+    () => () => {
+      testAbortRef.current?.abort();
+      testAbortRef.current = null;
+    },
+    []
+  );
 
   const loadModels = async () => {
     const url = (api.modelListUrl || "").trim();
@@ -606,19 +626,49 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
   const isOllama = api.apiType === OPT_TRANS_OLLAMA;
 
   const runTest = async () => {
+    if (testAbortRef.current) return;
+    const controller = new AbortController();
+    testAbortRef.current = controller;
+    let timer = null;
     setOpen(true);
     setTest({ loading: true, text: "", error: "" });
     try {
-      const result = await apiTranslate({
-        text: "Hello, world!",
-        fromLang: "auto",
-        toLang: "zh-CN",
-        apiSetting: api,
-        useCache: false,
-      });
+      // 与正式翻译走同一套配置解析：补齐提示词并附带 provider 描述，
+      // 否则测试会绕过 provider 的超时控制，在流不结束时永久挂起。
+      const apiSetting = resolveApiPromptSettings(
+        { ...api },
+        prompts,
+        subtitleSetting
+      );
+      const result = await Promise.race([
+        apiTranslate({
+          text: "Hello, world!",
+          fromLang: "auto",
+          toLang: "zh-CN",
+          apiSetting,
+          useCache: false,
+          usePool: false,
+          signal: controller.signal,
+        }),
+        new Promise((_, reject) => {
+          // 兜底超时：请求链路（尤其是 SSE 长连接）异常时也必须让按钮恢复。
+          timer = setTimeout(() => {
+            controller.abort();
+            reject(new Error("测试超时（60 秒未返回结果）"));
+          }, 60000);
+        }),
+      ]);
+      if (controller.signal.aborted) return;
       setTest({ loading: false, text: result.trText || "", error: "" });
     } catch (error) {
-      setTest({ loading: false, text: "", error: error.message });
+      setTest({
+        loading: false,
+        text: "",
+        error: error?.message || String(error),
+      });
+    } finally {
+      clearTimeout(timer);
+      if (testAbortRef.current === controller) testAbortRef.current = null;
     }
   };
 
@@ -737,17 +787,47 @@ function ApiEditor({ api, onChange, onDelete, canDelete, prompts = [] }) {
                 </label>
                 <label>
                   模型
-                  <TextInput
-                    value={api.model}
-                    list={`kiss-models-${api.apiSlug}`}
-                    onFocus={loadModels}
-                    onChange={(v) => patch("model", v)}
-                  />
-                  <datalist id={`kiss-models-${api.apiSlug}`}>
-                    {models.map((model) => (
-                      <option key={model} value={model} />
-                    ))}
-                  </datalist>
+                  <div
+                    className="kiss-st-combo"
+                    onBlur={(event) => {
+                      if (!event.currentTarget.contains(event.relatedTarget)) {
+                        setModelsOpen(false);
+                      }
+                    }}
+                  >
+                    <TextInput
+                      value={api.model}
+                      onFocus={() => {
+                        loadModels();
+                        setModelsOpen(true);
+                      }}
+                      onClick={() => {
+                        loadModels();
+                        setModelsOpen(true);
+                      }}
+                      onChange={(v) => patch("model", v)}
+                    />
+                    {modelsOpen && models.length > 0 && (
+                      <div className="kiss-st-combo__list" role="listbox">
+                        {models.map((model) => (
+                          <button
+                            type="button"
+                            key={model}
+                            role="option"
+                            aria-selected={model === api.model}
+                            className="kiss-st-combo__item"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => {
+                              patch("model", model);
+                              setModelsOpen(false);
+                            }}
+                          >
+                            {model}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   {modelNote && <small>{modelNote}</small>}
                 </label>
               </>
@@ -859,6 +939,7 @@ function ApisTab({ setting, update }) {
           key={api.apiSlug}
           api={api}
           prompts={prompts}
+          subtitleSetting={setting.subtitleSetting}
           onChange={(next) => updateApi(index, next)}
           onDelete={() => removeApi(index)}
           canDelete={api.apiType === OPT_TRANS_CUSTOMIZE}

@@ -24,8 +24,7 @@ export { getStreamDelta } from "../builtin-plugins/streamResponses";
  */
 export const createSSEParser = () => {
   let buffer = "";
-
-  return function* (chunk = "") {
+  const parse = function* (chunk = "") {
     buffer += chunk;
     buffer = buffer.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
@@ -47,14 +46,21 @@ export const createSSEParser = () => {
 
       if (dataLines.length) {
         const data = dataLines.join("\n");
-        if (data.trim() !== "[DONE]") {
-          yield data;
+        if (data.trim() === "[DONE]") {
+          // [DONE] 是 OpenAI 兼容流式响应的结束标记。不能只丢弃它并依赖
+          // 连接关闭：部分本地代理/网关发完 [DONE] 后仍保持连接（心跳），
+          // 读取端会永远等不到流结束。
+          parse.done = true;
+          continue;
         }
+        yield data;
       }
 
       boundaryIndex = buffer.indexOf("\n\n");
     }
   };
+  parse.done = false;
+  return parse;
 };
 
 /**

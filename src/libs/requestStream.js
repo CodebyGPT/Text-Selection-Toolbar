@@ -140,7 +140,8 @@ async function* fetchStreamGM(
   };
 
   const gmRequest = window.KISS_GM?.xmlHttpRequest || GM.xmlHttpRequest;
-  const requestHandle = gmRequest({
+  let requestHandle = null;
+  requestHandle = gmRequest({
     method,
     url: input,
     headers,
@@ -167,6 +168,10 @@ async function* fetchStreamGM(
             pushedChunk = true;
             asyncQueue.push(data);
           }
+          if (parseSSE.done) {
+            await Promise.resolve(reader?.cancel?.()).catch(() => {});
+            break;
+          }
         }
       } catch (e) {
         if (!pushedChunk && isXrayTypedArrayError(e)) {
@@ -185,7 +190,13 @@ async function* fetchStreamGM(
       }
       finish();
     },
-    onprogress: (event) => pushResponseTextDelta(event),
+    onprogress: (event) => {
+      pushResponseTextDelta(event);
+      if (parseSSE.done) {
+        finish();
+        requestHandle?.abort?.();
+      }
+    },
     onload: (event) => {
       if (readerStarted || settled) return;
 
@@ -253,6 +264,7 @@ export async function* fetchStreamNative(input, init = {}, opts = {}) {
       for (const data of parseSSE(decoder.decode(value, { stream: true }))) {
         yield data;
       }
+      if (parseSSE.done) break;
     }
   } finally {
     // 当调用方提前结束 async generator 时，主动释放 reader 锁并推动底层连接关闭。
