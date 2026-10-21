@@ -994,7 +994,7 @@ function ToolbarTab({ setting, update }) {
             onChange={(v) => patch({ buttonStyle: v })}
             options={[
               ["row", "横排胶囊"],
-              ["col", "纵排矩形"],
+              ["col", "竖向菜单"],
             ]}
           />
         </Row>

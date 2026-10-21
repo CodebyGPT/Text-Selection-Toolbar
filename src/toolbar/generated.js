@@ -218,7 +218,7 @@ const I18N = {
         prompt_timeout: '请输入 UI 停留时长 (ms, 0表示不自动消失):',
         menu_style: '🎨 UI 布局',
         val_row: '横排胶囊',
-        val_col: '纵排矩形',
+        val_col: '竖向菜单',
         menu_theme: '🌓 UI 配色',
         val_light: '强制浅色',
         val_auto: '自动反色',
@@ -294,7 +294,7 @@ const I18N = {
         prompt_timeout: 'Enter timeout (ms, 0 = infinite):',
         menu_style: '🎨 Layout',
         val_row: 'Row (Capsule)',
-        val_col: 'Column (Rect)',
+        val_col: 'Vertical menu',
         menu_theme: '🌓 Theme',
         val_light: 'Force Light',
         val_auto: 'Auto Contrast',
@@ -370,7 +370,7 @@ const I18N = {
         prompt_timeout: 'Введите задержку (мс, 0 = бесконечно):',
         menu_style: '🎨 Стиль кнопок',
         val_row: 'Строка',
-        val_col: 'Колонка',
+        val_col: 'Вертикальное меню',
         menu_theme: '🌓 Тема',
         val_light: 'Светлая',
         val_auto: 'Авто',
@@ -1187,7 +1187,7 @@ function initContainer() {
 function getStyles() {
     const isCol = getConfig('buttonStyle') === 'col';
     const padRow = '10px 13.1415926px';   // Capsule: slightly narrower top/bottom, wider left/right
-    const padCol = '10px';       // Column: square, equal on all sides
+    const padCol = '9px 14px';       // Column menu: room for an icon + label
     return `
         :host { all: initial; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
         .sc-container {
@@ -1230,6 +1230,22 @@ function getStyles() {
         .sc-container[data-btn-count="1"] .sc-btn {
             padding: 10px;
             aspect-ratio: 1 / 1;
+        }
+        /* Vertical menu: icon on the left, label on the right */
+        .sc-container.sc-col .sc-btn {
+            justify-content: flex-start;
+            gap: 10px;
+            min-width: 150px;
+            box-sizing: border-box;
+            text-align: left;
+        }
+        .sc-container.sc-col[data-btn-count="1"] .sc-btn {
+            padding: 9px 14px;
+            aspect-ratio: auto;
+        }
+        .sc-btn-label {
+            font-size: 13px;
+            line-height: 1.2;
         }
         .sc-btn:hover {
             background: rgba(255, 255, 255, 0.3);
@@ -2059,6 +2075,18 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
     }
 
     const isCol = getConfig('buttonStyle') === 'col';
+    container.classList.toggle('sc-col', isCol);
+
+    // Vertical menus show the action name beside the icon; the capsule keeps
+    // its icon-only look. The title stays available in both styles.
+    const applyButtonLabel = (btn, label, title = label) => {
+        btn.title = title;
+        if (!isCol) return;
+        const span = document.createElement('span');
+        span.className = 'sc-btn-label';
+        span.textContent = label;
+        btn.appendChild(span);
+    };
 
     // Mode: Edit mode
     if (isEditMode) {
@@ -2066,7 +2094,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         const delBtn = document.createElement('div');
         delBtn.className = 'sc-btn';
         delBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
-        delBtn.title = t('btn_delete');
+        applyButtonLabel(delBtn, t('btn_delete'));
         delBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
         delBtn.onclick = (e) => {
             e.stopPropagation();
@@ -2083,7 +2111,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         const boldBtn = document.createElement('div');
         boldBtn.className = 'sc-btn';
         boldBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path></svg>`;
-        boldBtn.title = t('btn_bold');
+        applyButtonLabel(boldBtn, t('btn_bold'));
         boldBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
         boldBtn.onclick = (e) => {
             e.stopPropagation();
@@ -2099,7 +2127,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         const highlightBtn = document.createElement('div');
         highlightBtn.className = 'sc-btn';
         highlightBtn.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 44L6 25H12V17H36V25H42V44H6Z" fill="none" stroke="#000000" stroke-width="4" stroke-linejoin="bevel"/><path d="M17 17V8L31 4V17" stroke="#000000" stroke-width="4" stroke-linecap="round" stroke-linejoin="bevel"/></svg>`;
-        highlightBtn.title = t('btn_highlight');
+        applyButtonLabel(highlightBtn, t('btn_highlight'));
         highlightBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
         highlightBtn.onclick = (e) => {
             e.stopPropagation();
@@ -2116,7 +2144,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         const copyBtn = document.createElement('div');
         copyBtn.className = 'sc-btn';
         copyBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
-        copyBtn.title = t('btn_copy');
+        applyButtonLabel(copyBtn, t('btn_copy'));
         copyBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
         copyBtn.onclick = async (e) => {
             e.stopPropagation();
@@ -2147,7 +2175,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             const cutBtn = document.createElement('div');
             cutBtn.className = 'sc-btn';
             cutBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg>`;
-            cutBtn.title = t('btn_cut');
+            applyButtonLabel(cutBtn, t('btn_cut'));
             cutBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
             cutBtn.onclick = async (e) => {
                 e.stopPropagation();
@@ -2180,7 +2208,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             const delBtn = document.createElement('div');
             delBtn.className = 'sc-btn';
             delBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
-            delBtn.title = t('btn_delete');
+            applyButtonLabel(delBtn, t('btn_delete'));
             delBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
             delBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -2199,7 +2227,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             const searchBtn = document.createElement('div');
             searchBtn.className = 'sc-btn';
             searchBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
-            searchBtn.title = t('btn_search');
+            applyButtonLabel(searchBtn, t('btn_search'));
             searchBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
             searchBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -2230,7 +2258,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             const translateBtn = document.createElement('div');
             translateBtn.className = 'sc-btn';
             translateBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"></path><path d="m4 14 6-6 2-3"></path><path d="M2 5h12"></path><path d="M7 2h1"></path><path d="m22 22-5-10-5 10"></path><path d="M14 18h6"></path></svg>`;
-            translateBtn.title = t('btn_translate');
+            applyButtonLabel(translateBtn, t('btn_translate'));
             translateBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
             translateBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -2259,7 +2287,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                 const atBtn = document.createElement('div');
                 atBtn.className = 'sc-btn';
                 atBtn.innerHTML = `<svg viewBox="0 0 48 48" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44V44C28.9886 44 33.5507 42.1735 37.0539 39.1529" stroke="currentColor" stroke-width="3" stroke-linecap="butt" stroke-linejoin="miter"/><path d="M24 32C28.4183 32 32 28.4183 32 24C32 19.5817 28.4183 16 24 16C19.5817 16 16 19.5817 16 24C16 28.4183 19.5817 32 24 32Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter"/><path d="M32 24C32 27.3137 34.6863 30 38 30V30C41.3137 30 44 27.3137 44 24" stroke="currentColor" stroke-width="3" stroke-linecap="butt" stroke-linejoin="miter"/><path d="M32 25V16" stroke="currentColor" stroke-width="3" stroke-linecap="butt" stroke-linejoin="miter"/></svg>`;
-                atBtn.title = t('btn_email');
+                applyButtonLabel(atBtn, t('btn_email'));
                 atBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
                 atBtn.onclick = async (e) => {
                     e.stopPropagation();
@@ -2313,7 +2341,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                     }
 
                     const titlePrefix = urlCount > 1 ? ('(' + urlCount + ') ') : '';
-                    chainBtn.title = titlePrefix + t('btn_open_link');
+                    applyButtonLabel(chainBtn, t('btn_open_link'), titlePrefix + t('btn_open_link'));
                     chainBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
                     chainBtn.onclick = async (e) => {
                         e.stopPropagation();
@@ -2354,7 +2382,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                 const correctBtn = document.createElement('div');
                 correctBtn.className = 'sc-btn';
                 correctBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 15l2 2 4-4"></path></svg>`;
-                correctBtn.title = "Correct";
+                applyButtonLabel(correctBtn, "Correct");
                 correctBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
                 correctBtn.onclick = (e) => {
                     e.stopPropagation();
@@ -2372,7 +2400,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             const pasteBtn = document.createElement('div');
             pasteBtn.className = 'sc-btn';
             pasteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>`;
-            pasteBtn.title = t('btn_paste');
+            applyButtonLabel(pasteBtn, t('btn_paste'));
             pasteBtn.onmousedown = e => { e.preventDefault(); e.stopPropagation(); };
             pasteBtn.onclick = async (e) => {
                 e.stopPropagation();
@@ -2399,10 +2427,10 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         if (isPanCode) {
             // Key icon (for cloud drive extraction code)
             pasteBtn.innerHTML = '<svg viewBox="0 0 48 48" width="18" height="18" stroke="currentColor" stroke-width="3" fill="none"><path d="M22.8682 24.2982C25.4105 26.7935 26.4138 30.4526 25.4971 33.8863C24.5805 37.32 21.8844 40.0019 18.4325 40.9137C14.9806 41.8256 11.3022 40.8276 8.79375 38.2986C5.02208 34.4141 5.07602 28.2394 8.91499 24.4206C12.754 20.6019 18.9613 20.5482 22.8664 24.3L22.8682 24.2982Z"/><path d="M23 24L40 7"/><path d="M30.3052 16.9001L35.7337 22.3001L42.0671 16.0001L36.6385 10.6001L30.3052 16.9001Z"/></svg>';
-            pasteBtn.title = t('btn_paste') + ' ' + (pasteCache.text || '');
+            applyButtonLabel(pasteBtn, t('btn_paste'), t('btn_paste') + ' ' + (pasteCache.text || ''));
         } else {
             pasteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>';
-            pasteBtn.title = t('btn_paste');
+            applyButtonLabel(pasteBtn, t('btn_paste'));
         }
         pasteBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
         pasteBtn.onclick = async (e) => {

@@ -40,7 +40,7 @@ function initContainer() {
 function getStyles() {
     const isCol = getConfig('buttonStyle') === 'col';
     const padRow = '10px 13.1415926px';   // Capsule: slightly narrower top/bottom, wider left/right
-    const padCol = '10px';       // Column: square, equal on all sides
+    const padCol = '9px 14px';       // Column menu: room for an icon + label
     return `
         :host { all: initial; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
         .sc-container {
@@ -83,6 +83,22 @@ function getStyles() {
         .sc-container[data-btn-count="1"] .sc-btn {
             padding: 10px;
             aspect-ratio: 1 / 1;
+        }
+        /* Vertical menu: icon on the left, label on the right */
+        .sc-container.sc-col .sc-btn {
+            justify-content: flex-start;
+            gap: 10px;
+            min-width: 150px;
+            box-sizing: border-box;
+            text-align: left;
+        }
+        .sc-container.sc-col[data-btn-count="1"] .sc-btn {
+            padding: 9px 14px;
+            aspect-ratio: auto;
+        }
+        .sc-btn-label {
+            font-size: 13px;
+            line-height: 1.2;
         }
         .sc-btn:hover {
             background: rgba(255, 255, 255, 0.3);

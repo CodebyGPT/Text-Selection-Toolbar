@@ -126,7 +126,7 @@ const EN = {
   "简体中文": "Simplified Chinese",
   "繁體中文": "Traditional Chinese",
   "纯英文时使用备用引擎": "Use fallback engine for English text",
-  "纵排矩形": "Vertical rectangle",
+  "竖向菜单": "Vertical menu",
   "统计断句": "Statistical splitting",
   "继承": "Inherit",
   "网页翻译规则": "Web page translation rules",
