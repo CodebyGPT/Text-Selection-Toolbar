@@ -1026,6 +1026,7 @@ function ToolbarTab({ setting, update }) {
         >
           <Select
             value={value.translateHideThreshold ?? 15}
+            disabled={value.enableTranslate === false}
             onChange={(v) => patch({ translateHideThreshold: Number(v) })}
             options={[
               [15, "极高"],
