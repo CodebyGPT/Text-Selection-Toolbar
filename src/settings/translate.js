@@ -95,7 +95,7 @@ const EN = {
   "显示删除按钮": "Show delete button",
   "显示翻译按钮": "Show translate button",
   "当前语言文本不显示翻译按钮": "Hide translate button for text already in the current language",
-  "本地快速识别选中文本的语言，与当前语言相同时隐藏翻译按钮；纯标点、纯数字或仅一个有效字符时也会隐藏；无法识别时始终显示。关闭后仍会过滤无意义文本": "Detect the selection language locally; hide the translate button when it matches the current language. Punctuation-only, number-only, or single-letter selections are also hidden. Unknown languages keep it visible; noise filtering stays on when this is turned off",
+  "本地快速识别选中文本的语言，与当前语言相同时隐藏翻译按钮；纯标点、数字、表情/符号、空白或仅一个有效字符时也会隐藏；无法识别时始终显示。关闭后仍会过滤无意义文本": "Detect the selection language locally; hide the translate button when it matches the current language. Punctuation-only, number-only, emoji/symbol-only, whitespace-only, or single-letter selections are also hidden. Unknown languages keep it visible; noise filtering stays on when this is turned off",
   "显示顺序": "Display order",
   "极简样式": "Minimal style",
   "模糊译文": "Blur translation",

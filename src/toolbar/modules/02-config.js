@@ -41,8 +41,9 @@ const getCurrentLanguage = () => {
     return lang === 'auto' ? String(navigator.language || '') : lang;
 };
 
-// Count actual language letters; digits, punctuation, symbols and whitespace
-// are noise. One letter (even surrounded by noise) is not worth translating.
+// Count actual language letters; digits, punctuation, symbols, emoji, tabs,
+// zero-width and other control characters are noise. One letter (even
+// surrounded by noise) is not worth translating.
 const countLanguageChars = (text) =>
     (String(text || '').match(/\p{L}/gu) || []).length;
 

@@ -78,6 +78,11 @@ assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("你 123！？"
 assert.strictEqual(load({ uiLang: "en" }).shouldHideTranslate("你好"), false, "two letters are not noise");
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("$100.00"), true, "currency noise");
 assert.strictEqual(load({ uiLang: "en" }).shouldHideTranslate("😀😀"), true, "emoji-only");
+assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("\t\t\n"), true, "whitespace/tab-only");
+assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("\u200b\u200b"), true, "zero-width-only");
+assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("１２３"), true, "fullwidth digit-only");
+assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("😀\t\n。"), true, "mixed noise-only");
+assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("😀ab"), false, "noise plus two letters is meaningful");
 
 // Option off still filters noise, but keeps meaningful foreign text.
 assert.strictEqual(load({ option: false }).shouldHideTranslate("你好世界"), false);

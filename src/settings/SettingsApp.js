@@ -1022,7 +1022,7 @@ function ToolbarTab({ setting, update }) {
         </Row>
         <Row
           label="当前语言文本不显示翻译按钮"
-          help="本地快速识别选中文本的语言，与当前语言相同时隐藏翻译按钮；纯标点、纯数字或仅一个有效字符时也会隐藏；无法识别时始终显示。关闭后仍会过滤无意义文本"
+          help="本地快速识别选中文本的语言，与当前语言相同时隐藏翻译按钮；纯标点、数字、表情/符号、空白或仅一个有效字符时也会隐藏；无法识别时始终显示。关闭后仍会过滤无意义文本"
         >
           <Toggle
             value={value.hideTranslateForCurrentLanguage !== false}
