@@ -112,17 +112,12 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             cutBtn.onclick = async (e) => {
                 e.stopPropagation();
                 triggerSpringFestivalEffect(e.clientX, e.clientY, shadowRoot);
+                const target = targetInput || document.activeElement;
                 const contentToCopy = getConfig('enableCache') ? (cachedSelection.text || text) : text;
                 const htmlToCopy = getConfig('enableCache') ? (cachedSelection.html || html) : html;
-                try {
-                    const success = document.execCommand('cut');
-                    if (!success) throw new Error('execCommand failed');
-                } catch (err) {
-                    await copyToClipboard(contentToCopy, htmlToCopy);
-                    const selection = window.getSelection();
-                    if (selection.rangeCount > 0) {
-                        selection.getRangeAt(0).deleteContents();
-                    }
+                const snapshot = captureSelectionSnapshot(target);
+                if (await copyToClipboard(contentToCopy, htmlToCopy)) {
+                    deleteSelectedText(target, snapshot);
                 }
                 if (getConfig('enablePaste')) {
                     await safeSetValue('smart_paste_cache', {
@@ -149,7 +144,8 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             delBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
             delBtn.onclick = (e) => {
                 e.stopPropagation();
-                document.execCommand('delete');
+                const target = targetInput || document.activeElement;
+                deleteSelectedText(target, captureSelectionSnapshot(target));
                 hideUI();
             };
             container.appendChild(delBtn);

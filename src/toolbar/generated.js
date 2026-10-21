@@ -1883,7 +1883,8 @@ window.addEventListener('blur', () => {
 // ---- 11-clipboard.js ----
 // Module 11: Clipboard & Toast
 
-// Three-tier fallback copy strategy
+// Three-tier fallback copy strategy. Returns true only when the clipboard
+// write is believed to have succeeded, so a cut can avoid deleting on failure.
 async function copyToClipboard(text, html) {
     try {
         // Prefer ClipboardItem to preserve formatting (unless plain text)
@@ -1896,15 +1897,20 @@ async function copyToClipboard(text, html) {
             // Fallback to plain text
             await navigator.clipboard.writeText(text);
         }
+        return true;
     } catch (e) {
         // Fallback to privileged GM API GM_setClipboard
         if (typeof GM_setClipboard === 'function') {
-            if (text) {
-                GM_setClipboard(text, 'text');
-            } else {
-                GM_setClipboard(html, 'html');
-            }
+            try {
+                if (text) {
+                    GM_setClipboard(text, 'text');
+                } else {
+                    GM_setClipboard(html, 'html');
+                }
+                return true;
+            } catch (err) {}
         }
+        return false;
     }
 }
 
@@ -2083,17 +2089,12 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             cutBtn.onclick = async (e) => {
                 e.stopPropagation();
                 triggerSpringFestivalEffect(e.clientX, e.clientY, shadowRoot);
+                const target = targetInput || document.activeElement;
                 const contentToCopy = getConfig('enableCache') ? (cachedSelection.text || text) : text;
                 const htmlToCopy = getConfig('enableCache') ? (cachedSelection.html || html) : html;
-                try {
-                    const success = document.execCommand('cut');
-                    if (!success) throw new Error('execCommand failed');
-                } catch (err) {
-                    await copyToClipboard(contentToCopy, htmlToCopy);
-                    const selection = window.getSelection();
-                    if (selection.rangeCount > 0) {
-                        selection.getRangeAt(0).deleteContents();
-                    }
+                const snapshot = captureSelectionSnapshot(target);
+                if (await copyToClipboard(contentToCopy, htmlToCopy)) {
+                    deleteSelectedText(target, snapshot);
                 }
                 if (getConfig('enablePaste')) {
                     await safeSetValue('smart_paste_cache', {
@@ -2120,7 +2121,8 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             delBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
             delBtn.onclick = (e) => {
                 e.stopPropagation();
-                document.execCommand('delete');
+                const target = targetInput || document.activeElement;
+                deleteSelectedText(target, captureSelectionSnapshot(target));
                 hideUI();
             };
             container.appendChild(delBtn);
@@ -2800,6 +2802,104 @@ function performPaste(target, text) {
     } catch (e) {
         showToast(t('toast_paste_fail'));
     }
+}
+
+// Snapshot the selection before an async clipboard write. Inputs keep their
+// selectionStart/End; contenteditable editors need the live Range cloned.
+function captureSelectionSnapshot(target) {
+    if (!target) return null;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        const start = target.selectionStart;
+        const end = target.selectionEnd;
+        return typeof start === 'number' && typeof end === 'number'
+            ? { start, end }
+            : null;
+    }
+    const selection = window.getSelection();
+    return selection && selection.rangeCount > 0
+        ? selection.getRangeAt(0).cloneRange()
+        : null;
+}
+
+const makeInputEvent = (type, inputType) => {
+    if (typeof InputEvent === 'function') {
+        return new InputEvent(type, {
+            bubbles: true,
+            cancelable: type === 'beforeinput',
+            inputType,
+            data: null
+        });
+    }
+    return new Event(type, { bubbles: true, cancelable: type === 'beforeinput' });
+};
+
+// Delete the current selection in a way editors can follow. execCommand alone
+// is not enough: Vditor (markdown.lovejade.cn) copies on cut but prevents the
+// default deletion, leaving its contenteditable untouched.
+function deleteSelectedText(target, snapshot = null) {
+    if (!target) return false;
+
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        target.focus();
+        const start = snapshot && typeof snapshot.start === 'number'
+            ? snapshot.start
+            : target.selectionStart;
+        const end = snapshot && typeof snapshot.end === 'number'
+            ? snapshot.end
+            : target.selectionEnd;
+        if (typeof start !== 'number' || typeof end !== 'number' || start === end) return false;
+
+        target.setSelectionRange(start, end);
+        if (!target.dispatchEvent(makeInputEvent('beforeinput', 'deleteByCut'))) return false;
+
+        const oldValue = target.value;
+        const newValue = oldValue.slice(0, start) + oldValue.slice(end);
+        const proto = target.tagName === 'TEXTAREA'
+            ? window.HTMLTextAreaElement.prototype
+            : window.HTMLInputElement.prototype;
+        const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+
+        if (setter) setter.call(target, newValue);
+        else target.value = newValue;
+
+        target.setSelectionRange(start, start);
+        target.dispatchEvent(makeInputEvent('input', 'deleteByCut'));
+        target.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+    }
+
+    if (!target.isContentEditable) return false;
+
+    const selection = window.getSelection();
+    if (snapshot && snapshot instanceof Range && selection) {
+        selection.removeAllRanges();
+        selection.addRange(snapshot);
+    }
+    target.focus();
+
+    const textBefore = target.textContent;
+
+    // Native deletion drives most editors' beforeinput/input pipeline.
+    try {
+        document.execCommand('delete');
+    } catch (e) {}
+
+    if (target.textContent !== textBefore) return true;
+
+    const liveSelection = window.getSelection();
+    if (!liveSelection || liveSelection.rangeCount === 0 || liveSelection.isCollapsed) {
+        return false;
+    }
+
+    const range = liveSelection.getRangeAt(0);
+    if (!target.dispatchEvent(makeInputEvent('beforeinput', 'deleteByCut'))) return true;
+
+    range.deleteContents();
+    liveSelection.removeAllRanges();
+    liveSelection.addRange(range);
+    target.dispatchEvent(makeInputEvent('input', 'deleteByCut'));
+    target.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
 }
 
 

@@ -1,6 +1,7 @@
 // Module 11: Clipboard & Toast
 
-// Three-tier fallback copy strategy
+// Three-tier fallback copy strategy. Returns true only when the clipboard
+// write is believed to have succeeded, so a cut can avoid deleting on failure.
 async function copyToClipboard(text, html) {
     try {
         // Prefer ClipboardItem to preserve formatting (unless plain text)
@@ -13,15 +14,20 @@ async function copyToClipboard(text, html) {
             // Fallback to plain text
             await navigator.clipboard.writeText(text);
         }
+        return true;
     } catch (e) {
         // Fallback to privileged GM API GM_setClipboard
         if (typeof GM_setClipboard === 'function') {
-            if (text) {
-                GM_setClipboard(text, 'text');
-            } else {
-                GM_setClipboard(html, 'html');
-            }
+            try {
+                if (text) {
+                    GM_setClipboard(text, 'text');
+                } else {
+                    GM_setClipboard(html, 'html');
+                }
+                return true;
+            } catch (err) {}
         }
+        return false;
     }
 }
 
