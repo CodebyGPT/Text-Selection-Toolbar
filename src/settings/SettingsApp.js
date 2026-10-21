@@ -1052,10 +1052,7 @@ function ToolbarTab({ setting, update }) {
             onChange={(v) => patch({ enablePaste: v })}
           />
         </Row>
-        <Row
-          label="闪电粘贴有效期 (s)"
-          help="3–30 秒，默认 8 秒；超出范围会自动恢复默认值"
-        >
+        <Row label="闪电粘贴有效期 (s)">
           <NumberInput
             value={value.pasteTtl ?? PASTE_TTL_DEFAULT}
             min={PASTE_TTL_MIN}
