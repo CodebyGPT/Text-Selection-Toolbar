@@ -11,6 +11,7 @@ const DEFAULT_CONFIG = {
     enableCache: true,
     unlockHotkey: 'ControlLeft',
     enablePaste: true,
+    showPastePreview: false, // show the pending lightning-paste text
     pasteTtl: 8, // seconds, 3-30; anything else falls back to the default
 
     enableDragPreview: false,
@@ -40,6 +41,39 @@ const getCurrentLanguage = () => {
     const lang = configCache['language'] || 'auto';
     return lang === 'auto' ? String(navigator.language || '') : lang;
 };
+
+// Paste previews are bounded by display width: ASCII/half-width characters
+// count as 0.5, everything else as 1. The ellipsis occupies the final unit, so
+// a truncated preview never exceeds maxUnits.
+function truncatePasteText(text, maxUnits) {
+    const chars = Array.from(String(text ?? ''));
+    const widthOf = (ch) => {
+        const code = ch.codePointAt(0);
+        if (code >= 0x200b && code <= 0x200f) return 0;
+        return code < 128 ? 0.5 : 1;
+    };
+    const totalWidth = chars.reduce((sum, ch) => sum + widthOf(ch), 0);
+    if (totalWidth <= maxUnits) return chars.join('');
+
+    const contentLimit = maxUnits - 1;
+    let width = 0;
+    let result = '';
+    for (const ch of chars) {
+        const charWidth = widthOf(ch);
+        if (width + charWidth > contentLimit) break;
+        result += ch;
+        width += charWidth;
+    }
+    return result + '…';
+}
+
+// Quote previews with the UI language's own quotation marks.
+function getPasteQuotePair() {
+    const lang = baseLanguageTag(getCurrentLanguage());
+    if (lang === 'zh') return ['“', '”'];
+    if (lang === 'ru') return ['«', '»'];
+    return ['"', '"'];
+}
 
 // Which script(s) count as "the current language" for the ratio step.
 const LANGUAGE_SCRIPTS = {

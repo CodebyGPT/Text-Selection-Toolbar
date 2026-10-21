@@ -41,7 +41,12 @@ function showToast(msg) {
         toast.className = 'sc-toast';
         shadowRoot.appendChild(toast);
     }
-    toast.textContent = msg;
+    toast.textContent = '';
+    if (msg && msg.nodeType) {
+        toast.appendChild(msg);
+    } else {
+        toast.textContent = msg;
+    }
     toast.classList.add('show');
 
     if (toastTimer) clearTimeout(toastTimer);

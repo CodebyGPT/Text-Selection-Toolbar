@@ -15,6 +15,7 @@ export const DEFAULT_TOOLBAR_SETTING = {
   enableCache: true,
   unlockHotkey: "ControlLeft",
   enablePaste: true,
+  showPastePreview: false,
   pasteTtl: PASTE_TTL_DEFAULT,
   enableDragPreview: false,
   scrollRepaintMode: "always",

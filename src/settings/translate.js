@@ -76,6 +76,7 @@ const EN = {
   "开启": "On",
   "弹出位置": "Popup position",
   "强制浅色按钮": "Force light toolbar",
+  "显示待粘贴的文本": "Show pending paste text",
   "当前区域": "Current region",
   "当前段落": "Current paragraph",
   "悬浮气泡": "Floating bubble",

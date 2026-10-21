@@ -172,9 +172,40 @@ function dispatchPasteEvent(target, text) {
     return event.defaultPrevented;
 }
 
+// Paste feedback. With previews enabled, include up to 10 characters of the
+// pasted text (quoted in the UI language); pan codes stay bold.
+function showPasteResultToast(text, panCode, compat = false) {
+    if (!getConfig('showPastePreview')) {
+        showToast(
+            compat
+                ? t('toast_paste_compat')
+                : panCode
+                    ? t('toast_password_pasted')
+                    : t('toast_pasted')
+        );
+        return;
+    }
+
+    if (panCode) {
+        const fragment = document.createDocumentFragment();
+        fragment.appendChild(document.createTextNode(t('toast_password_pasted') + ' '));
+        const code = document.createElement('strong');
+        code.textContent = truncatePasteText(text, 10);
+        fragment.appendChild(code);
+        showToast(fragment);
+        return;
+    }
+
+    const [open, close] = getPasteQuotePair();
+    const base = compat ? t('toast_paste_compat') : t('toast_pasted');
+    const separator = baseLanguageTag(getCurrentLanguage()) === 'zh' ? '' : ' ';
+    showToast(`${base}${separator}${open}${truncatePasteText(text, 10)}${close}`);
+}
+
 // Core paste logic: synthetic paste first, then DOM/execCommand fallbacks.
-function performPaste(target, text) {
+function performPaste(target, text, options = {}) {
     if (!target) return;
+    const panCode = Boolean(options.panCode);
     target.focus();
 
     // Strategy 1: emit the same event a real Ctrl+V would emit.
@@ -182,7 +213,7 @@ function performPaste(target, text) {
     const pasteHandled = dispatchPasteEvent(target, text);
     const valueAfter = target.isContentEditable ? target.textContent : target.value;
     if (pasteHandled || valueAfter !== valueBefore) {
-        showToast(t('toast_pasted'));
+        showPasteResultToast(text, panCode);
         return;
     }
 
@@ -190,7 +221,7 @@ function performPaste(target, text) {
     try {
         const success = document.execCommand('insertText', false, text);
         if (success) {
-            showToast(t('toast_pasted'));
+            showPasteResultToast(text, panCode);
             return;
         }
     } catch (e) {}
@@ -231,7 +262,7 @@ function performPaste(target, text) {
             const newCursorPos = start + text.length;
             target.setSelectionRange(newCursorPos, newCursorPos);
         }
-        showToast(t('toast_paste_compat'));
+        showPasteResultToast(text, panCode, true);
     } catch (e) {
         showToast(t('toast_paste_fail'));
     }

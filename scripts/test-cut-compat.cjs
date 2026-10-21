@@ -67,6 +67,7 @@ const { deleteSelectedText, performPaste } = new Function(
   "DataTransfer",
   "showToast",
   "t",
+  "getConfig",
   `${src}\nreturn { deleteSelectedText, performPaste };`
 )(
   windowStub,
@@ -77,7 +78,8 @@ const { deleteSelectedText, performPaste } = new Function(
   FakeClipboardEvent,
   FakeDataTransfer,
   showToast,
-  t
+  t,
+  () => false
 );
 
 // Native input: value is replaced and DOM events are dispatched for frameworks.

@@ -98,6 +98,13 @@ function getStyles() {
         .sc-btn-label {
             font-size: 13px;
             line-height: 1.2;
+            margin-left: 6px;
+        }
+        .sc-container.sc-col .sc-btn-label {
+            margin-left: 0;
+        }
+        .sc-btn-label.sc-pan-code {
+            font-weight: 700;
         }
         .sc-btn:hover {
             background: rgba(255, 255, 255, 0.3);

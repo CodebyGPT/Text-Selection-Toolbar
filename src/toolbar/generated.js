@@ -41,6 +41,7 @@ const DEFAULT_CONFIG = {
     enableCache: true,
     unlockHotkey: 'ControlLeft',
     enablePaste: true,
+    showPastePreview: false, // show the pending lightning-paste text
     pasteTtl: 8, // seconds, 3-30; anything else falls back to the default
 
     enableDragPreview: false,
@@ -70,6 +71,39 @@ const getCurrentLanguage = () => {
     const lang = configCache['language'] || 'auto';
     return lang === 'auto' ? String(navigator.language || '') : lang;
 };
+
+// Paste previews are bounded by display width: ASCII/half-width characters
+// count as 0.5, everything else as 1. The ellipsis occupies the final unit, so
+// a truncated preview never exceeds maxUnits.
+function truncatePasteText(text, maxUnits) {
+    const chars = Array.from(String(text ?? ''));
+    const widthOf = (ch) => {
+        const code = ch.codePointAt(0);
+        if (code >= 0x200b && code <= 0x200f) return 0;
+        return code < 128 ? 0.5 : 1;
+    };
+    const totalWidth = chars.reduce((sum, ch) => sum + widthOf(ch), 0);
+    if (totalWidth <= maxUnits) return chars.join('');
+
+    const contentLimit = maxUnits - 1;
+    let width = 0;
+    let result = '';
+    for (const ch of chars) {
+        const charWidth = widthOf(ch);
+        if (width + charWidth > contentLimit) break;
+        result += ch;
+        width += charWidth;
+    }
+    return result + '…';
+}
+
+// Quote previews with the UI language's own quotation marks.
+function getPasteQuotePair() {
+    const lang = baseLanguageTag(getCurrentLanguage());
+    if (lang === 'zh') return ['“', '”'];
+    if (lang === 'ru') return ['«', '»'];
+    return ['"', '"'];
+}
 
 // Which script(s) count as "the current language" for the ratio step.
 const LANGUAGE_SCRIPTS = {
@@ -255,6 +289,7 @@ const I18N = {
         btn_translate: '翻译',
         btn_search: '搜索',
         btn_paste: '粘贴',
+        btn_pan_code: '提取码',
         festival_cny: '🏮已复制🏮',
         festival_xmas: '🎄已复制🎄',
         btn_open_link: '打开链接',
@@ -331,6 +366,7 @@ const I18N = {
         btn_translate: 'Translate',
         btn_search: 'Search',
         btn_paste: 'Paste',
+        btn_pan_code: 'Code',
         festival_cny: '🏮 Copied 🏮',
         festival_xmas: '🎄 Copied 🎄',
         btn_open_link: 'Open Link',
@@ -407,6 +443,7 @@ const I18N = {
         btn_translate: 'Перевести',
         btn_search: 'Поиск',
         btn_paste: 'Вставить',
+        btn_pan_code: 'Код',
         festival_cny: '🏮 Скопировано 🏮',
         festival_xmas: '🎄 Скопировано 🎄',
         btn_open_link: 'Открыть ссылку',
@@ -1245,6 +1282,13 @@ function getStyles() {
         .sc-btn-label {
             font-size: 13px;
             line-height: 1.2;
+            margin-left: 6px;
+        }
+        .sc-container.sc-col .sc-btn-label {
+            margin-left: 0;
+        }
+        .sc-btn-label.sc-pan-code {
+            font-weight: 700;
         }
         .sc-btn:hover {
             background: rgba(255, 255, 255, 0.3);
@@ -2002,7 +2046,12 @@ function showToast(msg) {
         toast.className = 'sc-toast';
         shadowRoot.appendChild(toast);
     }
-    toast.textContent = msg;
+    toast.textContent = '';
+    if (msg && msg.nodeType) {
+        toast.appendChild(msg);
+    } else {
+        toast.textContent = msg;
+    }
     toast.classList.add('show');
 
     if (toastTimer) clearTimeout(toastTimer);
@@ -2085,6 +2134,41 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         span.className = 'sc-btn-label';
         span.textContent = label;
         btn.appendChild(span);
+    };
+
+    // Pending-lightning-paste preview beside the paste icon.
+    const appendPastePreview = (btn, cache) => {
+        if (!getConfig('showPastePreview') || !cache || !cache.text) return false;
+
+        const isPanCode = cache.type === 'pan_code';
+        const span = document.createElement('span');
+        span.className = 'sc-btn-label';
+
+        if (isCol) {
+            if (isPanCode) {
+                span.appendChild(document.createTextNode(t('btn_pan_code') + ' '));
+                const code = document.createElement('strong');
+                code.textContent = truncatePasteText(cache.text, 10);
+                span.appendChild(code);
+            } else {
+                const [open, close] = getPasteQuotePair();
+                span.textContent = open + truncatePasteText(cache.text, 10) + close;
+            }
+        } else {
+            span.textContent = truncatePasteText(cache.text, 6);
+            if (isPanCode) span.classList.add('sc-pan-code');
+        }
+
+        btn.appendChild(span);
+        return true;
+    };
+
+    const applyPasteButtonContent = (btn, cache, title = t('btn_paste')) => {
+        if (appendPastePreview(btn, cache)) {
+            btn.title = title;
+            return;
+        }
+        applyButtonLabel(btn, t('btn_paste'), title);
     };
 
     // Mode: Edit mode
@@ -2399,13 +2483,15 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             const pasteBtn = document.createElement('div');
             pasteBtn.className = 'sc-btn';
             pasteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>`;
-            applyButtonLabel(pasteBtn, t('btn_paste'));
+            applyPasteButtonContent(pasteBtn, pasteCache);
             pasteBtn.onmousedown = e => { e.preventDefault(); e.stopPropagation(); };
             pasteBtn.onclick = async (e) => {
                 e.stopPropagation();
                 const cache = await safeGetValue('smart_paste_cache', null);
                 if (cache && cache.text) {
-                    performPaste(document.activeElement, cache.text);
+                    performPaste(document.activeElement, cache.text, {
+                        panCode: cache.type === 'pan_code'
+                    });
                     // Reset timestamp after paste to allow repeated use on same page
                     await safeSetValue('smart_paste_cache', {
                         text: cache.text,
@@ -2421,22 +2507,23 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
     // Mode B: Paste mode (lightning paste / cloud drive extraction code)
     else if (mode === 'paste') {
         const isPanCode = pasteCache && pasteCache.type === 'pan_code';
+        const pasteTitle = isPanCode
+            ? t('btn_paste') + ' ' + (pasteCache.text || '')
+            : t('btn_paste');
         const pasteBtn = document.createElement('div');
         pasteBtn.className = 'sc-btn';
         if (isPanCode) {
             // Key icon (for cloud drive extraction code)
             pasteBtn.innerHTML = '<svg viewBox="0 0 48 48" width="18" height="18" stroke="currentColor" stroke-width="3" fill="none"><path d="M22.8682 24.2982C25.4105 26.7935 26.4138 30.4526 25.4971 33.8863C24.5805 37.32 21.8844 40.0019 18.4325 40.9137C14.9806 41.8256 11.3022 40.8276 8.79375 38.2986C5.02208 34.4141 5.07602 28.2394 8.91499 24.4206C12.754 20.6019 18.9613 20.5482 22.8664 24.3L22.8682 24.2982Z"/><path d="M23 24L40 7"/><path d="M30.3052 16.9001L35.7337 22.3001L42.0671 16.0001L36.6385 10.6001L30.3052 16.9001Z"/></svg>';
-            applyButtonLabel(pasteBtn, t('btn_paste'), t('btn_paste') + ' ' + (pasteCache.text || ''));
         } else {
             pasteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>';
-            applyButtonLabel(pasteBtn, t('btn_paste'));
         }
+        applyPasteButtonContent(pasteBtn, pasteCache, pasteTitle);
         pasteBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
         pasteBtn.onclick = async (e) => {
             e.stopPropagation();
             if (isPanCode) {
-                performPaste(targetInput || document.activeElement, pasteCache.text);
-                showToast(t('toast_password_pasted'));
+                performPaste(targetInput || document.activeElement, pasteCache.text, { panCode: true });
                 await safeSetValue('smart_paste_cache', { text: '', timestamp: 0 });
                 unregisterVisibilityCleanup();
                 hideUI();
@@ -2878,9 +2965,40 @@ function dispatchPasteEvent(target, text) {
     return event.defaultPrevented;
 }
 
+// Paste feedback. With previews enabled, include up to 10 characters of the
+// pasted text (quoted in the UI language); pan codes stay bold.
+function showPasteResultToast(text, panCode, compat = false) {
+    if (!getConfig('showPastePreview')) {
+        showToast(
+            compat
+                ? t('toast_paste_compat')
+                : panCode
+                    ? t('toast_password_pasted')
+                    : t('toast_pasted')
+        );
+        return;
+    }
+
+    if (panCode) {
+        const fragment = document.createDocumentFragment();
+        fragment.appendChild(document.createTextNode(t('toast_password_pasted') + ' '));
+        const code = document.createElement('strong');
+        code.textContent = truncatePasteText(text, 10);
+        fragment.appendChild(code);
+        showToast(fragment);
+        return;
+    }
+
+    const [open, close] = getPasteQuotePair();
+    const base = compat ? t('toast_paste_compat') : t('toast_pasted');
+    const separator = baseLanguageTag(getCurrentLanguage()) === 'zh' ? '' : ' ';
+    showToast(`${base}${separator}${open}${truncatePasteText(text, 10)}${close}`);
+}
+
 // Core paste logic: synthetic paste first, then DOM/execCommand fallbacks.
-function performPaste(target, text) {
+function performPaste(target, text, options = {}) {
     if (!target) return;
+    const panCode = Boolean(options.panCode);
     target.focus();
 
     // Strategy 1: emit the same event a real Ctrl+V would emit.
@@ -2888,7 +3006,7 @@ function performPaste(target, text) {
     const pasteHandled = dispatchPasteEvent(target, text);
     const valueAfter = target.isContentEditable ? target.textContent : target.value;
     if (pasteHandled || valueAfter !== valueBefore) {
-        showToast(t('toast_pasted'));
+        showPasteResultToast(text, panCode);
         return;
     }
 
@@ -2896,7 +3014,7 @@ function performPaste(target, text) {
     try {
         const success = document.execCommand('insertText', false, text);
         if (success) {
-            showToast(t('toast_pasted'));
+            showPasteResultToast(text, panCode);
             return;
         }
     } catch (e) {}
@@ -2937,7 +3055,7 @@ function performPaste(target, text) {
             const newCursorPos = start + text.length;
             target.setSelectionRange(newCursorPos, newCursorPos);
         }
-        showToast(t('toast_paste_compat'));
+        showPasteResultToast(text, panCode, true);
     } catch (e) {
         showToast(t('toast_paste_fail'));
     }

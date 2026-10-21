@@ -1015,6 +1015,12 @@ function ToolbarTab({ setting, update }) {
             onChange={(v) => patch({ forceWhiteBlack: v })}
           />
         </Row>
+        <Row label="显示待粘贴的文本">
+          <Toggle
+            value={value.showPastePreview}
+            onChange={(v) => patch({ showPastePreview: v })}
+          />
+        </Row>
       </Section>
 
       <Section title="功能开关">
