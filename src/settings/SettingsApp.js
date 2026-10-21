@@ -953,17 +953,86 @@ function ApisTab({ setting, update }) {
   );
 }
 
+function legacySearchEngine(value) {
+  const preset = TOOLBAR_SEARCH_ENGINES[value.searchEngine];
+  if (preset) return { ...preset };
+  if (typeof value.searchEngine === "string" && value.searchEngine.includes("%s")) {
+    return { name: "Custom", url: value.searchEngine };
+  }
+  return { ...TOOLBAR_SEARCH_ENGINES.baidu };
+}
+
+function SearchEngineRow({ engine, index, total, onChange, onRemove }) {
+  const [open, setOpen] = useState(false);
+  const presets = Object.entries(TOOLBAR_SEARCH_ENGINES);
+
+  return (
+    <Row
+      label={`搜索引擎 ${index + 1}`}
+      help={index === 0 ? "URL 中用 %s 代替关键词" : undefined}
+    >
+      <div className="kiss-st-inline">
+        <div
+          className="kiss-st-combo"
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+          }}
+        >
+          <TextInput
+            value={engine.name}
+            placeholder="搜索引擎名称"
+            onFocus={() => setOpen(true)}
+            onClick={() => setOpen(true)}
+            onChange={(v) => {
+              setOpen(true);
+              onChange({ ...engine, name: v });
+            }}
+          />
+          {open && (
+            <div className="kiss-st-combo__list" role="listbox">
+              {presets.map(([key, preset]) => (
+                <button
+                  type="button"
+                  key={key}
+                  role="option"
+                  aria-selected={engine.name === preset.name}
+                  className="kiss-st-combo__item"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    onChange({ name: preset.name, url: preset.url });
+                    setOpen(false);
+                  }}
+                >
+                  {preset.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <TextInput
+          value={engine.url}
+          placeholder="https://example.com/search?q=%s"
+          onChange={(v) => onChange({ ...engine, url: v })}
+        />
+        {total > 1 && (
+          <button type="button" className="kiss-st-btn" onClick={onRemove}>
+            删除
+          </button>
+        )}
+      </div>
+    </Row>
+  );
+}
+
 function ToolbarTab({ setting, update }) {
   const value = { ...DEFAULT_TOOLBAR_SETTING, ...(setting.toolbarSetting || {}) };
   const patch = (changes) =>
     update({ toolbarSetting: { ...value, ...changes } });
-  // The fallback search engine is a Chinese-user feature: Baidu-first means
-  // English queries need a second engine. Everywhere else the primary engine
-  // is already authoritative, so the switch stays hidden and inert.
-  const zhUi =
-    value.language === "zh-CN" ||
-    (value.language === "auto" &&
-      String(globalThis.navigator?.language || "").startsWith("zh"));
+  const engines =
+    Array.isArray(value.searchEngines) && value.searchEngines.length > 0
+      ? value.searchEngines
+      : [legacySearchEngine(value)];
+  const updateEngines = (next) => patch({ searchEngines: next.slice(0, 8) });
   // Saved block rules live in the same toolbar settings object.
   const hasBlockRules = Object.values(value.blocked_elements || {}).some(
     (selectors) => Array.isArray(selectors) && selectors.length > 0
@@ -1131,52 +1200,33 @@ function ToolbarTab({ setting, update }) {
       </Section>
 
       <Section title="搜索">
-        <Row label="首选搜索引擎">
-          <Select
-            value={
-              TOOLBAR_SEARCH_ENGINES[value.searchEngine]
-                ? value.searchEngine
-                : "__custom__"
-            }
-            onChange={(v) => {
-              if (v !== "__custom__") patch({ searchEngine: v });
+        {engines.map((engine, index) => (
+          <SearchEngineRow
+            key={index}
+            engine={engine}
+            index={index}
+            total={engines.length}
+            onChange={(next) => {
+              const list = engines.slice();
+              list[index] = next;
+              updateEngines(list);
             }}
-            options={[
-              ...Object.entries(TOOLBAR_SEARCH_ENGINES).map(([key, engine]) => [
-                key,
-                engine.name,
-              ]),
-              ["__custom__", "自定义"],
-            ]}
+            onRemove={() => {
+              updateEngines(engines.filter((_, i) => i !== index));
+            }}
           />
-        </Row>
-        {!TOOLBAR_SEARCH_ENGINES[value.searchEngine] && (
-          <Row label="自定义 URL" help="用 %s 代替关键词">
-            <TextInput
-              value={value.searchEngine}
-              onChange={(v) => patch({ searchEngine: v })}
-            />
-          </Row>
-        )}
-        {zhUi && (
-          <Row label="当选取的文本不含中文时调用备选搜索引擎">
-            <Toggle
-              value={value.smartEngine}
-              onChange={(v) => patch({ smartEngine: v })}
-            />
-          </Row>
-        )}
-        {zhUi && value.smartEngine && (
-          <Row label="备选搜索引擎">
-            <Select
-              value={value.fallbackEngine}
-              onChange={(v) => patch({ fallbackEngine: v })}
-              options={Object.entries(TOOLBAR_SEARCH_ENGINES).map(
-                ([key, engine]) => [key, engine.name]
-              )}
-            />
-          </Row>
-        )}
+        ))}
+        <div className="kiss-st-inline">
+          <button
+            type="button"
+            className="kiss-st-btn kiss-st-btn--primary"
+            disabled={engines.length >= 8}
+            onClick={() => updateEngines([...engines, { name: "", url: "" }])}
+          >
+            + 添加搜索引擎
+          </button>
+          {engines.length >= 8 && <small>最多 8 个</small>}
+        </div>
       </Section>
     </>
   );

@@ -6,7 +6,7 @@ const DEFAULT_CONFIG = {
     timeout: 2400, // ms, 0 = stays indefinitely
     buttonStyle: 'row', // 'row' (capsule) | 'col' (rounded rect)
     forceWhiteBlack: true, // true = force white bg/black text
-    searchEngine: 'baidu', // key or custom url
+    searchEngine: 'baidu', // legacy single-engine setting, migrated into searchEngines
     enableToast: true,
     enableCache: true,
     enableHiddenLinks: false, // also collect links from selected <a href="...">
@@ -14,11 +14,10 @@ const DEFAULT_CONFIG = {
     enablePaste: true,
     showPastePreview: false, // show the pending lightning-paste text
     pasteTtl: 8, // seconds, 3-30; anything else falls back to the default
+    searchEngines: [], // [{ name, url }], max 8
 
     enableDragPreview: false,
     scrollRepaintMode: 'always',
-    smartEngine: false,        // whether to enable smart engine assignment
-    fallbackEngine: 'bing',   // fallback engine when text contains no Chinese
     enableDeleteBtn: true, // whether to show delete button
     enableTranslate: true, // show the KISS translate action
     // Sensitivity for the language-match gate: 15 / 35 / 55 / 75 (%).
@@ -162,6 +161,27 @@ const SEARCH_ENGINES = {
     bing: { name: 'Bing', url: 'https://www.bing.com/search?q=%s' },
     brave: { name: 'Brave', url: 'https://search.brave.com/search?q=%s' },
 };
+
+// Effective search engine list, with a one-item fallback for the legacy
+// single-engine setting so old installs keep working.
+function getSearchEngineList() {
+    const list = Array.isArray(configCache.searchEngines) ? configCache.searchEngines : [];
+    const normalized = list
+        .map((engine) => ({
+            name: String(engine && engine.name || '').trim(),
+            url: String(engine && engine.url || '').trim()
+        }))
+        .filter((engine) => engine.name && engine.url)
+        .slice(0, 8);
+    if (normalized.length > 0) return normalized;
+
+    const legacy = configCache.searchEngine || 'baidu';
+    if (SEARCH_ENGINES[legacy]) return [{ ...SEARCH_ENGINES[legacy] }];
+    if (typeof legacy === 'string' && legacy.includes('%s')) {
+        return [{ name: 'Custom', url: legacy }];
+    }
+    return [{ ...SEARCH_ENGINES.google }];
+}
 
 // Known TLDs, generated from the Public Suffix List (ICANN section).
 // Source: https://publicsuffix.org/list/public_suffix_list.dat (MPL-2.0)

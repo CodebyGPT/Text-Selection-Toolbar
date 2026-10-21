@@ -104,8 +104,9 @@ function handleGlobalMouseDown(e) {
     if (hostElement && e.composedPath().includes(hostElement)) {
         // Clicked inside button, keep it
     } else {
-        const btn = shadowRoot && shadowRoot.querySelector('.sc-container');
-        if (btn) btn.classList.remove('visible');
+        shadowRoot?.querySelectorAll('.sc-container').forEach((btn) => {
+            btn.classList.remove('visible');
+        });
     }
 }
 
@@ -115,6 +116,15 @@ const handleResizeOrScroll = () => {
     const mode = getConfig('scrollRepaintMode');
     const btn = shadowRoot.querySelector('.sc-container');
     if (!btn) return;
+
+    // The search engine picker is a persistent companion of the toolbar.
+    if (shadowRoot.querySelector('.sc-search-menu')) {
+        if (mode === SCROLL_REPAINT_MODE.HIDE) {
+            hideUI();
+            return;
+        }
+        return;
+    }
 
     // The multi-link picker is still the active surface; repaint/keep it
     // instead of falling back to a fresh selection toolbar.

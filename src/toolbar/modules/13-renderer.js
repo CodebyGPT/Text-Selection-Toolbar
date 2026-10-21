@@ -161,8 +161,7 @@ function showLinkMenu(urls, anchorRect) {
         isScrolling = false;
     }
 
-    const old = shadowRoot.querySelector('.sc-container');
-    if (old) old.remove();
+    shadowRoot.querySelectorAll('.sc-container').forEach((old) => old.remove());
 
     const menu = document.createElement('div');
     menu.className = 'sc-container sc-link-menu';
@@ -236,6 +235,94 @@ function startLinkMenuTimeout() {
     }
 }
 
+function getSearchEngineUrl(engine, query) {
+    const template = String(engine.url || '').includes('%s')
+        ? engine.url
+        : SEARCH_ENGINES.google.url;
+    return template.replace('%s', encodeURIComponent(query.trim()));
+}
+
+function closeSearchEngineMenu(resetTimer = true) {
+    const menu = shadowRoot && shadowRoot.querySelector('.sc-search-menu');
+    if (menu) menu.remove();
+    if (resetTimer) startLinkMenuTimeout();
+}
+
+// The engine picker sits beside the toolbar: right, left, below, then above.
+function showSearchEngineMenu(engines, query, anchorRect) {
+    if (uiTimer) {
+        clearTimeout(uiTimer);
+        uiTimer = null;
+    }
+    const old = shadowRoot.querySelector('.sc-search-menu');
+    if (old) old.remove();
+
+    const menu = document.createElement('div');
+    menu.className = 'sc-container sc-link-menu sc-search-menu';
+    if (getConfig('forceWhiteBlack')) {
+        menu.classList.add('theme-light-ui');
+    } else {
+        menu.classList.add(getBestContrastTheme());
+    }
+
+    engines.forEach((engine) => {
+        const item = document.createElement('div');
+        item.className = 'sc-link-item';
+        item.title = engine.url;
+
+        const label = document.createElement('span');
+        label.className = 'sc-link-url';
+        label.textContent = engine.name;
+        item.appendChild(label);
+
+        item.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+        item.onclick = (e) => {
+            e.stopPropagation();
+            safeOpenTab(getSearchEngineUrl(engine, query), { active: true });
+            hideUI();
+        };
+        menu.appendChild(item);
+    });
+
+    shadowRoot.appendChild(menu);
+    menu.style.left = '-9999px';
+
+    requestAnimationFrame(() => {
+        const rect = menu.getBoundingClientRect();
+        const gap = getConfig('offset');
+        const margin = 10;
+        const canRight = anchorRect.right + gap + rect.width <= window.innerWidth - margin;
+        const canLeft = anchorRect.left - gap - rect.width >= margin;
+        const canBelow = anchorRect.bottom + gap + rect.height <= window.innerHeight - margin;
+        const canAbove = anchorRect.top - gap - rect.height >= margin;
+
+        let left;
+        let top;
+        if (canRight || canLeft) {
+            left = canRight
+                ? anchorRect.right + gap
+                : anchorRect.left - rect.width - gap;
+            top = canBelow || !canAbove
+                ? anchorRect.top
+                : anchorRect.top - rect.height - gap;
+        } else if (canBelow || canAbove) {
+            left = anchorRect.left;
+            top = canBelow
+                ? anchorRect.bottom + gap
+                : anchorRect.top - rect.height - gap;
+        } else {
+            left = anchorRect.right + gap;
+            top = anchorRect.top;
+        }
+
+        left = Math.max(margin, Math.min(left, window.innerWidth - rect.width - margin));
+        top = Math.max(margin, Math.min(top, window.innerHeight - rect.height - margin));
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+        menu.classList.add('visible');
+    });
+}
+
 // Scroll/resize should keep the secondary menu, clamped into the viewport,
 // rather than falling back to the selection toolbar.
 function repositionLinkMenu() {
@@ -253,9 +340,8 @@ function repositionLinkMenu() {
 
 // Render buttons (supports Copy/Search mode and Paste mode)
 function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', targetInput = null, isEditable = false, pasteCache = null) {
-    // Clean up old button
-    const oldBtn = shadowRoot.querySelector('.sc-container');
-    if (oldBtn) oldBtn.remove();
+    // Clean up old button/menu
+    shadowRoot.querySelectorAll('.sc-container').forEach((oldBtn) => oldBtn.remove());
 
     const container = document.createElement('div');
     container.className = 'sc-container';
@@ -477,17 +563,20 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             searchBtn.onclick = (e) => {
                 e.stopPropagation();
                 const query = getConfig('enableCache') ? (cachedSelection.text || text) : text;
-                const rawText = getConfig('enableCache') ? (cachedSelection.text || text) : text;
-                let engine;
-                // The fallback engine only exists for Chinese users, where the
-                // primary engine is a Chinese-focused one.
-                if (isChineseUI() && getConfig('smartEngine') && !/[\u4e00-\u9fa5]/.test(rawText)) {
-                    engine = getConfig('fallbackEngine');
-                } else {
-                    engine = getConfig('searchEngine');
+
+                if (shadowRoot.querySelector('.sc-search-menu')) {
+                    closeSearchEngineMenu(true);
+                    return;
                 }
-                let url = SEARCH_ENGINES[engine] ? SEARCH_ENGINES[engine].url : (engine.includes('%s') ? engine : SEARCH_ENGINES['google'].url);
-                safeOpenTab(url.replace('%s', encodeURIComponent(query.trim())), { active: true });
+
+                const engines = getSearchEngineList();
+                if (engines.length > 1) {
+                    // Toggle a persistent engine picker beside the toolbar.
+                    showSearchEngineMenu(engines, query, container.getBoundingClientRect());
+                    return;
+                }
+
+                safeOpenTab(getSearchEngineUrl(engines[0], query), { active: true });
                 setTimeout(hideUI, 50);
             };
             container.appendChild(searchBtn);
@@ -860,12 +949,12 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
 }
 
 function hideUI() {
-    const btn = shadowRoot && shadowRoot.querySelector('.sc-container');
-    if (btn) {
+    const containers = shadowRoot ? shadowRoot.querySelectorAll('.sc-container') : [];
+    containers.forEach((btn) => {
         btn.classList.remove('visible');
         setTimeout(() => {
             if (btn && btn.parentNode) btn.remove();
         }, 200);
-    }
+    });
     cachedSelection = { text: '', html: '' };
 }
