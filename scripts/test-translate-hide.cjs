@@ -120,10 +120,10 @@ assert.strictEqual(
   "single CJK letter plus a letter is 50% < 75%"
 );
 
-// Final step: a different or unknown page language keeps the button.
+// Final step: unknown page language is treated as the current language (hide).
 assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "en" }).shouldHideTranslate("你好世界"), false);
-assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "" }).shouldHideTranslate("你好世界"), false, "missing page lang keeps it");
-assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "und" }).shouldHideTranslate("你好世界"), false, "und keeps it");
+assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "" }).shouldHideTranslate("你好世界"), true, "missing page lang hides");
+assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "und" }).shouldHideTranslate("你好世界"), true, "und hides");
 assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "", metaLang: "zh_CN" }).shouldHideTranslate("你好世界"), true, "og:locale fallback");
 assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "", bodyLang: "zh-CN" }).shouldHideTranslate("你好世界"), true, "body lang fallback");
 assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "zh-Hans" }).shouldHideTranslate("你好世界"), true);

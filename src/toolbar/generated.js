@@ -134,8 +134,10 @@ const shouldHideTranslate = (text) => {
     if (ratio < percent / 100) return false;
 
     // Final tie-breaker: a page written in another language still needs translation.
+    // Unknown declarations are treated as the current language: hide rather than
+    // showing a translate button on same-language pages with no lang metadata.
     const pageLang = baseLanguageTag(getPageLanguage());
-    if (UNKNOWN_LANGUAGE_TAGS.has(pageLang)) return false;
+    if (UNKNOWN_LANGUAGE_TAGS.has(pageLang)) return true;
     return pageLang === currentLang;
 };
 
