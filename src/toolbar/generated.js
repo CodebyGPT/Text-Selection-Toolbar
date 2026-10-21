@@ -184,6 +184,7 @@ const SCROLL_REPAINT_MODE = {
 };
 
 const PASTE_MODE_THREE_BTNS = 'copy-search-paste';   // Lightning paste three-button mode marker
+const PASTE_MODE_WHITESPACE = 'whitespace-delete-paste'; // Input whitespace selection
 
 const SEARCH_ENGINES = {
     google: { name: 'Google', url: 'https://www.google.com/search?q=%s' },
@@ -2297,7 +2298,7 @@ async function copyAllLinks(urls) {
 }
 
 // Long-press copy without affecting the normal click action.
-function bindLongPress(btn, onLongPress, duration = 2300) {
+function bindLongPress(btn, onLongPress, duration = 1000) {
     let timer = null;
     const cancel = () => {
         if (timer) {
@@ -2861,6 +2862,62 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             container.appendChild(pasteBtn);
         }
     }
+    // Mode C: input whitespace selection (delete + optional paste)
+    else if (mode === PASTE_MODE_WHITESPACE) {
+        const delBtn = document.createElement('div');
+        delBtn.className = 'sc-btn';
+        delBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+        applyButtonLabel(delBtn, t('btn_delete'));
+        delBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            const target = targetInput || document.activeElement;
+            const start = target.selectionStart;
+            const end = target.selectionEnd;
+            if (typeof start !== 'number' || typeof end !== 'number' || start === end) {
+                hideUI();
+                return;
+            }
+            if (target.value.substring(start, end).trim() !== '') {
+                hideUI();
+                return;
+            }
+
+            if (end - start >= 2) {
+                // Collapse the whitespace run to one space and keep the delete
+                // button selected so another click removes it.
+                replaceInputRange(target, start, end, ' ', true);
+            } else {
+                replaceInputRange(target, start, end, '', false);
+                hideUI();
+            }
+        };
+        container.appendChild(delBtn);
+
+        if (pasteCache && (pasteCache.text || pasteCache.type === 'clipboard')) {
+            const div = document.createElement('div');
+            div.className = isCol ? 'divider divider-h' : 'divider divider-v';
+            container.appendChild(div);
+
+            const pasteBtn = document.createElement('div');
+            pasteBtn.className = 'sc-btn';
+            pasteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>';
+            applyPasteButtonContent(pasteBtn, pasteCache);
+            pasteBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+            pasteBtn.onclick = async (e) => {
+                e.stopPropagation();
+                if (pasteCache.type === 'clipboard') {
+                    await performClipboardPaste(targetInput || document.activeElement, pasteCache);
+                } else {
+                    performPaste(targetInput, pasteCache.text, {
+                        panCode: pasteCache.type === 'pan_code'
+                    });
+                }
+                hideUI();
+            };
+            container.appendChild(pasteBtn);
+        }
+    }
     // Mode B: Paste mode (lightning paste / cloud drive extraction code)
     else if (mode === 'paste') {
         const isPanCode = pasteCache && pasteCache.type === 'pan_code';
@@ -2995,6 +3052,45 @@ function hideUI() {
 // ---- 14-events.js ----
 // Module 14: Event Handlers
 
+// Trim whitespace at both ends of a normal page selection before the toolbar
+// is shown. Returns false when the selection contains only whitespace.
+function trimRangeWhitespace(selection) {
+    try {
+        const range = selection.getRangeAt(0);
+        const root = range.commonAncestorContainer.nodeType === 1
+            ? range.commonAncestorContainer
+            : range.commonAncestorContainer.parentNode;
+        if (!root) return false;
+
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+        const chars = [];
+        let node;
+        while ((node = walker.nextNode())) {
+            if (!range.intersectsNode(node)) continue;
+            const data = node.data;
+            const start = node === range.startContainer ? range.startOffset : 0;
+            const end = node === range.endContainer ? range.endOffset : data.length;
+            for (let i = start; i < end; i++) {
+                chars.push({ node, offset: i, char: data[i] });
+            }
+        }
+
+        let first = 0;
+        let last = chars.length - 1;
+        while (first <= last && /\s/.test(chars[first].char)) first++;
+        while (last >= first && /\s/.test(chars[last].char)) last--;
+        if (first > last) return false;
+
+        range.setStart(chars[first].node, chars[first].offset);
+        range.setEnd(chars[last].node, chars[last].offset + 1);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 function handleSelectionMouseUp(e) {
     if (hostElement && e.composedPath().includes(hostElement)) return;
     if (!hostElement) initContainer();
@@ -3005,11 +3101,32 @@ function handleSelectionMouseUp(e) {
             hideUI();
             return;
         }
-        const text = selection.toString();
-        if (!text || text.trim().length === 0) {
+
+        const target = document.activeElement;
+        const isTextInput = target && (
+            (['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.disabled && !target.readOnly)
+        );
+        const isEditable = isTextInput || Boolean(target && target.isContentEditable);
+
+        // Page selections trim edge whitespace; editable selections keep it.
+        if (!isEditable && !trimRangeWhitespace(selection)) {
             hideUI();
             return;
         }
+
+        const text = selection.toString();
+        if (!text) {
+            hideUI();
+            return;
+        }
+        if (!isEditable && text.trim().length === 0) {
+            hideUI();
+            return;
+        }
+        // Whitespace-only input/textarea selection is handled by the capture
+        // mouseup handler, which expands it and builds the delete/paste UI.
+        if (isTextInput && text.trim().length === 0) return;
+
         const range = selection.getRangeAt(0);
         if (getConfig('enableCache')) {
             const container = document.createElement('div');
@@ -3029,11 +3146,7 @@ function handleSelectionMouseUp(e) {
         }
         const isChineseEnv = isChineseUI();
         const cacheValid = cache && cache.text && (Date.now() - cache.timestamp < getPasteTtlMs()) && !(isChineseEnv && cache.type === 'pan_code');
-        const target = document.activeElement;
-        const isInput = target && (
-            (['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.disabled && !target.readOnly) ||
-            target.isContentEditable
-        );
+        const isInput = isEditable;
         const mode = (cacheValid && isInput) ? PASTE_MODE_THREE_BTNS : 'default';
         renderButton(rect, e.clientX, e.clientY, text, cachedSelection.html || '', mode, isInput ? target : null, isInput, cache);
     }, 10);
@@ -3142,15 +3255,67 @@ async function handleExternalCopy(e) {
 
 // Input paste mouseup handler
 function handleInputPasteMouseUp(e) {
-    if (!getConfig('enablePaste')) return;
     const target = e.target;
     const isInput = (['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.disabled && !target.readOnly) || target.isContentEditable;
     if (!isInput) return;
     setTimeout(async () => {
-        // Read lightning paste cache
-        const cache = await safeGetValue('smart_paste_cache', null);
-        if (!cache || (!cache.text && cache.type !== 'clipboard')) return;
-        if (Date.now() - cache.timestamp > getPasteTtlMs()) return;
+        let selectedText = '';
+        let hasSelection = false;
+        let whitespaceSelection = false;
+
+        if (['INPUT', 'TEXTAREA'].includes(target.tagName)) {
+            let start = target.selectionStart;
+            let end = target.selectionEnd;
+            if (typeof start === 'number' && typeof end === 'number' && start !== end) {
+                selectedText = target.value.substring(start, end);
+                hasSelection = true;
+                if (selectedText.trim() === '') {
+                    // Expand a all-whitespace selection across adjacent
+                    // whitespace the user did not select.
+                    const isSpace = (index) => index >= 0
+                        && index < target.value.length
+                        && /\s/.test(target.value[index]);
+                    while (start > 0 && isSpace(start - 1)) start--;
+                    while (end < target.value.length && isSpace(end)) end++;
+                    if (start !== target.selectionStart || end !== target.selectionEnd) {
+                        target.setSelectionRange(start, end);
+                    }
+                    selectedText = target.value.substring(start, end);
+                    whitespaceSelection = true;
+                }
+            }
+        } else if (target.isContentEditable) {
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                selectedText = sel.toString();
+                hasSelection = true;
+            }
+        }
+
+        let cache = null;
+        if (getConfig('enablePaste')) {
+            cache = await safeGetValue('smart_paste_cache', null);
+            if (cache && (!cache.text && cache.type !== 'clipboard')) cache = null;
+            if (cache && Date.now() - cache.timestamp > getPasteTtlMs()) cache = null;
+        }
+
+        if (whitespaceSelection) {
+            initContainer();
+            renderButton(
+                target.getBoundingClientRect(),
+                e.clientX,
+                e.clientY,
+                selectedText,
+                '',
+                PASTE_MODE_WHITESPACE,
+                target,
+                false,
+                cache
+            );
+            return;
+        }
+
+        if (!cache) return;
 
         // Cloud drive extraction code cache (Chinese mode only): force single paste button (key icon)
         const isChineseEnv = isChineseUI();
@@ -3159,24 +3324,6 @@ function handleInputPasteMouseUp(e) {
             const rect = target.getBoundingClientRect();
             renderButton(rect, e.clientX, e.clientY, cache.text, '', 'paste', target, false, cache);
             return;
-        }
-
-        // Regular lightning paste: check selection within input
-        let selectedText = '';
-        let hasSelection = false;
-        if (['INPUT', 'TEXTAREA'].includes(target.tagName)) {
-            const start = target.selectionStart;
-            const end = target.selectionEnd;
-            if (typeof start === 'number' && typeof end === 'number' && start !== end) {
-                selectedText = target.value.substring(start, end);
-                hasSelection = true;
-            }
-        } else if (target.isContentEditable) {
-            const sel = window.getSelection();
-            if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
-                selectedText = sel.toString();
-                hasSelection = true;
-            }
         }
 
         const isReplaceIntent = selectedText === ' ' || selectedText === '，';
@@ -3533,6 +3680,27 @@ const makeInputEvent = (type, inputType) => {
     }
     return new Event(type, { bubbles: true, cancelable: type === 'beforeinput' });
 };
+
+// Replace [start, end) in an input/textarea through the native setter so
+// React/Vue state and the caret stay coherent.
+function replaceInputRange(target, start, end, replacement, selectReplacement = false) {
+    const proto = target.tagName === 'TEXTAREA'
+        ? window.HTMLTextAreaElement.prototype
+        : window.HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+    const next = target.value.slice(0, start) + replacement + target.value.slice(end);
+    if (setter) setter.call(target, next);
+    else target.value = next;
+
+    const caret = start + replacement.length;
+    if (selectReplacement && replacement.length > 0) {
+        target.setSelectionRange(start, caret);
+    } else {
+        target.setSelectionRange(caret, caret);
+    }
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+    target.dispatchEvent(new Event('change', { bubbles: true }));
+}
 
 // Delete the current selection in a way editors can follow. execCommand alone
 // is not enough: Vditor (markdown.lovejade.cn) copies on cut but prevents the

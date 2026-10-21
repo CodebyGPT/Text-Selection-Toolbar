@@ -27,7 +27,7 @@
     "start": "cross-env REACT_APP_CLIENT=userscript react-app-rewired start",
     "prebuild": "node scripts/build-toolbar.mjs",
     "build": "node scripts/build.mjs",
-    "test": "node scripts/test-links.cjs && node scripts/test-selection-position.cjs && node scripts/test-sse-done.cjs && node scripts/test-translate-hide.cjs && node scripts/test-paste-cache.cjs && node scripts/test-paste-ttl.cjs && node scripts/test-cut-compat.cjs && node scripts/test-unlock-focus.cjs && node scripts/test-external-copy.cjs && node scripts/test-link-menu.cjs && node scripts/test-hidden-links.cjs"
+    "test": "node scripts/test-links.cjs && node scripts/test-selection-position.cjs && node scripts/test-sse-done.cjs && node scripts/test-translate-hide.cjs && node scripts/test-paste-cache.cjs && node scripts/test-paste-ttl.cjs && node scripts/test-cut-compat.cjs && node scripts/test-unlock-focus.cjs && node scripts/test-external-copy.cjs && node scripts/test-link-menu.cjs && node scripts/test-hidden-links.cjs && node scripts/test-whitespace-trim.cjs"
   },
   "eslintConfig": {
     "extends": [

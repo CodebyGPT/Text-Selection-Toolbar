@@ -120,7 +120,7 @@ async function copyAllLinks(urls) {
 }
 
 // Long-press copy without affecting the normal click action.
-function bindLongPress(btn, onLongPress, duration = 2300) {
+function bindLongPress(btn, onLongPress, duration = 1000) {
     let timer = null;
     const cancel = () => {
         if (timer) {
@@ -678,6 +678,62 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                         });
                         registerVisibilityCleanup();
                     }
+                }
+                hideUI();
+            };
+            container.appendChild(pasteBtn);
+        }
+    }
+    // Mode C: input whitespace selection (delete + optional paste)
+    else if (mode === PASTE_MODE_WHITESPACE) {
+        const delBtn = document.createElement('div');
+        delBtn.className = 'sc-btn';
+        delBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+        applyButtonLabel(delBtn, t('btn_delete'));
+        delBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            const target = targetInput || document.activeElement;
+            const start = target.selectionStart;
+            const end = target.selectionEnd;
+            if (typeof start !== 'number' || typeof end !== 'number' || start === end) {
+                hideUI();
+                return;
+            }
+            if (target.value.substring(start, end).trim() !== '') {
+                hideUI();
+                return;
+            }
+
+            if (end - start >= 2) {
+                // Collapse the whitespace run to one space and keep the delete
+                // button selected so another click removes it.
+                replaceInputRange(target, start, end, ' ', true);
+            } else {
+                replaceInputRange(target, start, end, '', false);
+                hideUI();
+            }
+        };
+        container.appendChild(delBtn);
+
+        if (pasteCache && (pasteCache.text || pasteCache.type === 'clipboard')) {
+            const div = document.createElement('div');
+            div.className = isCol ? 'divider divider-h' : 'divider divider-v';
+            container.appendChild(div);
+
+            const pasteBtn = document.createElement('div');
+            pasteBtn.className = 'sc-btn';
+            pasteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>';
+            applyPasteButtonContent(pasteBtn, pasteCache);
+            pasteBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+            pasteBtn.onclick = async (e) => {
+                e.stopPropagation();
+                if (pasteCache.type === 'clipboard') {
+                    await performClipboardPaste(targetInput || document.activeElement, pasteCache);
+                } else {
+                    performPaste(targetInput, pasteCache.text, {
+                        panCode: pasteCache.type === 'pan_code'
+                    });
                 }
                 hideUI();
             };

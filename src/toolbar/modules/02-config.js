@@ -154,6 +154,7 @@ const SCROLL_REPAINT_MODE = {
 };
 
 const PASTE_MODE_THREE_BTNS = 'copy-search-paste';   // Lightning paste three-button mode marker
+const PASTE_MODE_WHITESPACE = 'whitespace-delete-paste'; // Input whitespace selection
 
 const SEARCH_ENGINES = {
     google: { name: 'Google', url: 'https://www.google.com/search?q=%s' },

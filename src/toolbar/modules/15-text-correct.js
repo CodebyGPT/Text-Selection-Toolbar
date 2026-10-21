@@ -339,6 +339,27 @@ const makeInputEvent = (type, inputType) => {
     return new Event(type, { bubbles: true, cancelable: type === 'beforeinput' });
 };
 
+// Replace [start, end) in an input/textarea through the native setter so
+// React/Vue state and the caret stay coherent.
+function replaceInputRange(target, start, end, replacement, selectReplacement = false) {
+    const proto = target.tagName === 'TEXTAREA'
+        ? window.HTMLTextAreaElement.prototype
+        : window.HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+    const next = target.value.slice(0, start) + replacement + target.value.slice(end);
+    if (setter) setter.call(target, next);
+    else target.value = next;
+
+    const caret = start + replacement.length;
+    if (selectReplacement && replacement.length > 0) {
+        target.setSelectionRange(start, caret);
+    } else {
+        target.setSelectionRange(caret, caret);
+    }
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+    target.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
 // Delete the current selection in a way editors can follow. execCommand alone
 // is not enough: Vditor (markdown.lovejade.cn) copies on cut but prevents the
 // default deletion, leaving its contenteditable untouched.
