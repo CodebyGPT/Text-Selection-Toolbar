@@ -5,6 +5,58 @@ let unlockStyleEl = null;
 let startPos = { x: 0, y: 0 };
 const modifiedElements = new Set(); // Set of affected elements
 
+// The default Ctrl hotkey also fires on Ctrl+V. Unlock mode changes global
+// selection behavior and used to clear the document selection on exit, which
+// left focused inputs/contenteditable editors without a caret.
+let unlockFocusSnapshot = null;
+let unlockUserInteracted = false;
+
+function isEditableElement(el) {
+    if (!el || !el.isConnected) return false;
+    if (el.isContentEditable) return true;
+    return (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && !el.disabled && !el.readOnly;
+}
+
+function captureUnlockFocus() {
+    const el = document.activeElement;
+    if (!isEditableElement(el)) return null;
+    if (el.isContentEditable) {
+        const sel = window.getSelection();
+        const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+        return {
+            element: el,
+            range: range && el.contains(range.commonAncestorContainer) ? range.cloneRange() : null
+        };
+    }
+    return { element: el, start: el.selectionStart, end: el.selectionEnd };
+}
+
+function restoreUnlockFocus(snapshot) {
+    if (!snapshot || !snapshot.element || !snapshot.element.isConnected) return;
+    if (unlockUserInteracted) return;
+    // Do not pull focus back into the page if the whole window was blurred.
+    if (typeof document.hasFocus === 'function' && !document.hasFocus()) return;
+
+    // Only react when the hotkey actually stole focus. If the input still owns
+    // the selection, leave it alone so a just-pasted caret is not moved back.
+    const active = document.activeElement;
+    const focusLost = active !== snapshot.element &&
+        (active === document.body || active === document.documentElement || !active);
+    if (!focusLost) return;
+
+    try {
+        snapshot.element.focus({ preventScroll: true });
+        // Inputs/textarea keep selectionStart/End through a blur. For a
+        // contenteditable with no live range, put the caret back where it was.
+        if (snapshot.range) {
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount === 0) {
+                sel.addRange(snapshot.range);
+            }
+        }
+    } catch (e) {}
+}
+
 // Dynamic CSS: force text selectable, block drag, disable pointer event restrictions, etc.
 function getUnlockCSS() {
     return `
@@ -155,6 +207,7 @@ function handleCaptureClick(e) {
 // Process current element on mousedown as needed
 function handleCaptureMouseDown(e) {
     if (!isUnlockMode) return;
+    unlockUserInteracted = true;
     if (isProtectedElement(e.target)) {
         e.preventDefault();
         e.stopPropagation();
@@ -269,6 +322,8 @@ function toggleUnlockMode(active) {
     isUnlockMode = active;
 
     if (active) {
+        unlockFocusSnapshot = captureUnlockFocus();
+        unlockUserInteracted = false;
         if (!unlockStyleEl) {
             unlockStyleEl = document.createElement('style');
             unlockStyleEl.textContent = getUnlockCSS();
@@ -288,6 +343,8 @@ function toggleUnlockMode(active) {
 
         showToast(t('toast_unlock'));
     } else {
+        const focusSnapshot = unlockFocusSnapshot;
+        unlockFocusSnapshot = null;
         if (unlockStyleEl && unlockStyleEl.parentNode) {
             unlockStyleEl.parentNode.removeChild(unlockStyleEl);
         }
@@ -314,10 +371,16 @@ function toggleUnlockMode(active) {
         document.removeEventListener('mouseover', handleExpandHover, true);
         cleanupExpandedElements();
 
-        const sel = window.getSelection();
-        if (sel && sel.rangeCount > 0) {
-            sel.removeAllRanges();
+        // Clearing ranges while an editor is focused removes its caret. Keep
+        // the untouched selection and restore focus if the hotkey stole it.
+        if (!focusSnapshot && !isEditableElement(document.activeElement)) {
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                sel.removeAllRanges();
+            }
         }
+        restoreUnlockFocus(focusSnapshot);
+        unlockUserInteracted = false;
         const toast = shadowRoot && shadowRoot.querySelector('.sc-toast');
         if (toast) toast.classList.remove('show');
     }
