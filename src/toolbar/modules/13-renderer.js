@@ -185,8 +185,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         }
 
         // Translation has the lowest priority: it comes after copy and search.
-        // For CJK UI languages, hide it when the selection is mostly CJK
-        // already, so users are not offered a pointless translation.
+        // Skip it when the selection is already in the current language.
         if (getConfig('enableTranslate') !== false && !shouldHideTranslate(text) && typeof requestTranslation === 'function') {
             const translateDiv = document.createElement('div');
             translateDiv.className = isCol ? 'divider divider-h' : 'divider divider-v';
