@@ -26,6 +26,16 @@ function parseLinkDisplay(display) {
 // Secondary menu for 2-12 links. It always uses the vertical rounded list
 // look, even when the toolbar itself is the horizontal capsule.
 function showLinkMenu(urls, anchorRect) {
+    if (uiTimer) {
+        clearTimeout(uiTimer);
+        uiTimer = null;
+    }
+    if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = null;
+        isScrolling = false;
+    }
+
     const old = shadowRoot.querySelector('.sc-container');
     if (old) old.remove();
 
@@ -61,7 +71,9 @@ function showLinkMenu(urls, anchorRect) {
         item.onclick = (e) => {
             e.stopPropagation();
             safeOpenTab(url.url, { active: true });
-            hideUI();
+            // Keep the menu open so the user can open more links; the normal
+            // timeout starts only after the first item click.
+            startLinkMenuTimeout();
         };
         menu.appendChild(item);
     });
@@ -82,13 +94,29 @@ function showLinkMenu(urls, anchorRect) {
         menu.style.left = `${left}px`;
         menu.style.top = `${top}px`;
         menu.classList.add('visible');
-
-        const timeout = getConfig('timeout');
-        if (timeout > 0) {
-            if (uiTimer) clearTimeout(uiTimer);
-            uiTimer = setTimeout(hideUI, timeout);
-        }
     });
+}
+
+function startLinkMenuTimeout() {
+    if (uiTimer) clearTimeout(uiTimer);
+    const timeout = getConfig('timeout');
+    if (timeout > 0) {
+        uiTimer = setTimeout(hideUI, timeout);
+    }
+}
+
+// Scroll/resize should keep the secondary menu, clamped into the viewport,
+// rather than falling back to the selection toolbar.
+function repositionLinkMenu() {
+    const menu = shadowRoot && shadowRoot.querySelector('.sc-link-menu');
+    if (!menu) return false;
+    const rect = menu.getBoundingClientRect();
+    const left = Math.max(10, Math.min(parseFloat(menu.style.left) || 10, window.innerWidth - rect.width - 10));
+    const top = Math.max(10, Math.min(parseFloat(menu.style.top) || 10, window.innerHeight - rect.height - 10));
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+    menu.classList.add('visible');
+    return true;
 }
 
 

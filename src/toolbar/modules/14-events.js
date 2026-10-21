@@ -60,6 +60,17 @@ const handleResizeOrScroll = () => {
     const btn = shadowRoot.querySelector('.sc-container');
     if (!btn) return;
 
+    // The multi-link picker is still the active surface; repaint/keep it
+    // instead of falling back to a fresh selection toolbar.
+    if (btn.classList.contains('sc-link-menu')) {
+        if (mode === SCROLL_REPAINT_MODE.HIDE) {
+            hideUI();
+            return;
+        }
+        repositionLinkMenu();
+        return;
+    }
+
     if (mode === SCROLL_REPAINT_MODE.HIDE) {
         hideUI();
         return;
