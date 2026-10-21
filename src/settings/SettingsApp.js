@@ -1029,10 +1029,10 @@ function ToolbarTab({ setting, update }) {
             disabled={value.enableTranslate === false}
             onChange={(v) => patch({ translateHideThreshold: Number(v) })}
             options={[
-              [15, "极高"],
-              [35, "中高"],
-              [55, "中低"],
-              [75, "极低"],
+              [15, "15%"],
+              [35, "35%"],
+              [55, "55%"],
+              [75, "75%"],
             ]}
           />
         </Row>
