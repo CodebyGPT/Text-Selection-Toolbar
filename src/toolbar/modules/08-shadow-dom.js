@@ -88,7 +88,6 @@ function getStyles() {
         .sc-container.sc-col .sc-btn {
             justify-content: flex-start;
             gap: 10px;
-            min-width: 150px;
             box-sizing: border-box;
             text-align: left;
         }
