@@ -66,6 +66,26 @@ export function quickDetectLang(text) {
   return detectLatinVariant(text, latin) || "";
 }
 
+/**
+ * 统计文本中各脚本字符的数量，供“当前语言占比”阈值判断复用。
+ * 与 quickDetectLang 使用同一组字符集，结果口径一致。
+ * @param {string} text 待统计文本
+ * @returns {{han:number,hiragana:number,katakana:number,hangul:number,cyrillic:number,greek:number,latin:number}}
+ */
+export function countScriptChars(text) {
+  const value = String(text || "");
+  const count = (re) => (value.match(re) || []).length;
+  return {
+    han: count(RE_CJK),
+    hiragana: count(RE_HIRAGANA),
+    katakana: count(RE_KATAKANA),
+    hangul: count(RE_HANGUL),
+    cyrillic: count(RE_CYRILLIC),
+    greek: count(RE_GREEK),
+    latin: count(RE_LATIN),
+  };
+}
+
 function detectZhVariant(text) {
   let trad = 0;
   let simp = 0;

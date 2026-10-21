@@ -4,9 +4,9 @@ const path = require("node:path");
 const vm = require("node:vm");
 const babel = require("@babel/core");
 
-// Compile the real detector so the test covers the exact classification used
-// by the toolbar, including the zh/ja ambiguity that motivated this change.
-function loadQuickDetectLang() {
+// Compile the real detector so the test covers the exact classification and
+// script counts used by the toolbar.
+function loadDetector() {
   const file = path.join(__dirname, "../src/libs/detectFast.js");
   const { code } = babel.transformSync(fs.readFileSync(file, "utf8"), {
     filename: file,
@@ -27,12 +27,12 @@ function loadQuickDetectLang() {
     mod,
     mod.exports
   );
-  return mod.exports.quickDetectLang;
+  return mod.exports;
 }
 
-const quickDetectLang = loadQuickDetectLang();
+const { quickDetectLang, countScriptChars } = loadDetector();
 
-// Load the comparison helpers straight from the toolbar module.
+// Load the gate helpers straight from the toolbar module.
 const source = fs.readFileSync(
   path.join(__dirname, "../src/toolbar/modules/02-config.js"),
   "utf8"
@@ -42,11 +42,42 @@ const end = source.indexOf("const SCROLL_REPAINT_MODE");
 assert.ok(start > 0 && end > start, "translate gate helpers not found");
 const snippet = source.slice(start, end);
 
-function load({ uiLang = "zh-CN", browserLang = "zh-CN", option = true } = {}) {
+function load({
+  uiLang = "zh-CN",
+  browserLang = "zh-CN",
+  option = true,
+  threshold = 15,
+  pageLang,
+  metaLang = "",
+  bodyLang = "",
+} = {}) {
+  const effective = pageLang === undefined
+    ? (uiLang === "auto" ? browserLang : uiLang)
+    : pageLang;
   const sandbox = {
-    configCache: { language: uiLang, hideTranslateForCurrentLanguage: option },
+    configCache: {
+      language: uiLang,
+      hideTranslateForCurrentLanguage: option,
+      translateHideThreshold: threshold,
+    },
     navigator: { language: browserLang },
     detectLanguage: quickDetectLang,
+    countScriptChars,
+    document: {
+      documentElement: { lang: effective },
+      body: { lang: bodyLang },
+      querySelector(selector) {
+        if (
+          metaLang &&
+          (selector.includes("content-language") ||
+            selector.includes('name="language"') ||
+            selector.includes("og:locale"))
+        ) {
+          return { getAttribute: () => metaLang };
+        }
+        return null;
+      },
+    },
   };
   sandbox.getConfig = (key) => sandbox.configCache[key];
   vm.createContext(sandbox);
@@ -57,19 +88,50 @@ function load({ uiLang = "zh-CN", browserLang = "zh-CN", option = true } = {}) {
   return sandbox;
 }
 
-// The zh <-> ja case that broke the old CJK-ratio rule.
+const mixed = (han, latin) => "中".repeat(han) + "a".repeat(latin);
+
+// Basic language gate: page language defaults to the current language here.
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("你好世界"), true);
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("こんにちは"), false);
 assert.strictEqual(load({ uiLang: "ja-JP" }).shouldHideTranslate("こんにちは"), true);
 assert.strictEqual(load({ uiLang: "ja-JP" }).shouldHideTranslate("你好世界"), false, "Chinese text on Japanese UI stays translatable");
-
-// Foreign text on a same-language page is still translatable: selection, not page.
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("hello world"), false, "short Latin words are not hidden on a guess");
-
-// Unknown detection never hides meaningful text.
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("hello world!!!"), false);
 
-// Noise filtering: punctuation, numbers, or one letter (however padded).
+// English UI + English text, confirmed by the page language.
+assert.strictEqual(
+  load({ uiLang: "en", pageLang: "en" }).shouldHideTranslate("the quick brown fox and the dog"),
+  true
+);
+assert.strictEqual(
+  load({ uiLang: "en", pageLang: "de" }).shouldHideTranslate("der die das und ist nicht"),
+  false,
+  "detected German differs from English"
+);
+
+// Ratio step: current-language share below the threshold keeps the button.
+assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate(mixed(1, 9)), false, "10% < 15%");
+assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate(mixed(2, 8)), true, "20% >= 15%");
+assert.strictEqual(load({ uiLang: "zh-CN", threshold: 15 }).shouldHideTranslate(mixed(3, 17)), true, "exactly 15% hides");
+assert.strictEqual(load({ uiLang: "zh-CN", threshold: 35 }).shouldHideTranslate(mixed(2, 8)), false, "20% < 35%");
+assert.strictEqual(load({ uiLang: "zh-CN", threshold: 55 }).shouldHideTranslate(mixed(9, 1)), true, "90% >= 55%");
+assert.strictEqual(load({ uiLang: "zh-CN", threshold: 75 }).shouldHideTranslate(mixed(9, 1)), true, "90% >= 75%");
+assert.strictEqual(
+  load({ uiLang: "zh-CN", threshold: 75 }).shouldHideTranslate("中a"),
+  false,
+  "single CJK letter plus a letter is 50% < 75%"
+);
+
+// Final step: a different or unknown page language keeps the button.
+assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "en" }).shouldHideTranslate("你好世界"), false);
+assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "" }).shouldHideTranslate("你好世界"), false, "missing page lang keeps it");
+assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "und" }).shouldHideTranslate("你好世界"), false, "und keeps it");
+assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "", metaLang: "zh_CN" }).shouldHideTranslate("你好世界"), true, "og:locale fallback");
+assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "", bodyLang: "zh-CN" }).shouldHideTranslate("你好世界"), true, "body lang fallback");
+assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "zh-Hans" }).shouldHideTranslate("你好世界"), true);
+assert.strictEqual(load({ uiLang: "zh-CN", pageLang: "zh-TW" }).shouldHideTranslate("你好世界"), true, "Chinese variants compare as zh");
+
+// Noise filtering: punctuation, numbers, emoji, tabs, or one letter.
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("。！？"), true, "punctuation-only");
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("12345"), true, "number-only");
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("你"), true, "single CJK letter");
@@ -84,7 +146,7 @@ assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("１２３"), t
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("😀\t\n。"), true, "mixed noise-only");
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("😀ab"), false, "noise plus two letters is meaningful");
 
-// Option off still filters noise, but keeps meaningful foreign text.
+// Option off still filters noise, but keeps meaningful text.
 assert.strictEqual(load({ option: false }).shouldHideTranslate("你好世界"), false);
 assert.strictEqual(load({ option: false }).shouldHideTranslate("12345"), true);
 const broken = load({ uiLang: "zh-CN" });
@@ -93,7 +155,7 @@ broken.detectLanguage = () => {
 };
 assert.strictEqual(broken.shouldHideTranslate("你好世界"), false);
 
-// auto follows the browser language; Chinese variants compare as zh.
+// auto follows the browser language.
 assert.strictEqual(load({ uiLang: "auto", browserLang: "ja-JP" }).shouldHideTranslate("こんにちは"), true);
 assert.strictEqual(load({ uiLang: "auto", browserLang: "ja-JP" }).shouldHideTranslate("你好世界"), false);
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("繁體中文"), true);

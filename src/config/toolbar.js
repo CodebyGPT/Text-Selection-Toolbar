@@ -18,6 +18,7 @@ export const DEFAULT_TOOLBAR_SETTING = {
   enableDeleteBtn: true,
   enableTranslate: true,
   hideTranslateForCurrentLanguage: true,
+  translateHideThreshold: 15,
   showBlockMenu: true,
   showEditMenu: true,
 };

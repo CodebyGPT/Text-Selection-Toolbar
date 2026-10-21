@@ -7,6 +7,7 @@ export function installTextSelectionToolbar({
   openSettings,
   translateSelection,
   detectLanguage,
+  countScriptChars,
 }) {
   const safeGetValue = getValue;
   const safeSetValue = setValue;
@@ -50,6 +51,8 @@ const DEFAULT_CONFIG = {
     // Hide translation when the selected text is already in the current
     // language. Uses the synchronous script detector; unknown stays visible.
     hideTranslateForCurrentLanguage: true,
+    // Sensitivity for the language-match gate: 15 / 35 / 55 / 75 (%).
+    translateHideThreshold: 15,
     showBlockMenu: true,   // show the "hide page selection toolbar" menu entries
     showEditMenu: true,    // show the "edit page" menu entry
 };
@@ -70,6 +73,31 @@ const getCurrentLanguage = () => {
     return lang === 'auto' ? String(navigator.language || '') : lang;
 };
 
+// Which script(s) count as "the current language" for the ratio step.
+const LANGUAGE_SCRIPTS = {
+    zh: ['han'],
+    ja: ['hiragana', 'katakana', 'han'],
+    ko: ['hangul'],
+    ru: ['cyrillic'],
+    el: ['greek'],
+    en: ['latin'],
+    de: ['latin'],
+    fr: ['latin'],
+    es: ['latin'],
+};
+
+// Page declarations that carry no usable language information.
+const UNKNOWN_LANGUAGE_TAGS = new Set(['', 'und', 'zxx', 'mul', 'mis']);
+
+const getPageLanguage = () => {
+    const declared = document.documentElement?.lang || document.body?.lang;
+    if (declared) return declared;
+    const meta = document.querySelector('meta[http-equiv="content-language" i]')
+        || document.querySelector('meta[name="language" i]')
+        || document.querySelector('meta[property="og:locale" i]');
+    return meta?.getAttribute('content') || '';
+};
+
 // Count actual language letters; digits, punctuation, symbols, emoji, tabs,
 // zero-width and other control characters are noise. One letter (even
 // surrounded by noise) is not worth translating.
@@ -77,10 +105,13 @@ const countLanguageChars = (text) =>
     (String(text || '').match(/\p{L}/gu) || []).length;
 
 const shouldHideTranslate = (text) => {
-    if (countLanguageChars(text) <= 1) return true;
+    const totalLetters = countLanguageChars(text);
+    if (totalLetters <= 1) return true; // pure noise / single character
     if (getConfig('hideTranslateForCurrentLanguage') === false) return false;
+
     const currentLang = baseLanguageTag(getCurrentLanguage());
     if (!currentLang) return false;
+
     let detected = '';
     try {
         // Sync, character-set based: no network and no noticeable latency.
@@ -88,8 +119,28 @@ const shouldHideTranslate = (text) => {
     } catch (err) {
         return false;
     }
-    // Unknown detection keeps the button: never hide on a guess.
-    return Boolean(detected) && baseLanguageTag(detected) === currentLang;
+    // Different or unknown language: the button stays available.
+    if (baseLanguageTag(detected) !== currentLang) return false;
+
+    // Current language occupies too little of the selection: still translate.
+    const scripts = LANGUAGE_SCRIPTS[currentLang] || [];
+    if (!scripts.length || typeof countScriptChars !== 'function') return false;
+    let stats;
+    try {
+        stats = countScriptChars(text);
+    } catch (err) {
+        return false;
+    }
+    const currentChars = scripts.reduce((sum, key) => sum + (stats[key] || 0), 0);
+    const ratio = currentChars / totalLetters;
+    const threshold = Number(getConfig('translateHideThreshold'));
+    const percent = Number.isFinite(threshold) && threshold > 0 ? threshold : 15;
+    if (ratio < percent / 100) return false;
+
+    // Final tie-breaker: a page written in another language still needs translation.
+    const pageLang = baseLanguageTag(getPageLanguage());
+    if (UNKNOWN_LANGUAGE_TAGS.has(pageLang)) return false;
+    return pageLang === currentLang;
 };
 
 const SCROLL_REPAINT_MODE = {

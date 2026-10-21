@@ -1022,11 +1022,24 @@ function ToolbarTab({ setting, update }) {
         </Row>
         <Row
           label="当前语言文本不显示翻译按钮"
-          help="本地快速识别选中文本的语言，与当前语言相同时隐藏翻译按钮；纯标点、数字、表情/符号、空白或仅一个有效字符时也会隐藏；无法识别时始终显示。关闭后仍会过滤无意义文本"
+          help="结合本地语言识别、当前语言字符占比和网页语言判断是否隐藏；纯标点、数字、表情/符号、空白或仅一个有效字符时始终隐藏。关闭后仍会过滤无意义文本"
         >
           <Toggle
             value={value.hideTranslateForCurrentLanguage !== false}
             onChange={(v) => patch({ hideTranslateForCurrentLanguage: v })}
+          />
+        </Row>
+        <Row label="隐藏敏感度" help="敏感度越高，越容易隐藏翻译按钮">
+          <Select
+            value={value.translateHideThreshold ?? 15}
+            disabled={value.hideTranslateForCurrentLanguage === false}
+            onChange={(v) => patch({ translateHideThreshold: Number(v) })}
+            options={[
+              [15, "极高敏感度（推荐）"],
+              [35, "较高敏感度"],
+              [55, "较低敏感度"],
+              [75, "极低敏感度"],
+            ]}
           />
         </Row>
         <Row label="选中即缓存">

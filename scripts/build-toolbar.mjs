@@ -21,6 +21,7 @@ export function installTextSelectionToolbar({
   openSettings,
   translateSelection,
   detectLanguage,
+  countScriptChars,
 }) {
   const safeGetValue = getValue;
   const safeSetValue = setValue;

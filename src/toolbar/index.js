@@ -1,5 +1,5 @@
 import { getSettingWithDefault, putSetting } from "../libs/storage";
-import { quickDetectLang } from "../libs/detectFast";
+import { quickDetectLang, countScriptChars } from "../libs/detectFast";
 import { installTextSelectionToolbar } from "./generated";
 
 const TRANSIENT_KEYS = new Set(["smart_paste_cache"]);
@@ -62,5 +62,6 @@ export function installToolbar({ translateSelection } = {}) {
     openSettings: null,
     translateSelection,
     detectLanguage: quickDetectLang,
+    countScriptChars,
   });
 }
