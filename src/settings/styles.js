@@ -131,6 +131,7 @@ export const SETTINGS_APP_CSS = String.raw`
   border-radius: 14px;
   overflow: hidden;
 }
+:host .kiss-st-card--overflow { overflow: visible; }
 :host .kiss-st-row {
   display: flex;
   align-items: center;
@@ -257,7 +258,7 @@ export const SETTINGS_APP_CSS = String.raw`
   border-color: var(--st-accent);
   color: var(--st-accent-text);
 }
-:host .kiss-st-btn--danger { color: var(--st-danger); }
+:host .kiss-st-btn--danger { color: var(--st-danger); border-color: var(--st-danger); }
 :host .kiss-st-api {
   padding: 16px 18px;
   border-bottom: 1px solid var(--st-border);
@@ -317,6 +318,10 @@ export const SETTINGS_APP_CSS = String.raw`
   gap: 18px;
   flex-wrap: wrap;
   margin-top: 12px;
+}
+:host .kiss-st-search-actions {
+  margin-top: -14px;
+  margin-bottom: 26px;
 }
 :host .kiss-st-check {
   display: inline-flex;

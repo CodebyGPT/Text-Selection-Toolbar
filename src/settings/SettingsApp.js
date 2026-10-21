@@ -101,11 +101,11 @@ function readScriptMeta() {
   };
 }
 
-function Section({ title, children, footer }) {
+function Section({ title, children, footer, className = "" }) {
   return (
     <section className="kiss-st-section">
       <h2>{title}</h2>
-      <div className="kiss-st-card">{children}</div>
+      <div className={`kiss-st-card ${className}`.trim()}>{children}</div>
       {footer}
     </section>
   );
@@ -962,15 +962,12 @@ function legacySearchEngine(value) {
   return { ...TOOLBAR_SEARCH_ENGINES.baidu };
 }
 
-function SearchEngineRow({ engine, index, total, onChange, onRemove }) {
+function SearchEngineRow({ engine, index, onChange, onRemove }) {
   const [open, setOpen] = useState(false);
   const presets = Object.entries(TOOLBAR_SEARCH_ENGINES);
 
   return (
-    <Row
-      label={`搜索引擎 ${index + 1}`}
-      help={index === 0 ? "URL 中用 %s 代替关键词" : undefined}
-    >
+    <Row label={`搜索引擎 ${index + 1}`}>
       <div className="kiss-st-inline">
         <div
           className="kiss-st-combo"
@@ -1011,11 +1008,15 @@ function SearchEngineRow({ engine, index, total, onChange, onRemove }) {
         </div>
         <TextInput
           value={engine.url}
-          placeholder="https://example.com/search?q=%s"
+          placeholder="用 %s 代替关键词"
           onChange={(v) => onChange({ ...engine, url: v })}
         />
-        {total > 1 && (
-          <button type="button" className="kiss-st-btn" onClick={onRemove}>
+        {index > 0 && (
+          <button
+            type="button"
+            className="kiss-st-btn kiss-st-btn--danger"
+            onClick={onRemove}
+          >
             删除
           </button>
         )}
@@ -1199,13 +1200,12 @@ function ToolbarTab({ setting, update }) {
         </Row>
       </Section>
 
-      <Section title="搜索">
+      <Section title="搜索" className="kiss-st-card--overflow">
         {engines.map((engine, index) => (
           <SearchEngineRow
             key={index}
             engine={engine}
             index={index}
-            total={engines.length}
             onChange={(next) => {
               const list = engines.slice();
               list[index] = next;
@@ -1216,18 +1216,18 @@ function ToolbarTab({ setting, update }) {
             }}
           />
         ))}
-        <div className="kiss-st-inline">
-          <button
-            type="button"
-            className="kiss-st-btn kiss-st-btn--primary"
-            disabled={engines.length >= 8}
-            onClick={() => updateEngines([...engines, { name: "", url: "" }])}
-          >
-            + 添加搜索引擎
-          </button>
-          {engines.length >= 8 && <small>最多 8 个</small>}
-        </div>
       </Section>
+      <div className="kiss-st-inline kiss-st-search-actions">
+        <button
+          type="button"
+          className="kiss-st-btn kiss-st-btn--primary"
+          disabled={engines.length >= 8}
+          onClick={() => updateEngines([...engines, { name: "", url: "" }])}
+        >
+          + 添加搜索引擎
+        </button>
+        {engines.length >= 8 && <small>最多 8 个</small>}
+      </div>
     </>
   );
 }

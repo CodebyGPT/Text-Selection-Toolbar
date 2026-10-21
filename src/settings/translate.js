@@ -33,7 +33,6 @@ const EN = {
   "功能开关": "Feature switches",
   "添加搜索引擎": "Add search engine",
   "搜索引擎名称": "Search engine name",
-  "URL 中用 %s 代替关键词": "Use %s for the query in the URL",
   "最多 8 个": "Up to 8",
   "界面主题": "Interface theme",
   "0 表示不自动消失": "0 = never auto-hide",
