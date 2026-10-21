@@ -66,12 +66,22 @@ assert.strictEqual(load({ uiLang: "ja-JP" }).shouldHideTranslate("你好世界")
 // Foreign text on a same-language page is still translatable: selection, not page.
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("hello world"), false, "short Latin words are not hidden on a guess");
 
-// Unknown detection never hides.
-assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("12345"), false);
+// Unknown detection never hides meaningful text.
 assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("hello world!!!"), false);
 
-// Option off and detector failures always show.
+// Noise filtering: punctuation, numbers, or one letter (however padded).
+assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("。！？"), true, "punctuation-only");
+assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("12345"), true, "number-only");
+assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("你"), true, "single CJK letter");
+assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("a"), true, "single Latin letter");
+assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("你 123！？"), true, "one letter plus noise");
+assert.strictEqual(load({ uiLang: "en" }).shouldHideTranslate("你好"), false, "two letters are not noise");
+assert.strictEqual(load({ uiLang: "zh-CN" }).shouldHideTranslate("$100.00"), true, "currency noise");
+assert.strictEqual(load({ uiLang: "en" }).shouldHideTranslate("😀😀"), true, "emoji-only");
+
+// Option off still filters noise, but keeps meaningful foreign text.
 assert.strictEqual(load({ option: false }).shouldHideTranslate("你好世界"), false);
+assert.strictEqual(load({ option: false }).shouldHideTranslate("12345"), true);
 const broken = load({ uiLang: "zh-CN" });
 broken.detectLanguage = () => {
   throw new Error("boom");

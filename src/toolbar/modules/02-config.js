@@ -41,7 +41,13 @@ const getCurrentLanguage = () => {
     return lang === 'auto' ? String(navigator.language || '') : lang;
 };
 
+// Count actual language letters; digits, punctuation, symbols and whitespace
+// are noise. One letter (even surrounded by noise) is not worth translating.
+const countLanguageChars = (text) =>
+    (String(text || '').match(/\p{L}/gu) || []).length;
+
 const shouldHideTranslate = (text) => {
+    if (countLanguageChars(text) <= 1) return true;
     if (getConfig('hideTranslateForCurrentLanguage') === false) return false;
     const currentLang = baseLanguageTag(getCurrentLanguage());
     if (!currentLang) return false;
