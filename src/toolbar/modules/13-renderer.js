@@ -34,12 +34,25 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
 
     // Pending-lightning-paste preview beside the paste icon.
     const appendPastePreview = (btn, cache) => {
-        if (!getConfig('showPastePreview') || !cache || !cache.text) return false;
+        if (!getConfig('showPastePreview') || !cache) return false;
+        if (!cache.text && cache.type !== 'clipboard') return false;
 
-        const isPanCode = cache.type === 'pan_code';
         const span = document.createElement('span');
         span.className = 'sc-btn-label';
 
+        // Text copied outside the toolbar cannot be read back; show a generic
+        // label instead of pretending we know the clipboard contents.
+        if (cache.type === 'clipboard') {
+            const strong = document.createElement('strong');
+            strong.textContent = isCol
+                ? t('paste_clipboard_action')
+                : t('paste_clipboard_text');
+            span.appendChild(strong);
+            btn.appendChild(span);
+            return true;
+        }
+
+        const isPanCode = cache.type === 'pan_code';
         if (isCol) {
             if (isPanCode) {
                 span.appendChild(document.createTextNode(t('btn_pan_code') + ' '));
@@ -384,16 +397,20 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             pasteBtn.onclick = async (e) => {
                 e.stopPropagation();
                 const cache = await safeGetValue('smart_paste_cache', null);
-                if (cache && cache.text) {
-                    performPaste(document.activeElement, cache.text, {
-                        panCode: cache.type === 'pan_code'
-                    });
-                    // Reset timestamp after paste to allow repeated use on same page
-                    await safeSetValue('smart_paste_cache', {
-                        text: cache.text,
-                        timestamp: Date.now()
-                    });
-                    registerVisibilityCleanup();
+                if (cache && (cache.text || cache.type === 'clipboard')) {
+                    if (cache.type === 'clipboard') {
+                        await performClipboardPaste(document.activeElement, cache);
+                    } else {
+                        performPaste(document.activeElement, cache.text, {
+                            panCode: cache.type === 'pan_code'
+                        });
+                        // Reset timestamp after paste to allow repeated use on same page
+                        await safeSetValue('smart_paste_cache', {
+                            text: cache.text,
+                            timestamp: Date.now()
+                        });
+                        registerVisibilityCleanup();
+                    }
                 }
                 hideUI();
             };
@@ -418,6 +435,11 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         pasteBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
         pasteBtn.onclick = async (e) => {
             e.stopPropagation();
+            if (pasteCache && pasteCache.type === 'clipboard') {
+                await performClipboardPaste(targetInput || document.activeElement, pasteCache);
+                hideUI();
+                return;
+            }
             if (isPanCode) {
                 performPaste(targetInput || document.activeElement, pasteCache.text, { panCode: true });
                 await safeSetValue('smart_paste_cache', { text: '', timestamp: 0 });

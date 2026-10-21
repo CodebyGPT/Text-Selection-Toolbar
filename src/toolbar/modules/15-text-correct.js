@@ -174,7 +174,16 @@ function dispatchPasteEvent(target, text) {
 
 // Paste feedback. With previews enabled, include up to 10 characters of the
 // pasted text (quoted in the UI language); pan codes stay bold.
-function showPasteResultToast(text, panCode, compat = false) {
+function showPasteResultToast(text, panCode, compat = false, externalClipboard = false) {
+    if (externalClipboard) {
+        if (getConfig('showPastePreview')) {
+            showToast(t('toast_clipboard_pasted'));
+        } else {
+            showToast(t('toast_pasted'));
+        }
+        return;
+    }
+
     if (!getConfig('showPastePreview')) {
         showToast(
             compat
@@ -202,10 +211,43 @@ function showPasteResultToast(text, panCode, compat = false) {
     showToast(`${base}${separator}${open}${truncatePasteText(text, 10)}${close}`);
 }
 
+// Paste text copied outside the toolbar. If the copy event captured the text,
+// use it; otherwise ask the Clipboard API or the browser's native paste.
+async function performClipboardPaste(target, cache) {
+    if (!target) return false;
+    target.focus();
+
+    if (cache && cache.text) {
+        performPaste(target, cache.text, { externalClipboard: true });
+        return true;
+    }
+
+    try {
+        if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
+            const text = await navigator.clipboard.readText();
+            if (text) {
+                performPaste(target, text, { externalClipboard: true });
+                return true;
+            }
+        }
+    } catch (e) {}
+
+    try {
+        if (document.execCommand && document.execCommand('paste')) {
+            showPasteResultToast('', false, false, true);
+            return true;
+        }
+    } catch (e) {}
+
+    showToast(t('toast_paste_fail'));
+    return false;
+}
+
 // Core paste logic: synthetic paste first, then DOM/execCommand fallbacks.
 function performPaste(target, text, options = {}) {
     if (!target) return;
     const panCode = Boolean(options.panCode);
+    const externalClipboard = Boolean(options.externalClipboard);
     target.focus();
 
     // Strategy 1: emit the same event a real Ctrl+V would emit.
@@ -213,7 +255,7 @@ function performPaste(target, text, options = {}) {
     const pasteHandled = dispatchPasteEvent(target, text);
     const valueAfter = target.isContentEditable ? target.textContent : target.value;
     if (pasteHandled || valueAfter !== valueBefore) {
-        showPasteResultToast(text, panCode);
+        showPasteResultToast(text, panCode, false, externalClipboard);
         return;
     }
 
@@ -221,7 +263,7 @@ function performPaste(target, text, options = {}) {
     try {
         const success = document.execCommand('insertText', false, text);
         if (success) {
-            showPasteResultToast(text, panCode);
+            showPasteResultToast(text, panCode, false, externalClipboard);
             return;
         }
     } catch (e) {}
@@ -262,7 +304,7 @@ function performPaste(target, text, options = {}) {
             const newCursorPos = start + text.length;
             target.setSelectionRange(newCursorPos, newCursorPos);
         }
-        showPasteResultToast(text, panCode, true);
+        showPasteResultToast(text, panCode, true, externalClipboard);
     } catch (e) {
         showToast(t('toast_paste_fail'));
     }

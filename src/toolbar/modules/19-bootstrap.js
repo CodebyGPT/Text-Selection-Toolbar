@@ -69,6 +69,9 @@ function unregisterVisibilityCleanup() {
             window.addEventListener('scroll', handleResizeOrScroll, { passive: true });
             window.addEventListener('resize', handleResizeOrScroll, { passive: true });
             document.addEventListener('keydown', handleKeydownHideUI, true);
+            // Capture copies made outside the toolbar; registered before unlock
+            // mode's stopImmediatePropagation listener so it always sees them.
+            window.addEventListener('copy', handleExternalCopy, true);
 
             // 6. Drag preview event listeners (main window only)
             if (window.name !== PREVIEW_WIN_NAME) {

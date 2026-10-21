@@ -105,6 +105,35 @@ function handleKeydownHideUI(e) {
     hideUI();
 }
 
+// A normal Ctrl+C / context-menu copy outside the toolbar. Capture the text
+// synchronously from the selection and share it through the existing cache so
+// another tab can offer lightning paste without polling or clipboard reads.
+async function handleExternalCopy(e) {
+    if (!getConfig('enablePaste')) return;
+
+    let text = '';
+    const target = e.target;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        const start = target.selectionStart;
+        const end = target.selectionEnd;
+        if (typeof start === 'number' && typeof end === 'number' && start !== end) {
+            text = target.value.substring(start, end);
+        }
+    }
+    if (!text) {
+        const sel = window.getSelection();
+        text = sel ? sel.toString() : '';
+    }
+    if (!text) return;
+
+    unregisterVisibilityCleanup();
+    await safeSetValue('smart_paste_cache', {
+        text,
+        timestamp: Date.now(),
+        type: 'clipboard'
+    });
+}
+
 // Input paste mouseup handler
 function handleInputPasteMouseUp(e) {
     if (!getConfig('enablePaste')) return;
@@ -114,7 +143,7 @@ function handleInputPasteMouseUp(e) {
     setTimeout(async () => {
         // Read lightning paste cache
         const cache = await safeGetValue('smart_paste_cache', null);
-        if (!cache || !cache.text) return;
+        if (!cache || (!cache.text && cache.type !== 'clipboard')) return;
         if (Date.now() - cache.timestamp > getPasteTtlMs()) return;
 
         // Cloud drive extraction code cache (Chinese mode only): force single paste button (key icon)

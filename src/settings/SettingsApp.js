@@ -1079,7 +1079,7 @@ function ToolbarTab({ setting, update }) {
             }}
           />
         </Row>
-        <Row label="操作反馈">
+        <Row label="显示 Toast 通知">
           <Toggle
             value={value.enableToast}
             onChange={(v) => patch({ enableToast: v })}

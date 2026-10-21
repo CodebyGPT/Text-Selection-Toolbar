@@ -262,7 +262,7 @@ const I18N = {
         menu_cache: '💾 选中即缓存',
         val_on: '开启',
         val_off: '关闭',
-        menu_toast: '🔔 操作反馈',
+        menu_toast: '🔔 显示 Toast 通知',
         menu_hotkey: '🔑 超级取词键',
         val_disabled: '已禁用',
         prompt_hotkey: '请指定快捷键 (如 Ctrl, Alt, Shift) 或输入 "NONE" 以禁用:',
@@ -278,6 +278,7 @@ const I18N = {
         toast_unlock: '🔓 超级取词已激活',
         toast_copied: '已复制',
         toast_pasted: '已粘贴',
+        toast_clipboard_pasted: '已粘贴文本',
         toast_paste_compat: '已粘贴 (兼容模式)',
         toast_paste_fail: '粘贴失败',
         picker_active: '已进入拾取模式；按 ESC 退出',
@@ -290,6 +291,8 @@ const I18N = {
         btn_search: '搜索',
         btn_paste: '粘贴',
         btn_pan_code: '提取码',
+        paste_clipboard_text: '剪贴板中的文本',
+        paste_clipboard_action: '粘贴剪贴板中的文本',
         festival_cny: '🏮已复制🏮',
         festival_xmas: '🎄已复制🎄',
         btn_open_link: '打开链接',
@@ -339,7 +342,7 @@ const I18N = {
         menu_cache: '💾 Cache Selection',
         val_on: 'On',
         val_off: 'Off',
-        menu_toast: '🔔 Toast Notification',
+        menu_toast: '🔔 Show Toast notifications',
         menu_hotkey: '🔑 Unlock Hotkey',
         val_disabled: 'Disabled',
         prompt_hotkey: 'Press a key (Ctrl, Alt...) or type "NONE" to disable:',
@@ -355,6 +358,7 @@ const I18N = {
         toast_unlock: '🔓 Unlock Mode Active',
         toast_copied: 'Copied',
         toast_pasted: 'Pasted',
+        toast_clipboard_pasted: 'Pasted text',
         toast_paste_compat: 'Pasted (Compat)',
         toast_paste_fail: 'Paste Failed',
         picker_active: 'Picker Mode Active (ESC to exit)',
@@ -367,6 +371,8 @@ const I18N = {
         btn_search: 'Search',
         btn_paste: 'Paste',
         btn_pan_code: 'Code',
+        paste_clipboard_text: 'Text in clipboard',
+        paste_clipboard_action: 'Paste text from clipboard',
         festival_cny: '🏮 Copied 🏮',
         festival_xmas: '🎄 Copied 🎄',
         btn_open_link: 'Open Link',
@@ -416,7 +422,7 @@ const I18N = {
         menu_cache: '💾 Кэш выделения',
         val_on: 'Вкл',
         val_off: 'Выкл',
-        menu_toast: '🔔 Уведомления',
+        menu_toast: '🔔 Показывать уведомления',
         menu_hotkey: '🔑 Горячая клавиша',
         val_disabled: 'Откл',
         prompt_hotkey: 'Нажмите клавишу (Ctrl, Alt...) или "NONE":',
@@ -432,6 +438,7 @@ const I18N = {
         toast_unlock: '🔓 Режим разблокировки',
         toast_copied: 'Скопировано',
         toast_pasted: 'Вставлено',
+        toast_clipboard_pasted: 'Текст вставлен',
         toast_paste_compat: 'Вставлено (совм.)',
         toast_paste_fail: 'Ошибка вставки',
         picker_active: 'Режим выбора (ESC для выхода)',
@@ -444,6 +451,8 @@ const I18N = {
         btn_search: 'Поиск',
         btn_paste: 'Вставить',
         btn_pan_code: 'Код',
+        paste_clipboard_text: 'Текст в буфере обмена',
+        paste_clipboard_action: 'Вставить текст из буфера обмена',
         festival_cny: '🏮 Скопировано 🏮',
         festival_xmas: '🎄 Скопировано 🎄',
         btn_open_link: 'Открыть ссылку',
@@ -2138,12 +2147,25 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
 
     // Pending-lightning-paste preview beside the paste icon.
     const appendPastePreview = (btn, cache) => {
-        if (!getConfig('showPastePreview') || !cache || !cache.text) return false;
+        if (!getConfig('showPastePreview') || !cache) return false;
+        if (!cache.text && cache.type !== 'clipboard') return false;
 
-        const isPanCode = cache.type === 'pan_code';
         const span = document.createElement('span');
         span.className = 'sc-btn-label';
 
+        // Text copied outside the toolbar cannot be read back; show a generic
+        // label instead of pretending we know the clipboard contents.
+        if (cache.type === 'clipboard') {
+            const strong = document.createElement('strong');
+            strong.textContent = isCol
+                ? t('paste_clipboard_action')
+                : t('paste_clipboard_text');
+            span.appendChild(strong);
+            btn.appendChild(span);
+            return true;
+        }
+
+        const isPanCode = cache.type === 'pan_code';
         if (isCol) {
             if (isPanCode) {
                 span.appendChild(document.createTextNode(t('btn_pan_code') + ' '));
@@ -2488,16 +2510,20 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             pasteBtn.onclick = async (e) => {
                 e.stopPropagation();
                 const cache = await safeGetValue('smart_paste_cache', null);
-                if (cache && cache.text) {
-                    performPaste(document.activeElement, cache.text, {
-                        panCode: cache.type === 'pan_code'
-                    });
-                    // Reset timestamp after paste to allow repeated use on same page
-                    await safeSetValue('smart_paste_cache', {
-                        text: cache.text,
-                        timestamp: Date.now()
-                    });
-                    registerVisibilityCleanup();
+                if (cache && (cache.text || cache.type === 'clipboard')) {
+                    if (cache.type === 'clipboard') {
+                        await performClipboardPaste(document.activeElement, cache);
+                    } else {
+                        performPaste(document.activeElement, cache.text, {
+                            panCode: cache.type === 'pan_code'
+                        });
+                        // Reset timestamp after paste to allow repeated use on same page
+                        await safeSetValue('smart_paste_cache', {
+                            text: cache.text,
+                            timestamp: Date.now()
+                        });
+                        registerVisibilityCleanup();
+                    }
                 }
                 hideUI();
             };
@@ -2522,6 +2548,11 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         pasteBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
         pasteBtn.onclick = async (e) => {
             e.stopPropagation();
+            if (pasteCache && pasteCache.type === 'clipboard') {
+                await performClipboardPaste(targetInput || document.activeElement, pasteCache);
+                hideUI();
+                return;
+            }
             if (isPanCode) {
                 performPaste(targetInput || document.activeElement, pasteCache.text, { panCode: true });
                 await safeSetValue('smart_paste_cache', { text: '', timestamp: 0 });
@@ -2738,6 +2769,35 @@ function handleKeydownHideUI(e) {
     hideUI();
 }
 
+// A normal Ctrl+C / context-menu copy outside the toolbar. Capture the text
+// synchronously from the selection and share it through the existing cache so
+// another tab can offer lightning paste without polling or clipboard reads.
+async function handleExternalCopy(e) {
+    if (!getConfig('enablePaste')) return;
+
+    let text = '';
+    const target = e.target;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        const start = target.selectionStart;
+        const end = target.selectionEnd;
+        if (typeof start === 'number' && typeof end === 'number' && start !== end) {
+            text = target.value.substring(start, end);
+        }
+    }
+    if (!text) {
+        const sel = window.getSelection();
+        text = sel ? sel.toString() : '';
+    }
+    if (!text) return;
+
+    unregisterVisibilityCleanup();
+    await safeSetValue('smart_paste_cache', {
+        text,
+        timestamp: Date.now(),
+        type: 'clipboard'
+    });
+}
+
 // Input paste mouseup handler
 function handleInputPasteMouseUp(e) {
     if (!getConfig('enablePaste')) return;
@@ -2747,7 +2807,7 @@ function handleInputPasteMouseUp(e) {
     setTimeout(async () => {
         // Read lightning paste cache
         const cache = await safeGetValue('smart_paste_cache', null);
-        if (!cache || !cache.text) return;
+        if (!cache || (!cache.text && cache.type !== 'clipboard')) return;
         if (Date.now() - cache.timestamp > getPasteTtlMs()) return;
 
         // Cloud drive extraction code cache (Chinese mode only): force single paste button (key icon)
@@ -2967,7 +3027,16 @@ function dispatchPasteEvent(target, text) {
 
 // Paste feedback. With previews enabled, include up to 10 characters of the
 // pasted text (quoted in the UI language); pan codes stay bold.
-function showPasteResultToast(text, panCode, compat = false) {
+function showPasteResultToast(text, panCode, compat = false, externalClipboard = false) {
+    if (externalClipboard) {
+        if (getConfig('showPastePreview')) {
+            showToast(t('toast_clipboard_pasted'));
+        } else {
+            showToast(t('toast_pasted'));
+        }
+        return;
+    }
+
     if (!getConfig('showPastePreview')) {
         showToast(
             compat
@@ -2995,10 +3064,43 @@ function showPasteResultToast(text, panCode, compat = false) {
     showToast(`${base}${separator}${open}${truncatePasteText(text, 10)}${close}`);
 }
 
+// Paste text copied outside the toolbar. If the copy event captured the text,
+// use it; otherwise ask the Clipboard API or the browser's native paste.
+async function performClipboardPaste(target, cache) {
+    if (!target) return false;
+    target.focus();
+
+    if (cache && cache.text) {
+        performPaste(target, cache.text, { externalClipboard: true });
+        return true;
+    }
+
+    try {
+        if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
+            const text = await navigator.clipboard.readText();
+            if (text) {
+                performPaste(target, text, { externalClipboard: true });
+                return true;
+            }
+        }
+    } catch (e) {}
+
+    try {
+        if (document.execCommand && document.execCommand('paste')) {
+            showPasteResultToast('', false, false, true);
+            return true;
+        }
+    } catch (e) {}
+
+    showToast(t('toast_paste_fail'));
+    return false;
+}
+
 // Core paste logic: synthetic paste first, then DOM/execCommand fallbacks.
 function performPaste(target, text, options = {}) {
     if (!target) return;
     const panCode = Boolean(options.panCode);
+    const externalClipboard = Boolean(options.externalClipboard);
     target.focus();
 
     // Strategy 1: emit the same event a real Ctrl+V would emit.
@@ -3006,7 +3108,7 @@ function performPaste(target, text, options = {}) {
     const pasteHandled = dispatchPasteEvent(target, text);
     const valueAfter = target.isContentEditable ? target.textContent : target.value;
     if (pasteHandled || valueAfter !== valueBefore) {
-        showPasteResultToast(text, panCode);
+        showPasteResultToast(text, panCode, false, externalClipboard);
         return;
     }
 
@@ -3014,7 +3116,7 @@ function performPaste(target, text, options = {}) {
     try {
         const success = document.execCommand('insertText', false, text);
         if (success) {
-            showPasteResultToast(text, panCode);
+            showPasteResultToast(text, panCode, false, externalClipboard);
             return;
         }
     } catch (e) {}
@@ -3055,7 +3157,7 @@ function performPaste(target, text, options = {}) {
             const newCursorPos = start + text.length;
             target.setSelectionRange(newCursorPos, newCursorPos);
         }
-        showPasteResultToast(text, panCode, true);
+        showPasteResultToast(text, panCode, true, externalClipboard);
     } catch (e) {
         showToast(t('toast_paste_fail'));
     }
@@ -3485,6 +3587,9 @@ function unregisterVisibilityCleanup() {
             window.addEventListener('scroll', handleResizeOrScroll, { passive: true });
             window.addEventListener('resize', handleResizeOrScroll, { passive: true });
             document.addEventListener('keydown', handleKeydownHideUI, true);
+            // Capture copies made outside the toolbar; registered before unlock
+            // mode's stopImmediatePropagation listener so it always sees them.
+            window.addEventListener('copy', handleExternalCopy, true);
 
             // 6. Drag preview event listeners (main window only)
             if (window.name !== PREVIEW_WIN_NAME) {
