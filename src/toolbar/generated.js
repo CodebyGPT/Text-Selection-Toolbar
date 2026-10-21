@@ -1277,6 +1277,12 @@ function getStyles() {
             padding: 10px;
             aspect-ratio: 1 / 1;
         }
+        /* A single capsule button with a text preview must grow into a pill,
+           not stay square like an icon-only button. */
+        .sc-container:not(.sc-col) .sc-btn.has-label {
+            padding: 10px 13.1415926px;
+            aspect-ratio: auto;
+        }
         /* Vertical menu: icon on the left, label on the right */
         .sc-container.sc-col .sc-btn {
             justify-content: flex-start;
@@ -2143,6 +2149,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         span.className = 'sc-btn-label';
         span.textContent = label;
         btn.appendChild(span);
+        btn.classList.add('has-label');
     };
 
     // Pending-lightning-paste preview beside the paste icon.
@@ -2152,6 +2159,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
 
         const span = document.createElement('span');
         span.className = 'sc-btn-label';
+        btn.classList.add('has-label');
 
         // Text copied outside the toolbar cannot be read back; show a generic
         // label instead of pretending we know the clipboard contents.
