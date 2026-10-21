@@ -72,26 +72,6 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
     }
     // Mode A: Default mode
     else if (mode === 'default' || mode === PASTE_MODE_THREE_BTNS) {
-        // 0. KISS translation button
-        if (getConfig('enableTranslate') !== false && typeof requestTranslation === 'function') {
-            const translateBtn = document.createElement('div');
-            translateBtn.className = 'sc-btn';
-            translateBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"></path><path d="m4 14 6-6 2-3"></path><path d="M2 5h12"></path><path d="M7 2h1"></path><path d="m22 22-5-10-5 10"></path><path d="M14 18h6"></path></svg>`;
-            translateBtn.title = t('btn_translate');
-            translateBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
-            translateBtn.onclick = (e) => {
-                e.stopPropagation();
-                const content = getConfig('enableCache') ? (cachedSelection.text || text) : text;
-                requestTranslation(content, rect);
-                setTimeout(hideUI, 50);
-            };
-            container.appendChild(translateBtn);
-
-            const translateDiv = document.createElement('div');
-            translateDiv.className = isCol ? 'divider divider-h' : 'divider divider-v';
-            container.appendChild(translateDiv);
-        }
-
         // 1. Copy button
         const copyBtn = document.createElement('div');
         copyBtn.className = 'sc-btn';
@@ -202,6 +182,28 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                 setTimeout(hideUI, 50);
             };
             container.appendChild(searchBtn);
+        }
+
+        // Translation has the lowest priority: it comes after copy and search.
+        // For CJK UI languages, hide it when the selection is mostly CJK
+        // already, so users are not offered a pointless translation.
+        if (getConfig('enableTranslate') !== false && !shouldHideTranslate(text) && typeof requestTranslation === 'function') {
+            const translateDiv = document.createElement('div');
+            translateDiv.className = isCol ? 'divider divider-h' : 'divider divider-v';
+            container.appendChild(translateDiv);
+
+            const translateBtn = document.createElement('div');
+            translateBtn.className = 'sc-btn';
+            translateBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"></path><path d="m4 14 6-6 2-3"></path><path d="M2 5h12"></path><path d="M7 2h1"></path><path d="m22 22-5-10-5 10"></path><path d="M14 18h6"></path></svg>`;
+            translateBtn.title = t('btn_translate');
+            translateBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+            translateBtn.onclick = (e) => {
+                e.stopPropagation();
+                const content = getConfig('enableCache') ? (cachedSelection.text || text) : text;
+                requestTranslation(content, rect);
+                setTimeout(hideUI, 50);
+            };
+            container.appendChild(translateBtn);
         }
 
         // @ button / chain button logic

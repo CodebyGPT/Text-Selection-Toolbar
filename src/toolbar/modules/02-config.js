@@ -18,6 +18,10 @@ const DEFAULT_CONFIG = {
     fallbackEngine: 'bing',   // fallback engine when text contains no Chinese
     enableDeleteBtn: true, // whether to show delete button
     enableTranslate: true, // show the KISS translate action
+    // Hide the translate button when the selected text is already in the
+    // current CJK language. Percent of CJK characters; 0 = any CJK char,
+    // 100 = always show. Only applies when the UI language is CJK.
+    translateCjkThreshold: 15,
     showBlockMenu: true,   // show the "hide page selection toolbar" menu entries
     showEditMenu: true,    // show the "edit page" menu entry
 };
@@ -27,6 +31,39 @@ const DEFAULT_CONFIG = {
 const isChineseUI = () => {
     const lang = configCache['language'] || 'auto';
     return lang === 'zh-CN' || (lang === 'auto' && String(navigator.language || '').startsWith('zh'));
+};
+
+// CJK script gate for the translate button. "auto" resolves against the
+// browser language, matching the rest of the toolbar's language behavior.
+const isCjkUI = () => {
+    const lang = configCache['language'] || 'auto';
+    const effective = lang === 'auto' ? String(navigator.language || '') : lang;
+    return /^(zh|ja|ko)/i.test(effective);
+};
+
+// Count CJK ideographs/kana/hangul, excluding punctuation and whitespace.
+const CJK_CHAR_RE = /[\u1100-\u11ff\u3040-\u30ff\u3130-\u318f\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff\uff66-\uff9f]|[\u{20000}-\u{2fa1f}]/u;
+
+const cjkCharRatio = (text) => {
+    const value = String(text || '');
+    if (!value) return 0;
+    let cjk = 0;
+    let total = 0;
+    for (const ch of value) {
+        total += 1;
+        if (CJK_CHAR_RE.test(ch)) cjk += 1;
+    }
+    return total ? cjk / total : 0;
+};
+
+const shouldHideTranslate = (text) => {
+    if (!isCjkUI()) return false;
+    const raw = getConfig('translateCjkThreshold');
+    let threshold = raw === '' || raw === null || raw === undefined ? 15 : Number(raw);
+    if (!Number.isFinite(threshold)) threshold = 15;
+    threshold = Math.min(100, Math.max(0, threshold));
+    // threshold 0 hides on any CJK char; 100 always shows.
+    return cjkCharRatio(text) > threshold / 100;
 };
 
 const SCROLL_REPAINT_MODE = {

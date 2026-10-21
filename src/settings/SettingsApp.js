@@ -1020,6 +1020,17 @@ function ToolbarTab({ setting, update }) {
             onChange={(v) => patch({ enableTranslate: v })}
           />
         </Row>
+        <Row
+          label="CJK 文本隐藏翻译阈值 (%)"
+          help="当前语言为中文/日文/韩文时，选中文本的 CJK 字符占比超过该值就隐藏翻译按钮；0=含任意 CJK 字符即隐藏，100=始终显示"
+        >
+          <NumberInput
+            value={value.translateCjkThreshold}
+            min={0}
+            max={100}
+            onChange={(v) => patch({ translateCjkThreshold: v })}
+          />
+        </Row>
         <Row label="选中即缓存">
           <Toggle
             value={value.enableCache}

@@ -94,6 +94,8 @@ const EN = {
   "日本語": "Japanese",
   "显示删除按钮": "Show delete button",
   "显示翻译按钮": "Show translate button",
+  "CJK 文本隐藏翻译阈值 (%)": "Hide translate button for CJK text (%)",
+  "当前语言为中文/日文/韩文时，选中文本的 CJK 字符占比超过该值就隐藏翻译按钮；0=含任意 CJK 字符即隐藏，100=始终显示": "When the interface language is Chinese, Japanese, or Korean, hide the translate button once the CJK character share of the selection exceeds this value; 0 = any CJK character hides it, 100 = always show",
   "显示顺序": "Display order",
   "极简样式": "Minimal style",
   "模糊译文": "Blur translation",
