@@ -9,6 +9,7 @@ const DEFAULT_CONFIG = {
     searchEngine: 'baidu', // key or custom url
     enableToast: true,
     enableCache: true,
+    enableHiddenLinks: false, // also collect links from selected <a href="...">
     unlockHotkey: 'ControlLeft',
     enablePaste: true,
     showPastePreview: false, // show the pending lightning-paste text

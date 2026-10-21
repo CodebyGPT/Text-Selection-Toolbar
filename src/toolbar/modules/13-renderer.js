@@ -23,6 +23,70 @@ function parseLinkDisplay(display) {
     };
 }
 
+// Resolve an <a href> into the same shape as a text-derived link.
+function resolveHrefLink(href) {
+    const raw = String(href || '').trim();
+    if (!raw || raw.startsWith('#')) return null;
+    try {
+        const resolved = new URL(raw, document.baseURI);
+        if (resolved.protocol !== 'http:' && resolved.protocol !== 'https:') return null;
+        const urls = extractUrlsFromText(resolved.href);
+        return urls.length > 0 ? { ...urls[0], fromHref: true } : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// Collect anchors intersecting the current selection. cloneContents catches
+// fully selected anchors; closest() catches anchors that only contain the
+// selection start/end and would otherwise be trimmed away.
+function collectHrefLinks() {
+    if (!getConfig('enableHiddenLinks')) return [];
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return [];
+
+    const range = selection.getRangeAt(0);
+    const hrefs = new Set();
+    const addAnchor = (anchor) => {
+        const href = anchor && anchor.getAttribute && anchor.getAttribute('href');
+        if (href) hrefs.add(href);
+    };
+
+    try {
+        range.cloneContents().querySelectorAll('a[href]').forEach(addAnchor);
+    } catch (e) {}
+    [range.startContainer, range.endContainer].forEach((node) => {
+        const el = node && (node.nodeType === 1 ? node : node.parentElement);
+        if (el && el.closest) addAnchor(el.closest('a[href]'));
+    });
+
+    const seen = new Set();
+    const links = [];
+    hrefs.forEach((href) => {
+        const link = resolveHrefLink(href);
+        if (link && !seen.has(link.url)) {
+            seen.add(link.url);
+            links.push(link);
+        }
+    });
+    return links;
+}
+
+function mergeHiddenLinks(linkData, hiddenLinks) {
+    const urls = linkData && Array.isArray(linkData.urls) ? linkData.urls.slice() : [];
+    const seen = new Set(urls.map((url) => url.url));
+    hiddenLinks.forEach((link) => {
+        if (!link || seen.has(link.url)) return;
+        seen.add(link.url);
+        urls.push(link);
+    });
+    if (urls.length === 0) return null;
+    return {
+        urls,
+        password: linkData ? linkData.password : null
+    };
+}
+
 // Secondary menu for 2-12 links. It always uses the vertical rounded list
 // look, even when the toolbar itself is the horizontal capsule.
 function showLinkMenu(urls, anchorRect) {
@@ -59,6 +123,7 @@ function showLinkMenu(urls, anchorRect) {
 
         const label = document.createElement('span');
         label.className = 'sc-link-url';
+        if (url.fromHref) label.classList.add('sc-link-from-href');
         const { domain, rest } = parseLinkDisplay(url.display || url.url);
 
         const domainEl = document.createElement('strong');
@@ -421,10 +486,13 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                 // 2. Detect URLs (supports multiple links)
                 // Chinese mode enables cloud drive extraction code; non-Chinese mode extracts plain URLs only
                 const isChineseForLink = isChineseUI();
-                const linkData = isChineseForLink ? extractLinkAndCode(text) : (() => {
+                let linkData = isChineseForLink ? extractLinkAndCode(text) : (() => {
                     const urls = extractUrlsFromText(text);
                     return urls.length > 0 ? { urls, password: null } : null;
                 })();
+                if (getConfig('enableHiddenLinks')) {
+                    linkData = mergeHiddenLinks(linkData, collectHrefLinks());
+                }
                 if (linkData && linkData.urls && linkData.urls.length > 0 && linkData.urls.length <= LINK_MENU_MAX) {
                     const div = document.createElement('div');
                     div.className = isCol ? 'divider divider-h' : 'divider divider-v';

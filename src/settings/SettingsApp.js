@@ -1052,6 +1052,12 @@ function ToolbarTab({ setting, update }) {
             onChange={(v) => patch({ enableCache: v })}
           />
         </Row>
+        <Row label="识别不可见超链接">
+          <Toggle
+            value={value.enableHiddenLinks}
+            onChange={(v) => patch({ enableHiddenLinks: v })}
+          />
+        </Row>
         <Row label="闪电粘贴">
           <Toggle
             value={value.enablePaste}

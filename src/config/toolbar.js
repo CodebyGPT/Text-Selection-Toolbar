@@ -13,6 +13,7 @@ export const DEFAULT_TOOLBAR_SETTING = {
   searchEngine: "baidu",
   enableToast: true,
   enableCache: true,
+  enableHiddenLinks: false,
   unlockHotkey: "ControlLeft",
   enablePaste: true,
   showPastePreview: false,

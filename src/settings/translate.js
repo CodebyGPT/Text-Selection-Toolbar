@@ -163,6 +163,7 @@ const EN = {
   "跳过广告": "Skip ads",
   "输入框翻译": "Input-box translation",
   "选中即缓存": "Cache on selection",
+  "识别不可见超链接": "Detect hidden hyperlinks",
   "选区字符末尾": "End of selection",
   "逗号分隔，如 xyz, shop": "Comma separated, e.g. xyz, shop",
   "通用": "General",

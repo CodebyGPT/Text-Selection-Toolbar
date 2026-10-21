@@ -159,6 +159,10 @@ function getStyles() {
         .sc-link-url strong {
             font-weight: 700;
         }
+        .sc-link-url.sc-link-from-href {
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
         .sc-btn:hover {
             background: rgba(255, 255, 255, 0.3);
             transform: scale(1.03);
