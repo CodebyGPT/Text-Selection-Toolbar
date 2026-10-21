@@ -683,8 +683,6 @@ const isUrlSafeChar = (ch) => {
     return code < 128 && /^[a-zA-Z0-9._~:/?#[\]@!$&'()*+,;=%-]$/.test(ch);
 };
 
-const isChineseChar = (ch) => /[\u4e00-\u9fa5]/.test(ch);
-
 // Clean non-URL characters from the end of a URL
 function trimUrlTail(url) {
     url = url.replace(/[,.。;:!?！？、]+$/, '');
@@ -703,36 +701,14 @@ function trimUrlTail(url) {
     return url;
 }
 
-// Scan URL path from startPos in text, return path end position
-// Key rule: stop scanning on Chinese characters; backtrack '(' before Chinese
+// Scan the URL path until the first character that cannot belong to a URL.
+// CJK text is non-ASCII, so it stops the scan automatically; trimUrlTail then
+// removes the dangling "(" left behind by "(访问码:...)".
 function scanUrlPath(text, startPos) {
     let urlEnd = startPos;
-    let sawChinese = false;
-
-    for (let i = startPos; i < text.length; i++) {
-        const ch = text[i];
-
-        if (isChineseChar(ch)) {
-            sawChinese = true;
-            const collected = text.substring(startPos, urlEnd);
-            if (collected.endsWith('(:') || collected.endsWith('(')) {
-                while (urlEnd > startPos && text[urlEnd - 1] !== '(') {
-                    urlEnd--;
-                }
-                urlEnd--;
-            }
-            continue;
-        }
-
-        if (sawChinese) break;
-
-        if (isUrlSafeChar(ch)) {
-            urlEnd = i + 1;
-        } else {
-            break;
-        }
+    while (urlEnd < text.length && isUrlSafeChar(text[urlEnd])) {
+        urlEnd++;
     }
-
     return urlEnd;
 }
 
@@ -809,13 +785,14 @@ function extractUrlsFromText(text) {
         if (!anchor.hasProto && !isKnownHost(finalHost)) continue;
         if (!anchor.hasProto && !finalHost.includes('.')) continue;
 
-        const fullUrl = url.startsWith('http') ? url : 'http://' + url;
+        const fullUrl = /^https?:\/\//i.test(url) ? url : 'http://' + url;
 
         results.push({
             display: url,
             url: fullUrl,
             host: finalHost,
-            anchorStart: anchor.start  // Keep anchor position in original text for password assignment
+            anchorStart: anchor.start,  // Keep anchor position in original text for password assignment
+            end: pathEnd                // Full URL range, used to avoid reading codes out of the URL
         });
 
         // Mark covered range for subsequent anchor dedup
@@ -825,67 +802,118 @@ function extractUrlsFromText(text) {
     return results;
 }
 
-// Extract all passwords with their positions in the original text
-function extractAllCodesWithPositions(rawText) {
+// Labels that announce a share code. "验证码" is intentionally absent: it is
+// not a cloud-drive password and the old generic "码" pattern picked it up.
+const CODE_LABEL_PATTERN = '(?<![a-zA-Z])(?:提取码|提取密碼|密码|密碼|訪問碼|访问码|分享码|分享碼|口令|password|code|pwd|key|pw|pass)(?![a-zA-Z])';
+const CODE_SEPARATOR_PATTERN = '\\s*(?:[:：=＝]|为|是)?\\s*';
+const LABELED_CODE_PATTERN = new RegExp(
+    CODE_LABEL_PATTERN + CODE_SEPARATOR_PATTERN + '([a-zA-Z0-9]{3,8})(?![a-zA-Z0-9])',
+    'gi'
+);
+const PAREN_CODE_PATTERN = /[\(（]\s*([a-zA-Z0-9]{3,8})\s*[\)）]/gi;
+
+// Extract codes with their positions. URL ranges are excluded so a path like
+// "https://example.com/(foo)" is not mistaken for a bare "(foo)" code.
+function extractCodesWithPositions(rawText, urlRanges = []) {
     const results = [];
-    const codePatterns = [
-        /(?:提取码|提取密碼|密码|訪問碼|访问码|分享码|口令|code|pwd|key|pw|pass)\s*[:：\s]+\s*([a-zA-Z0-9]{3,8})(?![a-zA-Z0-9])/gi,
-        /(?:提取码|提取密碼|密码|訪問碼|访问码|分享码|口令|code|pwd|key|pw|pass)[:：]([a-zA-Z0-9]{3,8})(?![a-zA-Z0-9])/gi,
-        /码\s*[:：\s]*([a-zA-Z0-9]{3,8})(?![a-zA-Z0-9])/gi,
-        /\([:：\s]*([a-zA-Z0-9]{3,8})\s*\)/gi,
-    ];
-    const seen = new Set(); // Dedup: same position + same code recorded once
-    for (const pat of codePatterns) {
-        let m;
-        while ((m = pat.exec(rawText)) !== null) {
-            const key = m.index + '|' + m[1];
-            if (!seen.has(key)) {
-                seen.add(key);
-                results.push({ code: m[1], index: m.index });
-            }
+    const labeledRanges = [];
+    let m;
+
+    LABELED_CODE_PATTERN.lastIndex = 0;
+    while ((m = LABELED_CODE_PATTERN.exec(rawText)) !== null) {
+        const code = m[1];
+        results.push({
+            code,
+            index: m.index + m[0].length - code.length,
+            labeled: true
+        });
+        labeledRanges.push([m.index, m.index + m[0].length]);
+    }
+
+    // Bare "(cpn0)" is a common fallback, but only in text that actually
+    // contains a link, and never inside that link.
+    if (urlRanges.length > 0) {
+        PAREN_CODE_PATTERN.lastIndex = 0;
+        while ((m = PAREN_CODE_PATTERN.exec(rawText)) !== null) {
+            const start = m.index;
+            const end = start + m[0].length;
+            const inUrl = urlRanges.some(([s, e]) => start < e && end > s);
+            const alreadyLabeled = labeledRanges.some(([s, e]) => start < e && end > s);
+            if (inUrl || alreadyLabeled) continue;
+            results.push({
+                code: m[1],
+                index: start + m[0].lastIndexOf(m[1]),
+                labeled: false
+            });
         }
     }
+
     results.sort((a, b) => a.index - b.index);
     return results;
+}
+
+// Associate each URL with one code. A code normally follows its link; the
+// second pass also accepts "提取码: xxxx 链接: ..." (code before the link).
+function assignCodesToUrls(urls, codes, textLength) {
+    const used = new Set();
+
+    for (let i = 0; i < urls.length; i++) {
+        const start = urls[i].anchorStart;
+        const next = i + 1 < urls.length ? urls[i + 1].anchorStart : textLength;
+        const found = codes.findIndex((c, idx) => !used.has(idx) && c.index >= start && c.index < next);
+        if (found !== -1) {
+            urls[i].code = codes[found].code;
+            used.add(found);
+        }
+    }
+
+    for (let i = 0; i < urls.length; i++) {
+        if (urls[i].code) continue;
+        const start = urls[i].anchorStart;
+        const prevEnd = i > 0 ? urls[i - 1].end : 0;
+        let best = -1;
+        let bestDistance = 80;
+        codes.forEach((c, idx) => {
+            if (used.has(idx) || c.index < prevEnd || c.index > start) return;
+            const distance = start - c.index;
+            if (distance < bestDistance) {
+                best = idx;
+                bestDistance = distance;
+            }
+        });
+        if (best !== -1) {
+            urls[i].code = codes[best].code;
+            used.add(best);
+        }
+    }
 }
 
 // Smart link and password extractor
 function extractLinkAndCode(rawText) {
     if (!rawText) return null;
 
-    // ---- Stage 1: Extract all passwords with positions ----
-    const allCodes = extractAllCodesWithPositions(rawText);
-    const password = allCodes.length > 0 ? allCodes[0].code : null;
-
-    // ---- Stage 2: Extract URLs (dual strategy) ----
-    let urls = extractUrlsFromText(rawText);
-
+    const urls = extractUrlsFromText(rawText);
     if (urls.length === 0) {
+        // Last-resort fallback for text where Chinese characters split a URL.
+        // Positions no longer map back to rawText, so skip code association.
         const cleanText = rawText
             .replace(/[\u4e00-\u9fa5]+/g, '')
             .replace(/\s+/g, '');
-        urls = extractUrlsFromText(cleanText);
+        const cleanedUrls = extractUrlsFromText(cleanText);
+        if (cleanedUrls.length === 0) return null;
+        return { urls: cleanedUrls, password: null };
     }
 
-    if (urls.length === 0 && !password) return null;
-
-    // ---- Stage 3: Assign nearest password to each URL (use anchor position directly, no re-search on host) ----
-    for (let i = 0; i < urls.length; i++) {
-        const urlStart = urls[i].anchorStart;
-        if (urlStart === undefined) continue;
-        // This URL's range in the original text: [urlStart, nextUrlStart)
-        const nextUrlStart = (i + 1 < urls.length && urls[i + 1].anchorStart !== undefined)
-            ? urls[i + 1].anchorStart
-            : rawText.length;
-        const matched = allCodes.filter(c => c.index >= urlStart && c.index < nextUrlStart);
-        if (matched.length > 0) {
-            urls[i].code = matched[0].code;
-        }
-    }
+    const allCodes = extractCodesWithPositions(
+        rawText,
+        urls.map((u) => [u.anchorStart, u.end])
+    );
+    assignCodesToUrls(urls, allCodes, rawText.length);
 
     return {
-        urls: urls,
-        password: password
+        urls,
+        // Only a code associated with a URL may drive the key-icon paste button.
+        password: urls.find((u) => u.code)?.code || null
     };
 }
 
