@@ -41,6 +41,7 @@ const DEFAULT_CONFIG = {
     enableCache: true,
     unlockHotkey: 'ControlLeft',
     enablePaste: true,
+    pasteTtl: 8, // seconds, 3-30; anything else falls back to the default
 
     enableDragPreview: false,
     scrollRepaintMode: 'always',
@@ -177,6 +178,21 @@ let configCache = { ...DEFAULT_CONFIG };
 const getConfig = (key) => {
     return configCache[key];
 };
+
+// Keep an old or hand-edited setting from making the lightning-paste button
+// live forever. The settings UI uses the same bounds.
+const PASTE_TTL_DEFAULT = 8;
+const PASTE_TTL_MIN = 3;
+const PASTE_TTL_MAX = 30;
+
+const normalizePasteTtl = (value) => {
+    const seconds = Number(value);
+    return Number.isInteger(seconds) && seconds >= PASTE_TTL_MIN && seconds <= PASTE_TTL_MAX
+        ? seconds
+        : PASTE_TTL_DEFAULT;
+};
+
+const getPasteTtlMs = () => normalizePasteTtl(getConfig('pasteTtl')) * 1000;
 
 // Async write (update memory + persist to storage)
 const setConfig = async (key, val) => {
@@ -2471,7 +2487,7 @@ function handleSelectionMouseUp(e) {
             cache = await safeGetValue('smart_paste_cache', null);
         }
         const isChineseEnv = isChineseUI();
-        const cacheValid = cache && cache.text && (Date.now() - cache.timestamp < 8000) && !(isChineseEnv && cache.type === 'pan_code');
+        const cacheValid = cache && cache.text && (Date.now() - cache.timestamp < getPasteTtlMs()) && !(isChineseEnv && cache.type === 'pan_code');
         const target = document.activeElement;
         const isInput = target && (
             (['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.disabled && !target.readOnly) ||
@@ -2553,7 +2569,7 @@ function handleInputPasteMouseUp(e) {
         // Read lightning paste cache
         const cache = await safeGetValue('smart_paste_cache', null);
         if (!cache || !cache.text) return;
-        if (Date.now() - cache.timestamp > 8000) return;
+        if (Date.now() - cache.timestamp > getPasteTtlMs()) return;
 
         // Cloud drive extraction code cache (Chinese mode only): force single paste button (key icon)
         const isChineseEnv = isChineseUI();

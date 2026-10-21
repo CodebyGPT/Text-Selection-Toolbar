@@ -33,7 +33,7 @@ function handleSelectionMouseUp(e) {
             cache = await safeGetValue('smart_paste_cache', null);
         }
         const isChineseEnv = isChineseUI();
-        const cacheValid = cache && cache.text && (Date.now() - cache.timestamp < 8000) && !(isChineseEnv && cache.type === 'pan_code');
+        const cacheValid = cache && cache.text && (Date.now() - cache.timestamp < getPasteTtlMs()) && !(isChineseEnv && cache.type === 'pan_code');
         const target = document.activeElement;
         const isInput = target && (
             (['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.disabled && !target.readOnly) ||
@@ -115,7 +115,7 @@ function handleInputPasteMouseUp(e) {
         // Read lightning paste cache
         const cache = await safeGetValue('smart_paste_cache', null);
         if (!cache || !cache.text) return;
-        if (Date.now() - cache.timestamp > 8000) return;
+        if (Date.now() - cache.timestamp > getPasteTtlMs()) return;
 
         // Cloud drive extraction code cache (Chinese mode only): force single paste button (key icon)
         const isChineseEnv = isChineseUI();

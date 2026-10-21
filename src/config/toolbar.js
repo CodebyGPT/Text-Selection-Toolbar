@@ -1,5 +1,9 @@
 // Canonical defaults for the ported Text Selection Toolbar.
 // Keep in sync with src/toolbar/modules/02-config.js.
+export const PASTE_TTL_DEFAULT = 8;
+export const PASTE_TTL_MIN = 3;
+export const PASTE_TTL_MAX = 30;
+
 export const DEFAULT_TOOLBAR_SETTING = {
   language: "auto",
   offset: 12,
@@ -11,6 +15,7 @@ export const DEFAULT_TOOLBAR_SETTING = {
   enableCache: true,
   unlockHotkey: "ControlLeft",
   enablePaste: true,
+  pasteTtl: PASTE_TTL_DEFAULT,
   enableDragPreview: false,
   scrollRepaintMode: "always",
   smartEngine: false,

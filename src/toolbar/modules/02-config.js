@@ -11,6 +11,7 @@ const DEFAULT_CONFIG = {
     enableCache: true,
     unlockHotkey: 'ControlLeft',
     enablePaste: true,
+    pasteTtl: 8, // seconds, 3-30; anything else falls back to the default
 
     enableDragPreview: false,
     scrollRepaintMode: 'always',
@@ -147,6 +148,21 @@ let configCache = { ...DEFAULT_CONFIG };
 const getConfig = (key) => {
     return configCache[key];
 };
+
+// Keep an old or hand-edited setting from making the lightning-paste button
+// live forever. The settings UI uses the same bounds.
+const PASTE_TTL_DEFAULT = 8;
+const PASTE_TTL_MIN = 3;
+const PASTE_TTL_MAX = 30;
+
+const normalizePasteTtl = (value) => {
+    const seconds = Number(value);
+    return Number.isInteger(seconds) && seconds >= PASTE_TTL_MIN && seconds <= PASTE_TTL_MAX
+        ? seconds
+        : PASTE_TTL_DEFAULT;
+};
+
+const getPasteTtlMs = () => normalizePasteTtl(getConfig('pasteTtl')) * 1000;
 
 // Async write (update memory + persist to storage)
 const setConfig = async (key, val) => {

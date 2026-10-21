@@ -47,6 +47,9 @@ import {
 import {
   DEFAULT_TOOLBAR_SETTING,
   TOOLBAR_SEARCH_ENGINES,
+  PASTE_TTL_DEFAULT,
+  PASTE_TTL_MIN,
+  PASTE_TTL_MAX,
 } from "../config/toolbar";
 import { translateDom } from "./translate";
 
@@ -144,7 +147,7 @@ function TextInput({
   );
 }
 
-function NumberInput({ value, onChange, min, max, placeholder, disabled }) {
+function NumberInput({ value, onChange, onBlur, min, max, placeholder, disabled }) {
   return (
     <input
       className="kiss-st-input kiss-st-number"
@@ -157,6 +160,7 @@ function NumberInput({ value, onChange, min, max, placeholder, disabled }) {
       onChange={(event) =>
         onChange(event.target.value === "" ? "" : Number(event.target.value))
       }
+      onBlur={(event) => onBlur?.(event.target.value)}
     />
   );
 }
@@ -1046,6 +1050,30 @@ function ToolbarTab({ setting, update }) {
           <Toggle
             value={value.enablePaste}
             onChange={(v) => patch({ enablePaste: v })}
+          />
+        </Row>
+        <Row
+          label="闪电粘贴有效期 (s)"
+          help="3–30 秒，默认 8 秒；超出范围会自动恢复默认值"
+        >
+          <NumberInput
+            value={value.pasteTtl ?? PASTE_TTL_DEFAULT}
+            min={PASTE_TTL_MIN}
+            max={PASTE_TTL_MAX}
+            placeholder="3-30"
+            disabled={value.enablePaste === false}
+            onChange={(v) => patch({ pasteTtl: v })}
+            onBlur={(raw) => {
+              const seconds = Number(raw);
+              patch({
+                pasteTtl:
+                  Number.isInteger(seconds) &&
+                  seconds >= PASTE_TTL_MIN &&
+                  seconds <= PASTE_TTL_MAX
+                    ? seconds
+                    : PASTE_TTL_DEFAULT,
+              });
+            }}
           />
         </Row>
         <Row label="操作反馈">
