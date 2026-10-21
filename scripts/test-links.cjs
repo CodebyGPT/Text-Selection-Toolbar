@@ -80,6 +80,67 @@ for (const { text, display, code } of shareCases) {
   }
 }
 
+// Links broken by CJK/zero-width characters must be de-obfuscated, but real
+// separators and password labels must not be swallowed into the URL.
+const obfuscatedCases = [
+  {
+    text: "htt删ps:/掉/www这.baid几u.co汉m/s",
+    displays: ["https://www.baidu.com/s"],
+    code: undefined,
+  },
+  {
+    text: "htt删ps:/掉/pa这n.bai几du.co汉m/s/1abc 提取码: x3k9",
+    displays: ["https://pan.baidu.com/s/1abc"],
+    code: "x3k9",
+  },
+  {
+    text: "www.baid几u.co汉m/s",
+    displays: ["www.baidu.com/s"],
+    code: undefined,
+  },
+  {
+    text: "https://pan.baidu.com/s/1ab删c",
+    displays: ["https://pan.baidu.com/s/1abc"],
+    code: undefined,
+  },
+  {
+    text: "https://www.baid删u.com",
+    displays: ["https://www.baidu.com"],
+    code: undefined,
+  },
+  {
+    text: "https://a.com中文www.b.com",
+    displays: ["https://a.com", "www.b.com"],
+    code: undefined,
+  },
+  {
+    text: "https://cloud.189.cn/t/3yqYreieuUFv访问码:cpn0",
+    displays: ["https://cloud.189.cn/t/3yqYreieuUFv"],
+    code: "cpn0",
+  },
+  {
+    text: "https://a.com和https://b.com",
+    displays: ["https://a.com", "https://b.com"],
+    code: undefined,
+  },
+  {
+    text: "https://a.com保存.com",
+    displays: ["https://a.com"],
+    code: undefined,
+  },
+];
+
+for (const { text, displays, code } of obfuscatedCases) {
+  const got = extractLinkAndCode(text);
+  const gotDisplays = got?.urls?.map((url) => url.display) || [];
+  if (JSON.stringify(gotDisplays) !== JSON.stringify(displays) || got?.urls?.[0]?.code !== code) {
+    failed++;
+    console.error(
+      `FAIL obfuscated text ${JSON.stringify(text)}: got ${JSON.stringify(got)}`
+    );
+  }
+}
+
 // Explicit scheme is case-insensitive; it must not become "http://HTTPS://...".
 const upper = extractUrlsFromText(
   "HTTPS://WWW.ALIYUNDRIVE.COM/S/RXUP6HNPWP8 点击"
@@ -106,7 +167,7 @@ for (const text of falseCodes) {
 
 console.log(
   failed === 0
-    ? `ok (${cases.length + shareCases.length + falseCodes.length + 2} checks)`
+    ? `ok (${cases.length + shareCases.length + obfuscatedCases.length + falseCodes.length + 2} checks)`
     : `${failed} failed`
 );
 process.exit(failed === 0 ? 0 : 1);

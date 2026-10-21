@@ -719,8 +719,8 @@ const PROTO_ANCHOR_PATTERN = /https?:\/\/(?:[a-zA-Z0-9-]+\.)*[a-zA-Z0-9-]+(?::\d
 // plus bare IPv4 hosts, which browsers also open directly.
 const DOMAIN_ANCHOR_PATTERN = /(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}|\d{1,3}(?:\.\d{1,3}){3}/gi;
 
-// Extract all URLs from text
-function extractUrlsFromText(text) {
+// Extract all URLs from text without attempting de-obfuscation
+function extractPlainUrlsFromText(text) {
     const results = [];
 
     // Collect all anchors (proto + proto-less)
@@ -791,6 +791,7 @@ function extractUrlsFromText(text) {
             display: url,
             url: fullUrl,
             host: finalHost,
+            hasProto: anchor.hasProto,
             anchorStart: anchor.start,  // Keep anchor position in original text for password assignment
             end: pathEnd                // Full URL range, used to avoid reading codes out of the URL
         });
@@ -802,9 +803,157 @@ function extractUrlsFromText(text) {
     return results;
 }
 
+// Characters used to break a link without changing its readable meaning:
+// CJK scripts and zero-width format characters. ASCII whitespace is kept so
+// two adjacent links do not collapse into one.
+const INTERFERENCE_PATTERN = /[\u200b-\u200f\u2060\ufeff\u3400-\u4dbf\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]/;
+
+// Used by the de-obfuscation merge to avoid gluing a password label onto a URL.
+const CN_CODE_LABELS = '提取码|提取密碼|密码|密碼|訪問碼|访问码|分享码|分享碼|口令';
+const EN_CODE_LABELS = 'password|code|pwd|key|pw|pass';
+const CODE_LABELS = `${CN_CODE_LABELS}|${EN_CODE_LABELS}`;
+const CODE_LABEL_START_PATTERN = new RegExp(
+    `(?:${CODE_LABELS})\\s*(?:[:：=＝]|为|是)?\\s*[a-zA-Z0-9]{3,8}`,
+    'i'
+);
+
+function stripInterference(text) {
+    let compact = '';
+    const map = [];
+    for (let i = 0; i < text.length; i++) {
+        if (INTERFERENCE_PATTERN.test(text[i])) continue;
+        compact += text[i];
+        map.push(i);
+    }
+    return { compact, map };
+}
+
+// The compact text has fewer characters than the page text, so map URLs back
+// to original positions for password association and deduplication.
+function mapCompactRange(url, map, textLength) {
+    const start = map[url.anchorStart];
+    if (start === undefined) return null;
+    const last = url.end > url.anchorStart ? url.end - 1 : url.anchorStart;
+    return {
+        ...url,
+        anchorStart: start,
+        end: last < map.length ? map[last] + 1 : textLength
+    };
+}
+
+// A compact URL can swallow two real links if only CJK separated them.
+// Split at a later explicit scheme or a scheme-less "www." so they stay two
+// buttons.
+function splitCompactUrl(url) {
+    const parts = url.display.split(/(?=https?:\/\/|(?<=[a-zA-Z0-9])www\.)/i);
+    if (parts.length <= 1) return [url];
+
+    let offset = 0;
+    return parts
+        .filter(Boolean)
+        .map((part) => {
+            const start = url.anchorStart + offset;
+            offset += part.length;
+            const hasProto = /^https?:\/\//i.test(part);
+            return {
+                ...url,
+                display: part,
+                url: hasProto ? part : 'http://' + part,
+                host: normalizeHost(part.replace(/^https?:\/\//i, '').split(/[/?#]/)[0]),
+                hasProto,
+                anchorStart: start,
+                end: start + part.length
+            };
+        });
+}
+
+function mergeUrls(direct, deobfuscated, text) {
+    const coveredDirect = new Set();
+    const merged = [];
+
+    for (const candidate of deobfuscated) {
+        const covered = [];
+        direct.forEach((url, index) => {
+            if (url.anchorStart >= candidate.anchorStart && url.end <= candidate.end) {
+                covered.push(index);
+            }
+        });
+
+        // One compact URL replacing a fragment with a different host is
+        // de-obfuscation. The replacement must start before the direct
+        // fragment so trailing prose cannot turn "a.com保存.com" into
+        // "a.com.com".
+        if (covered.length === 1) {
+            const directUrl = direct[covered[0]];
+            if (directUrl.host !== candidate.host) {
+                const directHostIsIncomplete = !isKnownHost(directUrl.host);
+                if (candidate.anchorStart < directUrl.anchorStart || directHostIsIncomplete) {
+                    coveredDirect.add(covered[0]);
+                    merged.push(candidate);
+                }
+                continue;
+            }
+
+            // Same host: only extend the path through interference characters,
+            // and never swallow a following password label.
+            const nextChar = text[directUrl.end] || '';
+            const extension = text.slice(directUrl.end, candidate.end);
+            if (
+                candidate.end > directUrl.end &&
+                INTERFERENCE_PATTERN.test(nextChar) &&
+                !CODE_LABEL_START_PATTERN.test(extension)
+            ) {
+                coveredDirect.add(covered[0]);
+                merged.push(candidate);
+            }
+            continue;
+        }
+        // Two full explicit links separated only by CJK are real separate
+        // links. One explicit link plus scheme-less fragments is one link
+        // split by interference (e.g. "https://www.baid删u.com").
+        if (covered.length > 1) {
+            const explicitCount = covered.filter((index) => direct[index].hasProto).length;
+            if (explicitCount <= 1 && candidate.hasProto) {
+                covered.forEach((index) => coveredDirect.add(index));
+                merged.push(candidate);
+            }
+            continue;
+        }
+        if (direct.some((url) => url.anchorStart <= candidate.anchorStart && url.end >= candidate.end)) {
+            continue; // direct result is already the more complete one
+        }
+        // Standalone explicit-scheme links are safe to add; scheme-less compact
+        // hits are too easy to create from ordinary prose.
+        if (direct.length === 0 || candidate.hasProto) merged.push(candidate);
+    }
+
+    direct.forEach((url, index) => {
+        if (!coveredDirect.has(index)) merged.push(url);
+    });
+    merged.sort((a, b) => a.anchorStart - b.anchorStart);
+    return merged;
+}
+
+// Extract URLs, retrying after removing characters used to break a link
+// (e.g. "htt删ps:/掉/www.baidu.com"). Compact hits are merged only when they
+// repair a fragment, so ordinary Chinese prose cannot invent extra links.
+function extractUrlsFromText(text) {
+    const direct = extractPlainUrlsFromText(text);
+    if (!text || !INTERFERENCE_PATTERN.test(text)) return direct;
+
+    const { compact, map } = stripInterference(text);
+    if (!compact || compact === text) return direct;
+
+    const compactUrls = extractPlainUrlsFromText(compact)
+        .flatMap(splitCompactUrl)
+        .map((url) => mapCompactRange(url, map, text.length))
+        .filter(Boolean);
+    return mergeUrls(direct, compactUrls, text);
+}
+
 // Labels that announce a share code. "验证码" is intentionally absent: it is
 // not a cloud-drive password and the old generic "码" pattern picked it up.
-const CODE_LABEL_PATTERN = '(?<![a-zA-Z])(?:提取码|提取密碼|密码|密碼|訪問碼|访问码|分享码|分享碼|口令|password|code|pwd|key|pw|pass)(?![a-zA-Z])';
+const CODE_LABEL_PATTERN = `(?:${CN_CODE_LABELS}|(?<![a-zA-Z])(?:${EN_CODE_LABELS})(?![a-zA-Z]))`;
 const CODE_SEPARATOR_PATTERN = '\\s*(?:[:：=＝]|为|是)?\\s*';
 const LABELED_CODE_PATTERN = new RegExp(
     CODE_LABEL_PATTERN + CODE_SEPARATOR_PATTERN + '([a-zA-Z0-9]{3,8})(?![a-zA-Z0-9])',
