@@ -77,6 +77,12 @@ function unregisterVisibilityCleanup() {
             // mode's stopImmediatePropagation listener so it always sees them.
             window.addEventListener('copy', handleExternalCopy, true);
 
+            // Copy button for <pre><code> blocks follows the hover target.
+            document.addEventListener('mouseover', handleCodeCopyHover, true);
+            window.addEventListener('scroll', hideCodeCopyButton, { passive: true, capture: true });
+            window.addEventListener('resize', hideCodeCopyButton, { passive: true });
+            window.addEventListener('blur', hideCodeCopyButton);
+
             // 6. Drag preview event listeners (main window only)
             if (window.name !== PREVIEW_WIN_NAME) {
                 document.addEventListener('dragstart', handleLinkDragStart, false);
