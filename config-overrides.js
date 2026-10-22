@@ -19,11 +19,15 @@ const userscriptWebpack = (config, env) => {
 
   const banner = `// ==UserScript==
 // @name          ${process.env.REACT_APP_NAME}
+// @name:en       ${process.env.REACT_APP_NAME}
 // @name:zh-CN    ${process.env.REACT_APP_NAME_CN}
+// @name:ru       Панель выделения текста
 // @namespace     https://github.com/CodebyGPT/Text_Selection_Toolbar
 // @version       ${process.env.REACT_APP_VERSION}
 // @description   A text selection toolbar with translation.
+// @description:en A text selection toolbar with translation.
 // @description:zh-CN 为浏览器增加一个带翻译功能的划词工具栏。
+// @description:ru Панель инструментов для выделения текста с переводом.
 // @author        CodebyGPT
 // @homepageURL   https://github.com/CodebyGPT/Text_Selection_Toolbar
 // @supportURL    https://github.com/CodebyGPT/Text_Selection_Toolbar/issues
