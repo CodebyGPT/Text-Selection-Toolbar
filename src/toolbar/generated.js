@@ -4356,10 +4356,13 @@ const CODE_COPY_ANCHOR_GAP = 6;
 let codeCopyButton = null;
 let codeCopyTarget = null;
 
-// pre:has(code) without relying on :has() support.
+// Any <pre> with text: some highlighters (cnblogs/hljs) render spans straight
+// into the <pre> and drop the <code> wrapper, so requiring `pre code` misses
+// them. Line-number helpers are empty elements drawn by CSS and do not pollute
+// textContent.
 function findCodeBlock(target) {
     const pre = target?.closest?.('pre');
-    if (!pre || !pre.querySelector('code')) return null;
+    if (!pre || !String(pre.textContent || '').trim()) return null;
     return pre;
 }
 

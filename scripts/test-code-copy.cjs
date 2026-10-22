@@ -50,22 +50,26 @@ const rect = (left, top, width, height) => ({
   bottom: top + height,
 });
 
-// Only <pre> elements containing <code> are copy candidates.
+// Any <pre> with text is a copy candidate, with or without a <code> wrapper
+// (cnblogs/hljs renders spans directly into the <pre>).
 {
   const { api } = makeSandbox();
-  const code = { tagName: "CODE" };
-  const pre = {
-    tagName: "PRE",
-    querySelector: (selector) => (selector === "code" ? code : null),
-  };
+  const pre = { tagName: "PRE", textContent: "module UART_recv;" };
   const target = { closest: (selector) => (selector === "pre" ? pre : null) };
   assert.strictEqual(api.findCodeBlock(target), pre);
 
-  const plainPre = { tagName: "PRE", querySelector: () => null };
+  const codePre = {
+    tagName: "PRE",
+    textContent: "const x = 1;",
+    querySelector: () => ({ textContent: "const x = 1;" }),
+  };
   assert.strictEqual(
-    api.findCodeBlock({ closest: () => plainPre }),
-    null
+    api.findCodeBlock({ closest: () => codePre }),
+    codePre
   );
+
+  const emptyPre = { tagName: "PRE", textContent: "  \n " };
+  assert.strictEqual(api.findCodeBlock({ closest: () => emptyPre }), null);
   assert.strictEqual(api.findCodeBlock({ closest: () => null }), null);
   assert.strictEqual(api.findCodeBlock(null), null);
 }
