@@ -277,6 +277,24 @@ function handleInputPasteMouseUp(e) {
             return;
         }
 
+        // Input ID card selection: Chinese UI only, and the toolbar shows the
+        // dedicated validation button instead of the paste actions.
+        if (isInput && isChineseUI() && isIdCardCandidate(selectedText)) {
+            initContainer();
+            renderButton(
+                null,
+                e.clientX,
+                e.clientY,
+                selectedText,
+                '',
+                PASTE_MODE_ID_CARD,
+                target,
+                false,
+                cache
+            );
+            return;
+        }
+
         if (!cache) return;
 
         // Cloud drive extraction code cache (Chinese mode only): force single paste button (key icon)

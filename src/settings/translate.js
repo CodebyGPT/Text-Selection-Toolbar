@@ -88,7 +88,6 @@ const EN = {
   "提前翻译 (ms)": "Pre-translate (ms)",
   "提示词": "Prompts",
   "搜索": "Search",
-  "显示 Toast 通知": "Show Toast notifications",
   "数据同步": "Data sync",
   "整篇区域": "Whole area",
   "断句方式": "Sentence splitting",

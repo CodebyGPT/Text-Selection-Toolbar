@@ -1155,12 +1155,6 @@ function ToolbarTab({ setting, update }) {
             }}
           />
         </Row>
-        <Row label="显示 Toast 通知">
-          <Toggle
-            value={value.enableToast}
-            onChange={(v) => patch({ enableToast: v })}
-          />
-        </Row>
         <Row label="显示删除按钮">
           <Toggle
             value={value.enableDeleteBtn}

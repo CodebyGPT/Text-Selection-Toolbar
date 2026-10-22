@@ -33,8 +33,6 @@ async function copyToClipboard(text, html) {
 
 // Show toast (inside Shadow DOM)
 function showToast(msg) {
-    if (!getConfig('enableToast')) return;
-
     let toast = shadowRoot.querySelector('.sc-toast');
     if (!toast) {
         toast = document.createElement('div');
