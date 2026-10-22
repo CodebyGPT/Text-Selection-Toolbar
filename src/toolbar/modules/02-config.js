@@ -153,7 +153,6 @@ const SCROLL_REPAINT_MODE = {
 
 const PASTE_MODE_THREE_BTNS = 'copy-search-paste';   // Lightning paste three-button mode marker
 const PASTE_MODE_WHITESPACE = 'whitespace-delete-paste'; // Input whitespace selection
-const PASTE_MODE_ID_CARD = 'id-card-check'; // Input ID card selection
 
 const SEARCH_ENGINES = {
     google: { name: 'Google', url: 'https://www.google.com/search?q=%s' },

@@ -106,3 +106,25 @@ function getIdCardCheckMessage(raw) {
     const region = getIdCardRegion(text);
     return `✅ 身份证号码有效，持证人${gender}，${age}周岁，${region}`;
 }
+
+// Re-dragging inside the still-selected ID number starts a native text drag
+// instead of a new selection, so no new toolbar appears when reselecting in
+// the reverse direction. Remember the selection and cancel just that drag.
+let idCardDragGuard = null;
+
+function rememberIdCardDragGuard(target, text) {
+    idCardDragGuard = target && text ? { target, text } : null;
+}
+
+function isIdCardReselectDrag(target) {
+    if (!idCardDragGuard || idCardDragGuard.target !== target) return false;
+    const start = target.selectionStart;
+    const end = target.selectionEnd;
+    if (typeof start !== 'number' || typeof end !== 'number' || start === end) return false;
+    return String(target.value ?? '').slice(start, end) === idCardDragGuard.text;
+}
+
+document.addEventListener('dragstart', (e) => {
+    if (isIdCardReselectDrag(e.target)) e.preventDefault();
+}, true);
+

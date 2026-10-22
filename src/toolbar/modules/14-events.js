@@ -257,6 +257,11 @@ function handleInputPasteMouseUp(e) {
             if (cache && Date.now() - cache.timestamp > getPasteTtlMs()) cache = null;
         }
 
+        // The ID card action is appended to the normal input toolbar when the
+        // selection looks like a mainland ID number (Chinese UI only).
+        const showIdCardCheck = isInput && isChineseUI() && isIdCardCandidate(selectedText);
+        if (showIdCardCheck) rememberIdCardDragGuard(target, selectedText);
+
         if (whitespaceSelection) {
             initContainer();
             // An <input>/<textarea> has no DOM Range, so there is no caret rect
@@ -277,25 +282,12 @@ function handleInputPasteMouseUp(e) {
             return;
         }
 
-        // Input ID card selection: Chinese UI only, and the toolbar shows the
-        // dedicated validation button instead of the paste actions.
-        if (isInput && isChineseUI() && isIdCardCandidate(selectedText)) {
+        if (!cache) {
+            if (!showIdCardCheck) return;
             initContainer();
-            renderButton(
-                null,
-                e.clientX,
-                e.clientY,
-                selectedText,
-                '',
-                PASTE_MODE_ID_CARD,
-                target,
-                false,
-                cache
-            );
+            renderButton(null, e.clientX, e.clientY, selectedText, '', 'default', target, false, null, true);
             return;
         }
-
-        if (!cache) return;
 
         // Cloud drive extraction code cache (Chinese mode only): force single paste button (key icon)
         const isChineseEnv = isChineseUI();
@@ -314,6 +306,6 @@ function handleInputPasteMouseUp(e) {
             ? getSmartSelectionState(window.getSelection())
             : null;
         if (!hostElement) initContainer();
-        renderButton(rect, e.clientX, e.clientY, textArg, '', mode, target, false, cache);
+        renderButton(rect, e.clientX, e.clientY, textArg, '', mode, target, false, cache, showIdCardCheck);
     }, 20);
 }

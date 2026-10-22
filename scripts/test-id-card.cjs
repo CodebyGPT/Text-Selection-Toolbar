@@ -14,15 +14,18 @@ const logicSrc = fs.readFileSync(
 );
 
 const api = new Function(
+  "document",
   `${dataSrc}\n${logicSrc}\nreturn {
     normalizeIdCardText,
     isIdCardCandidate,
     isValidIdCardNumber,
     getIdCardRegion,
     getIdCardAge,
-    getIdCardCheckMessage
+    getIdCardCheckMessage,
+    rememberIdCardDragGuard,
+    isIdCardReselectDrag
   };`
-)();
+)({ addEventListener() {} });
 
 // A widely used valid sample: 北京市东城区, born 1949-12-31, female.
 const VALID = "11010519491231002X";
@@ -98,5 +101,18 @@ assert.strictEqual(
   api.getIdCardCheckMessage(VALID),
   `✅ 身份证号码有效，持证人女，${birth("19491231")}周岁，北京市朝阳区`
 );
+
+// Reselecting an already-selected ID would start a native text drag; the guard
+// must only swallow that exact drag.
+{
+  const input = { value: `x ${VALID} y`, selectionStart: 2, selectionEnd: 20 };
+  api.rememberIdCardDragGuard(input, VALID);
+  assert.strictEqual(api.isIdCardReselectDrag(input), true);
+  input.selectionStart = 0;
+  input.selectionEnd = 1;
+  assert.strictEqual(api.isIdCardReselectDrag(input), false);
+  api.rememberIdCardDragGuard({ value: VALID, selectionStart: 0, selectionEnd: 18 }, VALID);
+  assert.strictEqual(api.isIdCardReselectDrag(input), false);
+}
 
 console.log("test-id-card: ok");

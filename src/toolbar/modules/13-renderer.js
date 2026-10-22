@@ -339,7 +339,7 @@ function repositionLinkMenu() {
 
 
 // Render buttons (supports Copy/Search mode and Paste mode)
-function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', targetInput = null, isEditable = false, pasteCache = null) {
+function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', targetInput = null, isEditable = false, pasteCache = null, showIdCardCheck = false) {
     // Clean up old button/menu
     shadowRoot.querySelectorAll('.sc-container').forEach((oldBtn) => oldBtn.remove());
 
@@ -827,43 +827,6 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             container.appendChild(pasteBtn);
         }
     }
-    // Mode D: input ID card selection (validate + optional paste)
-    else if (mode === PASTE_MODE_ID_CARD) {
-        const idBtn = document.createElement('div');
-        idBtn.className = 'sc-btn';
-        idBtn.innerHTML = `<svg viewBox="0 0 48 48" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="8" width="40" height="32" rx="2" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M17 25C19.2091 25 21 23.2091 21 21C21 18.7909 19.2091 17 17 17C14.7909 17 13 18.7909 13 21C13 23.2091 14.7909 25 17 25Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M23 31C23 27.6863 20.3137 25 17 25C13.6863 25 11 27.6863 11 31" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 20H36" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 28H36" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-        applyButtonLabel(idBtn, '身份证号码校验');
-        idBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
-        idBtn.onclick = (e) => {
-            e.stopPropagation();
-            showToast(getIdCardCheckMessage(text));
-        };
-        container.appendChild(idBtn);
-
-        if (pasteCache && (pasteCache.text || pasteCache.type === 'clipboard')) {
-            const div = document.createElement('div');
-            div.className = isCol ? 'divider divider-h' : 'divider divider-v';
-            container.appendChild(div);
-
-            const pasteBtn = document.createElement('div');
-            pasteBtn.className = 'sc-btn';
-            pasteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>';
-            applyPasteButtonContent(pasteBtn, pasteCache);
-            pasteBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
-            pasteBtn.onclick = async (e) => {
-                e.stopPropagation();
-                if (pasteCache.type === 'clipboard') {
-                    await performClipboardPaste(targetInput || document.activeElement, pasteCache);
-                } else {
-                    performPaste(targetInput, pasteCache.text, {
-                        panCode: pasteCache.type === 'pan_code'
-                    });
-                }
-                hideUI();
-            };
-            container.appendChild(pasteBtn);
-        }
-    }
     // Mode B: Paste mode (lightning paste / cloud drive extraction code)
     else if (mode === 'paste') {
         const isPanCode = pasteCache && pasteCache.type === 'pan_code';
@@ -910,8 +873,28 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         container.appendChild(pasteBtn);
     }
 
-    const btnCount = container.children.length;
-    container.setAttribute('data-btn-count', btnCount);
+    // The ID card action is appended to whichever toolbar the selection
+    // already produced (paste actions, default copy/cut tools, ...), never a
+    // standalone replacement for them.
+    if (showIdCardCheck) {
+        if (container.children.length > 0) {
+            const divider = document.createElement('div');
+            divider.className = isCol ? 'divider divider-h' : 'divider divider-v';
+            container.appendChild(divider);
+        }
+
+        const idBtn = document.createElement('div');
+        idBtn.className = 'sc-btn';
+        idBtn.innerHTML = `<svg viewBox="0 0 48 48" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="8" width="40" height="32" rx="2" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M17 25C19.2091 25 21 23.2091 21 21C21 18.7909 19.2091 17 17 17C14.7909 17 13 18.7909 13 21C13 23.2091 14.7909 25 17 25Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M23 31C23 27.6863 20.3137 25 17 25C13.6863 25 11 27.6863 11 31" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 20H36" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 28H36" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+        applyButtonLabel(idBtn, '身份证号码校验');
+        idBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+        idBtn.onclick = (e) => {
+            e.stopPropagation();
+            showToast(getIdCardCheckMessage(text));
+        };
+        container.appendChild(idBtn);
+    }
+    container.setAttribute('data-btn-count', container.children.length);
 
     shadowRoot.appendChild(container);
 
