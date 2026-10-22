@@ -31,6 +31,10 @@ function unregisterVisibilityCleanup() {
 
     (async function main() {
         try {
+            // 0. Install before anything awaits: every fillText after this point
+            //    is recorded, so a later super-selection click can copy it.
+            installCanvasTextHook();
+
             // 1. Wait for config to load
             await initConfiguration();
 
