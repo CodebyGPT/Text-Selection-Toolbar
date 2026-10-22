@@ -38,8 +38,10 @@ function open(path = "/") {
       inset: 0;
       z-index: 2147483647;
       overflow: auto;
-      background: Canvas;
-      color: CanvasText;
+      background: rgba(8, 10, 14, 0.55);
+      -webkit-backdrop-filter: blur(14px) saturate(1.08);
+      backdrop-filter: blur(14px) saturate(1.08);
+      color: #ececf1;
       overscroll-behavior: contain;
     }
     ${SETTINGS_APP_CSS}

@@ -1,32 +1,21 @@
 export const SETTINGS_APP_CSS = String.raw`
 :host .kiss-st-app {
-  --st-bg: #f7f7f9;
-  --st-panel: #ffffff;
-  --st-text: #1b1b1f;
-  --st-muted: #6b6b76;
-  --st-border: #d9d9e3;
-  --st-input: #ffffff;
-  --st-accent: #0b57d0;
-  --st-accent-text: #ffffff;
-  --st-danger: #c62828;
+  --st-bg: transparent;
+  --st-panel: rgba(28, 30, 36, 0.82);
+  --st-text: #ececf1;
+  --st-muted: #a1a1ad;
+  --st-border: rgba(255, 255, 255, 0.16);
+  --st-input: rgba(37, 39, 45, 0.9);
+  --st-accent: #8ab4f8;
+  --st-accent-text: #0b1b33;
+  --st-danger: #ff8a80;
+  color-scheme: dark;
   min-height: 100vh;
   box-sizing: border-box;
   background: var(--st-bg);
   color: var(--st-text);
   font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   padding: 0 24px 48px;
-}
-:host .kiss-st-app[data-theme="dark"] {
-  --st-bg: #121316;
-  --st-panel: #1d1f24;
-  --st-text: #ececf1;
-  --st-muted: #a1a1ad;
-  --st-border: #34363d;
-  --st-input: #25272d;
-  --st-accent: #8ab4f8;
-  --st-accent-text: #0b1b33;
-  --st-danger: #ff8a80;
-  color-scheme: dark;
 }
 :host .kiss-st-app * { box-sizing: border-box; }
 :host .kiss-st-header {
@@ -344,7 +333,7 @@ export const SETTINGS_APP_CSS = String.raw`
   border-radius: 8px;
   font-size: 12px;
 }
-:host .kiss-st-ok { background: rgb(46 125 50 / 12%); color: #2e7d32; }
+:host .kiss-st-ok { background: rgb(129 199 132 / 14%); color: #81c784; }
 :host .kiss-st-error { background: rgb(198 40 40 / 12%); color: var(--st-danger); }
 :host .kiss-st-loading {
   padding: 80px;

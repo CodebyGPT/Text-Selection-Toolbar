@@ -1835,13 +1835,6 @@ export default function SettingsApp({ initialPath = "/", onClose }) {
     });
   };
 
-  const dark = useMemo(() => {
-    if (!setting) return true;
-    if (setting.darkMode === "dark") return true;
-    if (setting.darkMode === "light") return false;
-    return globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches;
-  }, [setting]);
-
   useEffect(() => {
     if (!themeRef.current || !setting) return undefined;
     return translateDom(themeRef.current, setting.uiLang);
@@ -1852,7 +1845,7 @@ export default function SettingsApp({ initialPath = "/", onClose }) {
   }
 
   return (
-    <div className="kiss-st-app" data-theme={dark ? "dark" : "light"} ref={themeRef}>
+    <div className="kiss-st-app" ref={themeRef}>
       <header className="kiss-st-header">
         {meta.icon && (
           <img className="kiss-st-logo" src={meta.icon} alt="" />
