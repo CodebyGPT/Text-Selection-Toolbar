@@ -21,11 +21,20 @@ const windowStub = {
   removeEventListener() {},
   getSelection: () => null,
 };
-const { captureUnlockFocus, restoreUnlockFocus } = new Function(
+const { captureUnlockFocus, restoreUnlockFocus, getUnlockCSS } = new Function(
   "window",
   "document",
-  `${src}\nreturn { captureUnlockFocus, restoreUnlockFocus };`
+  `${src}\nreturn { captureUnlockFocus, restoreUnlockFocus, getUnlockCSS };`
 )(windowStub, documentStub);
+
+// Unlock CSS must force selection on, but must never blanket re-enable
+// pointer-events: that re-arms invisible page overlays which then swallow every
+// mousedown (CSDN's .layout-main-content-overlay is exactly this case).
+{
+  const css = getUnlockCSS();
+  assert.match(css, /user-select:\s*text !important/);
+  assert.doesNotMatch(css, /div:not\(\[data-tm-policy="protected"\]\),/);
+}
 
 // Ctrl+V in an input: focus falls to the page, then focus/selection come back.
 {

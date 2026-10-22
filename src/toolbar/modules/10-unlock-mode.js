@@ -105,32 +105,10 @@ function getUnlockCSS() {
             pointer-events: none !important;
         }
 
-        /* Fix: enhance pointer-events restoration logic, cover more container types */
-        div:not([data-tm-policy="protected"]),
-        article:not([data-tm-policy="protected"]),
-        main:not([data-tm-policy="protected"]),
-        section:not([data-tm-policy="protected"]),
-        aside:not([data-tm-policy="protected"]),
-        header:not([data-tm-policy="protected"]),
-        footer:not([data-tm-policy="protected"]),
-        nav:not([data-tm-policy="protected"]),
-        figure:not([data-tm-policy="protected"]),
-        figcaption:not([data-tm-policy="protected"]),
-        details:not([data-tm-policy="protected"]),
-        summary:not([data-tm-policy="protected"]),
-        fieldset:not([data-tm-policy="protected"]),
-        dialog:not([data-tm-policy="protected"]),
-        p:not([data-tm-policy="protected"]),
-        span:not([data-tm-policy="protected"]),
-        h1:not([data-tm-policy="protected"]), h2:not([data-tm-policy="protected"]),
-        h3:not([data-tm-policy="protected"]), h4:not([data-tm-policy="protected"]),
-        h5:not([data-tm-policy="protected"]), h6:not([data-tm-policy="protected"]),
-        em:not([data-tm-policy="protected"]), strong:not([data-tm-policy="protected"]),
-        i:not([data-tm-policy="protected"]), b:not([data-tm-policy="protected"]),
-        td:not([data-tm-policy="protected"]), li:not([data-tm-policy="protected"]),
-        code:not([data-tm-policy="protected"]), pre:not([data-tm-policy="protected"]) {
-            pointer-events: auto !important;
-        }
+        /* Do NOT blanket-force pointer-events: auto here. Re-enabling it on every
+           div re-arms invisible full-screen overlays that pages keep at
+           pointer-events: none (e.g. CSDN's .layout-main-content-overlay), which
+           then swallow every mousedown and make the page unselectable. */
 
         /* Style for expanded truncated text: hide scrollbar but keep scroll functionality */
         .tm-sc-expanded {
