@@ -479,7 +479,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         copyBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
         copyBtn.onclick = async (e) => {
             e.stopPropagation();
-            triggerSpringFestivalEffect(e.clientX, e.clientY, shadowRoot);
+            triggerFestivalEffect(e.clientX, e.clientY, shadowRoot);
             const contentToCopy = getConfig('enableCache') ? (cachedSelection.text || text) : text;
             const htmlToCopy = getConfig('enableCache') ? (cachedSelection.html || html) : html;
             await copyToClipboard(contentToCopy, htmlToCopy);
@@ -490,7 +490,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                 });
                 unregisterVisibilityCleanup();
             }
-            showToast(getSpringFestivalToastText());
+            showToast(getFestivalToastText());
             setTimeout(hideUI, 50);
         };
         container.appendChild(copyBtn);
@@ -510,7 +510,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             cutBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
             cutBtn.onclick = async (e) => {
                 e.stopPropagation();
-                triggerSpringFestivalEffect(e.clientX, e.clientY, shadowRoot);
+                triggerFestivalEffect(e.clientX, e.clientY, shadowRoot);
                 const target = targetInput || document.activeElement;
                 const contentToCopy = getConfig('enableCache') ? (cachedSelection.text || text) : text;
                 const htmlToCopy = getConfig('enableCache') ? (cachedSelection.html || html) : html;

@@ -17,6 +17,7 @@ const DEFAULT_CONFIG = {
 
     enableDragPreview: false,
     scrollRepaintMode: 'always',
+    disableFestivalEffect: false, // hide festival emoji particles
     enableDeleteBtn: true, // whether to show delete button
     enableTranslate: true, // show the KISS translate action
     // Sensitivity for the language-match gate: 15 / 35 / 55 / 75 (%).

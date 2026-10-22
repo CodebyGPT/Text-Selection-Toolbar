@@ -8,6 +8,7 @@ import {
 import { apiTranslate } from "../apis";
 import { fetchData } from "../libs/fetch";
 import { parseJsonObj } from "../libs/utils";
+import { getFestivalInfo } from "../libs/festivals";
 import { createBuiltinInstance } from "../builtin-plugins";
 import {
   OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
@@ -1029,6 +1030,8 @@ function ToolbarTab({ setting, update }) {
   const value = { ...DEFAULT_TOOLBAR_SETTING, ...(setting.toolbarSetting || {}) };
   const patch = (changes) =>
     update({ toolbarSetting: { ...value, ...changes } });
+  // The festival toggle is only meaningful on a festival day.
+  const festivalInfo = useMemo(() => getFestivalInfo(), []);
   const engines =
     Array.isArray(value.searchEngines) && value.searchEngines.length > 0
       ? value.searchEngines
@@ -1161,6 +1164,17 @@ function ToolbarTab({ setting, update }) {
             onChange={(v) => patch({ enableDeleteBtn: v })}
           />
         </Row>
+        {festivalInfo && (
+          <Row
+            label="禁用节日彩蛋"
+            help="仅节日期间显示，关闭后所有节日点击特效都不再显示"
+          >
+            <Toggle
+              value={value.disableFestivalEffect === true}
+              onChange={(v) => patch({ disableFestivalEffect: v })}
+            />
+          </Row>
+        )}
         <Row label="链接拖拽预览">
           <Toggle
             value={value.enableDragPreview}

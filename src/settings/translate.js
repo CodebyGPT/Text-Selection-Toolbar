@@ -88,6 +88,9 @@ const EN = {
   "提前翻译 (ms)": "Pre-translate (ms)",
   "提示词": "Prompts",
   "搜索": "Search",
+  "禁用节日彩蛋": "Disable festival effects",
+  "仅节日期间显示，关闭后所有节日点击特效都不再显示":
+    "Only shown on festival days; turning it off disables every festival click effect.",
   "数据同步": "Data sync",
   "整篇区域": "Whole area",
   "断句方式": "Sentence splitting",

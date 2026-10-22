@@ -20,6 +20,7 @@ export const DEFAULT_TOOLBAR_SETTING = {
   pasteTtl: PASTE_TTL_DEFAULT,
   enableDragPreview: false,
   scrollRepaintMode: "always",
+  disableFestivalEffect: false,
   enableDeleteBtn: true,
   enableTranslate: true,
   translateHideThreshold: 15,

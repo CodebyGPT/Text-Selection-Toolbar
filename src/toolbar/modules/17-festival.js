@@ -1,113 +1,77 @@
-// Module 17: Festival Particle Effects
+// Module 17: Festival Emoji Effects
 
-// Chinese New Year / Christmas easter egg logic
-function getFestivalType() {
-    const now = new Date();
-    // 1. Try to detect lunar calendar (Chinese Lunar)
-    try {
-        const formatter = new Intl.DateTimeFormat("zh-CN-u-ca-chinese", { month: "numeric", day: "numeric" });
-        if (formatter.resolvedOptions().calendar === 'chinese') {
-            const parts = formatter.formatToParts(now);
-            const monthPart = parts.find(p => p.type === 'month').value;
-            const dayPart = parts.find(p => p.type === 'day').value;
+const FESTIVAL_GRAVITY = 0.22;
 
-            const isLunarJan = monthPart.includes('正') || monthPart.replace(/[^\d]/g, '') === '1';
-            const day = parseInt(dayPart.replace(/[^\d]/g, ''));
+// Emoji particles burst upward, then fall under one shared gravity model. Each
+// particle owns its speed, direction, size and fade time; it disappears after
+// its own lifetime, never based on travel distance.
+function triggerFestivalEffect(x, y, shadowRoot) {
+    if (getConfig('disableFestivalEffect')) return;
+    const festival = getFestivalInfo();
+    if (!festival || !festival.emojis.length) return;
 
-            if (isLunarJan && day === 1) return 'CNY';
-            return 'NONE';
-        }
-    } catch (e) {}
-
-    // 2. Fallback logic: December 25th Christmas
-    if (now.getMonth() === 11 && now.getDate() === 25) {
-        return 'XMAS';
-    }
-
-    return 'NONE';
-}
-
-// Trigger fireworks effect
-function triggerSpringFestivalEffect(x, y, shadowRoot) {
-    const festival = getFestivalType();
-    if (festival === 'NONE') return;
-
-    let colors = [];
-    if (festival === 'CNY') {
-        colors = ['#FF0000', '#FFD700', '#FF4500', '#DC143C', '#FFFF00'];
-    } else if (festival === 'XMAS') {
-        colors = ['#FF0000', '#228B22', '#FFD700', '#FFFFFF', '#006400'];
-    }
-
-    const activeColors = [];
-    for (let i = 0; i < 3; i++) {
-        activeColors.push(colors[Math.floor(Math.random() * colors.length)]);
-    }
-
-    const particleCount = 20 + Math.floor(Math.random() * 21);
+    const particleCount = 24 + Math.floor(Math.random() * 16);
     const fragment = document.createDocumentFragment();
 
     for (let i = 0; i < particleCount; i++) {
         const p = document.createElement('div');
-        const size = 4 + Math.random() * 3;
-        const color = activeColors[Math.floor(Math.random() * activeColors.length)];
+        const size = 16 + Math.random() * 16;
+        const emoji = festival.emojis[Math.floor(Math.random() * festival.emojis.length)];
 
+        p.textContent = emoji;
         p.style.cssText = `
             position: fixed;
             left: ${x}px;
             top: ${y}px;
-            width: ${size}px;
-            height: ${size}px;
-            background-color: ${color};
-            border-radius: 50%;
+            font-size: ${size}px;
+            line-height: 1;
             pointer-events: none;
+            user-select: none;
             z-index: 2147483647;
-            box-shadow: 0 0 6px ${color};
             will-change: transform, opacity;
         `;
 
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 2 + Math.random() * 5;
-        let vx = Math.cos(angle) * speed;
-        let vy = Math.sin(angle) * speed;
-        let opacity = 1.0;
-        const gravity = 0.2 + Math.random() * 0.1;
-        const friction = 0.96;
-        const decay = 0.01 + Math.random() * 0.02;
+        const vx = (Math.random() - 0.5) * 2 * (2 + Math.random() * 3);
+        let vy = -(4 + Math.random() * 5);
+        const lifetime = 900 + Math.random() * 1400;
+        const fadeStart = lifetime * (0.45 + Math.random() * 0.2);
+        const start = performance.now();
+        let last = start;
+        let posX = 0;
+        let posY = 0;
 
-        let posX = x;
-        let posY = y;
-
-        const animate = () => {
-            if (opacity <= 0) {
+        const animate = (now) => {
+            const age = now - start;
+            if (age >= lifetime) {
                 p.remove();
                 return;
             }
-            vx *= friction;
-            vy *= friction;
-            vy += gravity;
-            posX += vx;
-            posY += vy;
-            opacity -= decay;
 
-            p.style.transform = `translate(${posX - x}px, ${posY - y}px)`;
-            p.style.opacity = opacity;
+            // Normalize to 60fps steps so particles move the same on any refresh rate.
+            const step = Math.min(48, now - last) / 16.6667;
+            last = now;
+            posX += vx * step;
+            posY += vy * step;
+            vy += FESTIVAL_GRAVITY * step;
+            p.style.transform = `translate3d(${posX}px, ${posY}px, 0)`;
+            p.style.opacity = age >= fadeStart
+                ? String(1 - (age - fadeStart) / (lifetime - fadeStart))
+                : '1';
+
             requestAnimationFrame(animate);
         };
 
         fragment.appendChild(p);
         requestAnimationFrame(animate);
     }
+
     shadowRoot.appendChild(fragment);
 }
 
 // Get toast copy text
-function getSpringFestivalToastText() {
-    const festival = getFestivalType();
-    if (festival === 'CNY') {
-        return t('festival_cny');
-    } else if (festival === 'XMAS') {
-        return t('festival_xmas');
-    }
-    return t('toast_copied');
+function getFestivalToastText() {
+    const festival = getFestivalInfo();
+    if (!festival) return t('toast_copied');
+    const emoji = festival.emojis[0];
+    return `${emoji}${t('toast_copied')}${emoji}`;
 }
