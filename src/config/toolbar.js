@@ -21,7 +21,6 @@ export const DEFAULT_TOOLBAR_SETTING = {
   enableDragPreview: false,
   scrollRepaintMode: "always",
   disableFestivalEffect: false,
-  enableDeleteBtn: true,
   enableTranslate: true,
   translateHideThreshold: 15,
   showBlockMenu: true,

@@ -50,7 +50,6 @@ const DEFAULT_CONFIG = {
     enableDragPreview: false,
     scrollRepaintMode: 'always',
     disableFestivalEffect: false, // hide festival emoji particles
-    enableDeleteBtn: true, // whether to show delete button
     enableTranslate: true, // show the KISS translate action
     // Sensitivity for the language-match gate: 15 / 35 / 55 / 75 (%).
     translateHideThreshold: 15,
@@ -2697,8 +2696,8 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             container.appendChild(cutBtn);
         }
 
-        // Delete button (inside input fields)
-        if (getConfig('enableDeleteBtn') && isInInput) {
+        // Delete button (always shown inside input fields)
+        if (isInInput) {
             const div2 = document.createElement('div');
             div2.className = isCol ? 'divider divider-h' : 'divider divider-v';
             container.appendChild(div2);

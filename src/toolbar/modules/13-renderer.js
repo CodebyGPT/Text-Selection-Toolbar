@@ -530,8 +530,8 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             container.appendChild(cutBtn);
         }
 
-        // Delete button (inside input fields)
-        if (getConfig('enableDeleteBtn') && isInInput) {
+        // Delete button (always shown inside input fields)
+        if (isInInput) {
             const div2 = document.createElement('div');
             div2.className = isCol ? 'divider divider-h' : 'divider divider-v';
             container.appendChild(div2);

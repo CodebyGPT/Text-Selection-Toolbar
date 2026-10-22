@@ -95,7 +95,6 @@ const EN = {
   "整篇区域": "Whole area",
   "断句方式": "Sentence splitting",
   "日本語": "Japanese",
-  "显示删除按钮": "Show delete button",
   "显示翻译按钮": "Show translate button",
   "翻译按钮隐藏阈值": "Translate button hide threshold",
   "检测当前语言在选取文本中的占比，当占比达到阈值时隐藏工具栏中的翻译按钮": "Measure the current-language share of the selection and hide the translate button once it reaches the threshold",

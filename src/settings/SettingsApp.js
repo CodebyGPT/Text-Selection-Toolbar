@@ -1156,12 +1156,6 @@ function ToolbarTab({ setting, update }) {
             }}
           />
         </Row>
-        <Row label="显示删除按钮">
-          <Toggle
-            value={value.enableDeleteBtn}
-            onChange={(v) => patch({ enableDeleteBtn: v })}
-          />
-        </Row>
         <Row label="链接拖拽预览">
           <Toggle
             value={value.enableDragPreview}
