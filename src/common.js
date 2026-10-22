@@ -207,6 +207,19 @@ export async function run(isUserscript = false) {
       return;
     }
 
+    // 4. Start the Text Selection Toolbar before the page blacklist / rule /
+    // subscription gates. The blacklist only disables page translation: the
+    // selection toolbar (and super-selection) is a page utility and must keep
+    // working on blacklisted sites. It keeps its own Shadow DOM and only
+    // creates UI after a selection, so startup stays cheap.
+    installToolbar({
+      translateSelection: (text, rect) => {
+        import("./libs/translationPanel")
+          .then(({ showTranslationPanel }) => showTranslationPanel(text, rect))
+          .catch((err) => console.error("[Text Selection Toolbar]", err));
+      },
+    });
+
     // 5. 网页黑名单校验，命中时彻底不启动翻译
     if (isInBlacklist(href, setting.blacklist)) {
       if (!isUserscript) {
@@ -232,17 +245,6 @@ export async function run(isUserscript = false) {
     if (setting.mouseHoverSetting) {
       setting.mouseHoverSetting.useMouseHover = false;
     }
-
-    // Start the Text Selection Toolbar before any rule/subscription loading.
-    // It keeps its own Shadow DOM and only creates UI after a selection, so the
-    // page never waits on translation setup nor on the network for it.
-    installToolbar({
-      translateSelection: (text, rect) => {
-        import("./libs/translationPanel")
-          .then(({ showTranslationPanel }) => showTranslationPanel(text, rect))
-          .catch((err) => console.error("[Text Selection Toolbar]", err));
-      },
-    });
 
     // 7. 匹配当前网页专用的规则 (三级规则合并：个人 > 订阅 > 内置全局)
     const rule = await matchRule(href, setting);
