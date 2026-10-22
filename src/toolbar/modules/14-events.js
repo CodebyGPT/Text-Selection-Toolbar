@@ -76,14 +76,12 @@ function handleSelectionMouseUp(e) {
         if (isTextInput && text.trim().length === 0) return;
 
         const range = selection.getRangeAt(0);
-        if (getConfig('enableCache')) {
-            const container = document.createElement('div');
-            container.appendChild(range.cloneContents());
-            cachedSelection = {
-                text: text,
-                html: container.innerHTML
-            };
-        }
+        const container = document.createElement('div');
+        container.appendChild(range.cloneContents());
+        cachedSelection = {
+            text: text,
+            html: container.innerHTML
+        };
         // Selection endpoint wins; null makes renderButton use the release point.
         const rect = getSmartSelectionState(selection);
 
@@ -163,7 +161,7 @@ const handleResizeOrScroll = () => {
             if (rect) {
                 renderButton(rect, rect.right, rect.top,
                     selection.toString(),
-                    getConfig('enableCache') ? cachedSelection.html : '');
+                    cachedSelection.html);
             }
         }
     }, 300);

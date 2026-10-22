@@ -1117,12 +1117,6 @@ function ToolbarTab({ setting, update }) {
             ]}
           />
         </Row>
-        <Row label="选中即缓存">
-          <Toggle
-            value={value.enableCache}
-            onChange={(v) => patch({ enableCache: v })}
-          />
-        </Row>
         <Row label="识别不可见超链接">
           <Toggle
             value={value.enableHiddenLinks}

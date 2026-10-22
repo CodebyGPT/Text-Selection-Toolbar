@@ -480,8 +480,8 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         copyBtn.onclick = async (e) => {
             e.stopPropagation();
             triggerFestivalEffect(e.clientX, e.clientY, shadowRoot);
-            const contentToCopy = getConfig('enableCache') ? (cachedSelection.text || text) : text;
-            const htmlToCopy = getConfig('enableCache') ? (cachedSelection.html || html) : html;
+            const contentToCopy = cachedSelection.text || text;
+            const htmlToCopy = cachedSelection.html || html;
             await copyToClipboard(contentToCopy, htmlToCopy);
             if (getConfig('enablePaste')) {
                 await safeSetValue('smart_paste_cache', {
@@ -512,8 +512,8 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                 e.stopPropagation();
                 triggerFestivalEffect(e.clientX, e.clientY, shadowRoot);
                 const target = targetInput || document.activeElement;
-                const contentToCopy = getConfig('enableCache') ? (cachedSelection.text || text) : text;
-                const htmlToCopy = getConfig('enableCache') ? (cachedSelection.html || html) : html;
+                const contentToCopy = cachedSelection.text || text;
+                const htmlToCopy = cachedSelection.html || html;
                 const snapshot = captureSelectionSnapshot(target);
                 if (await copyToClipboard(contentToCopy, htmlToCopy)) {
                     deleteSelectedText(target, snapshot);
@@ -562,7 +562,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             searchBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
             searchBtn.onclick = (e) => {
                 e.stopPropagation();
-                const query = getConfig('enableCache') ? (cachedSelection.text || text) : text;
+                const query = cachedSelection.text || text;
 
                 if (shadowRoot.querySelector('.sc-search-menu')) {
                     closeSearchEngineMenu(true);
@@ -596,7 +596,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             translateBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
             translateBtn.onclick = (e) => {
                 e.stopPropagation();
-                const content = getConfig('enableCache') ? (cachedSelection.text || text) : text;
+                const content = cachedSelection.text || text;
                 requestTranslation(content, rect);
                 setTimeout(hideUI, 50);
             };

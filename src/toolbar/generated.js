@@ -39,7 +39,6 @@ const DEFAULT_CONFIG = {
     buttonStyle: 'row', // 'row' (capsule) | 'col' (rounded rect)
     forceWhiteBlack: true, // true = force white bg/black text
     searchEngine: 'baidu', // legacy single-engine setting, migrated into searchEngines
-    enableCache: true,
     enableHiddenLinks: false, // also collect links from selected <a href="...">
     unlockHotkey: 'ControlLeft',
     enablePaste: true,
@@ -282,7 +281,6 @@ const I18N = {
         menu_search: '🔍 搜索引擎',
         prompt_search: '请输入搜索引擎代码 (google, baidu, bing, brave) 或完整URL (%s 代替关键词):',
         err_search: '无效的输入。自定义URL需包含 %s',
-        menu_cache: '💾 选中即缓存',
         val_on: '开启',
         val_off: '关闭',
         menu_hotkey: '🔑 超级取词键',
@@ -361,7 +359,6 @@ const I18N = {
         menu_search: '🔍 Engine',
         prompt_search: 'Enter engine code (google, bing...) or URL with %s:',
         err_search: 'Invalid input. Custom URL must contain %s',
-        menu_cache: '💾 Cache Selection',
         val_on: 'On',
         val_off: 'Off',
         menu_hotkey: '🔑 Unlock Hotkey',
@@ -440,7 +437,6 @@ const I18N = {
         menu_search: '🔍 Поисковик',
         prompt_search: 'Код (google, yandex...) или URL с %s:',
         err_search: 'Ошибка. URL должен содержать %s',
-        menu_cache: '💾 Кэш выделения',
         val_on: 'Вкл',
         val_off: 'Выкл',
         menu_hotkey: '🔑 Горячая клавиша',
@@ -2646,8 +2642,8 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         copyBtn.onclick = async (e) => {
             e.stopPropagation();
             triggerFestivalEffect(e.clientX, e.clientY, shadowRoot);
-            const contentToCopy = getConfig('enableCache') ? (cachedSelection.text || text) : text;
-            const htmlToCopy = getConfig('enableCache') ? (cachedSelection.html || html) : html;
+            const contentToCopy = cachedSelection.text || text;
+            const htmlToCopy = cachedSelection.html || html;
             await copyToClipboard(contentToCopy, htmlToCopy);
             if (getConfig('enablePaste')) {
                 await safeSetValue('smart_paste_cache', {
@@ -2678,8 +2674,8 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                 e.stopPropagation();
                 triggerFestivalEffect(e.clientX, e.clientY, shadowRoot);
                 const target = targetInput || document.activeElement;
-                const contentToCopy = getConfig('enableCache') ? (cachedSelection.text || text) : text;
-                const htmlToCopy = getConfig('enableCache') ? (cachedSelection.html || html) : html;
+                const contentToCopy = cachedSelection.text || text;
+                const htmlToCopy = cachedSelection.html || html;
                 const snapshot = captureSelectionSnapshot(target);
                 if (await copyToClipboard(contentToCopy, htmlToCopy)) {
                     deleteSelectedText(target, snapshot);
@@ -2728,7 +2724,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             searchBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
             searchBtn.onclick = (e) => {
                 e.stopPropagation();
-                const query = getConfig('enableCache') ? (cachedSelection.text || text) : text;
+                const query = cachedSelection.text || text;
 
                 if (shadowRoot.querySelector('.sc-search-menu')) {
                     closeSearchEngineMenu(true);
@@ -2762,7 +2758,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             translateBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
             translateBtn.onclick = (e) => {
                 e.stopPropagation();
-                const content = getConfig('enableCache') ? (cachedSelection.text || text) : text;
+                const content = cachedSelection.text || text;
                 requestTranslation(content, rect);
                 setTimeout(hideUI, 50);
             };
@@ -3223,14 +3219,12 @@ function handleSelectionMouseUp(e) {
         if (isTextInput && text.trim().length === 0) return;
 
         const range = selection.getRangeAt(0);
-        if (getConfig('enableCache')) {
-            const container = document.createElement('div');
-            container.appendChild(range.cloneContents());
-            cachedSelection = {
-                text: text,
-                html: container.innerHTML
-            };
-        }
+        const container = document.createElement('div');
+        container.appendChild(range.cloneContents());
+        cachedSelection = {
+            text: text,
+            html: container.innerHTML
+        };
         // Selection endpoint wins; null makes renderButton use the release point.
         const rect = getSmartSelectionState(selection);
 
@@ -3310,7 +3304,7 @@ const handleResizeOrScroll = () => {
             if (rect) {
                 renderButton(rect, rect.right, rect.top,
                     selection.toString(),
-                    getConfig('enableCache') ? cachedSelection.html : '');
+                    cachedSelection.html);
             }
         }
     }, 300);

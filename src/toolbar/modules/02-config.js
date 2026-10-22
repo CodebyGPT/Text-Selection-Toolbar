@@ -7,7 +7,6 @@ const DEFAULT_CONFIG = {
     buttonStyle: 'row', // 'row' (capsule) | 'col' (rounded rect)
     forceWhiteBlack: true, // true = force white bg/black text
     searchEngine: 'baidu', // legacy single-engine setting, migrated into searchEngines
-    enableCache: true,
     enableHiddenLinks: false, // also collect links from selected <a href="...">
     unlockHotkey: 'ControlLeft',
     enablePaste: true,
