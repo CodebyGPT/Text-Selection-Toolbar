@@ -1030,8 +1030,6 @@ function ToolbarTab({ setting, update }) {
   const value = { ...DEFAULT_TOOLBAR_SETTING, ...(setting.toolbarSetting || {}) };
   const patch = (changes) =>
     update({ toolbarSetting: { ...value, ...changes } });
-  // The festival toggle is only meaningful on a festival day.
-  const festivalInfo = useMemo(() => getFestivalInfo(), []);
   const engines =
     Array.isArray(value.searchEngines) && value.searchEngines.length > 0
       ? value.searchEngines
@@ -1164,17 +1162,6 @@ function ToolbarTab({ setting, update }) {
             onChange={(v) => patch({ enableDeleteBtn: v })}
           />
         </Row>
-        {festivalInfo && (
-          <Row
-            label="禁用节日彩蛋"
-            help="仅节日期间显示，关闭后所有节日点击特效都不再显示"
-          >
-            <Toggle
-              value={value.disableFestivalEffect === true}
-              onChange={(v) => patch({ disableFestivalEffect: v })}
-            />
-          </Row>
-        )}
         <Row label="链接拖拽预览">
           <Toggle
             value={value.enableDragPreview}
@@ -1783,8 +1770,13 @@ function TranslationTab({ setting, update }) {
   );
 }
 
-function AboutTab() {
+function AboutTab({ setting, update }) {
   const meta = readScriptMeta();
+  const value = { ...DEFAULT_TOOLBAR_SETTING, ...(setting.toolbarSetting || {}) };
+  const patch = (changes) =>
+    update({ toolbarSetting: { ...value, ...changes } });
+  // The festival toggle is only meaningful on a festival day.
+  const festivalInfo = useMemo(() => getFestivalInfo(), []);
 
   return (
     <Section title="关于">
@@ -1807,6 +1799,17 @@ function AboutTab() {
         )}
       </Row>
       <Row label="许可证">{meta.license || "—"}</Row>
+      {festivalInfo && (
+        <Row
+          label="禁用节日彩蛋"
+          help="仅节日期间显示，关闭后所有节日点击特效都不再显示"
+        >
+          <Toggle
+            value={value.disableFestivalEffect === true}
+            onChange={(v) => patch({ disableFestivalEffect: v })}
+          />
+        </Row>
+      )}
     </Section>
   );
 }
@@ -1887,7 +1890,7 @@ export default function SettingsApp({ initialPath = "/", onClose }) {
           <TranslationTab setting={setting} update={update} />
         )}
         {tab === "about" && (
-          <AboutTab />
+          <AboutTab setting={setting} update={update} />
         )}
       </main>
     </div>
