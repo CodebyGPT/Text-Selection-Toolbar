@@ -4363,17 +4363,16 @@ function findCodeBlock(target) {
     return pre;
 }
 
-// Anchor to the block's top-right corner, outside it. When the block starts at
-// the viewport top there is no room above, so tuck the button just inside.
+// Sit inside the block's top-right corner, clear of its border/padding.
 function getCodeCopyPosition(rect, size) {
     const left = Math.max(
         CODE_COPY_EDGE_GAP,
-        Math.min(rect.right - size.width, window.innerWidth - size.width - CODE_COPY_EDGE_GAP)
+        Math.min(
+            rect.right - size.width - CODE_COPY_ANCHOR_GAP,
+            window.innerWidth - size.width - CODE_COPY_EDGE_GAP
+        )
     );
-    const outsideTop = rect.top - size.height - CODE_COPY_ANCHOR_GAP;
-    const top = outsideTop >= CODE_COPY_EDGE_GAP
-        ? outsideTop
-        : rect.top + CODE_COPY_ANCHOR_GAP;
+    const top = rect.top + CODE_COPY_ANCHOR_GAP;
     return {
         left,
         top: Math.max(

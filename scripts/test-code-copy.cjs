@@ -70,15 +70,15 @@ const rect = (left, top, width, height) => ({
   assert.strictEqual(api.findCodeBlock(null), null);
 }
 
-// The button sits outside the block's top-right corner.
+// The button sits inside the block's top-right corner.
 {
   const { api } = makeSandbox();
   const pos = api.getCodeCopyPosition(rect(100, 200, 400, 100), {
     width: 40,
     height: 40,
   });
-  assert.strictEqual(pos.left, 460);
-  assert.strictEqual(pos.top, 154);
+  assert.strictEqual(pos.left, 454);
+  assert.strictEqual(pos.top, 206);
 }
 
 // ... but stays inside the viewport when the block touches the top/right edge.
@@ -89,7 +89,7 @@ const rect = (left, top, width, height) => ({
     height: 40,
   });
   assert.strictEqual(pos.left, 952); // clamped to innerWidth - width - 8
-  assert.strictEqual(pos.top, 8); // no room above: tucked inside the top edge
+  assert.strictEqual(pos.top, 8); // clamped to the viewport edge
 }
 
 // Copy text keeps indentation and drops only the template newlines.
