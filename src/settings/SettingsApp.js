@@ -1777,6 +1777,15 @@ function AboutTab({ setting, update }) {
     update({ toolbarSetting: { ...value, ...changes } });
   // The festival toggle is only meaningful on a festival day.
   const festivalInfo = useMemo(() => getFestivalInfo(), []);
+  const uiLang = String(setting?.uiLang || "auto").toLowerCase();
+  const isChineseUi =
+    uiLang === "zh" ||
+    uiLang.startsWith("zh-") ||
+    (uiLang === "auto" &&
+      String(navigator.language || "").toLowerCase().startsWith("zh"));
+  const aboutTitle = festivalInfo
+    ? `${meta.name} - 今天是${festivalInfo.name}${isChineseUi ? "！" : "!"}`
+    : meta.name;
 
   return (
     <Section title="关于">
@@ -1785,7 +1794,7 @@ function AboutTab({ setting, update }) {
           <img className="kiss-st-about__icon" src={meta.icon} alt="" />
         )}
         <div className="kiss-st-about__meta">
-          <strong>{meta.name}</strong>
+          <strong>{aboutTitle}</strong>
         </div>
       </div>
       <Row label="版本号">{meta.version || "—"}</Row>
