@@ -3414,8 +3414,12 @@ function handleInputPasteMouseUp(e) {
 
         if (whitespaceSelection) {
             initContainer();
+            // An <input>/<textarea> has no DOM Range, so there is no caret rect
+            // to anchor to. Passing the element rect pinned the button to the
+            // input's right edge; a null rect makes renderButton fall back to
+            // the mouse-release point, i.e. the end of the whitespace run.
             renderButton(
-                target.getBoundingClientRect(),
+                null,
                 e.clientX,
                 e.clientY,
                 selectedText,
