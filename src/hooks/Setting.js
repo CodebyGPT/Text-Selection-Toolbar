@@ -5,7 +5,7 @@ import {
   useMemo,
   useEffect,
 } from "react";
-import Alert from "@mui/material/Alert";
+import { Alert } from "../components/base";
 import {
   STOKEY_SETTING,
   DEFAULT_SETTING,

@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import Box from "@mui/material/Box";
+import { Box } from "./base";
 
 // 命中热区 24×24，大于 18×18 视觉弧线：按哪里能触发由代码定义，跨浏览器一致。
 const HOT_ZONE_PX = 24;

@@ -1,6 +1,8 @@
-import IconButton from "@mui/material/IconButton";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import LibraryAddCheckIcon from "@mui/icons-material/LibraryAddCheck";
+import { IconButton } from "../../components/base";
+import {
+  ContentCopyIcon,
+  LibraryAddCheckIcon,
+} from "../../components/icons";
 import { useEffect, useRef, useState } from "react";
 
 const VISUALLY_HIDDEN_STYLE = {

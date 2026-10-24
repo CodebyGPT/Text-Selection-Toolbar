@@ -1,7 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
-import createCache from "@emotion/cache";
-import { CacheProvider } from "@emotion/react";
 import { SettingProvider, useSetting } from "../hooks/Setting";
 import ThemeProvider from "../hooks/M3Theme";
 import TranBox from "../views/Selection/TranBox";
@@ -114,16 +112,6 @@ export function showTranslationPanel(text, rect) {
   const rootElement = document.createElement("div");
   host.appendChild(rootElement);
 
-  const portalHost = document.createElement("div");
-  portalHost.id = "kiss-toolbar-translation-portal";
-  host.appendChild(portalHost);
-  globalThis.__KISS_PORTAL_CONTAINER__ = portalHost;
-
-  const cache = createCache({
-    key: "kiss-toolbar-translation",
-    prepend: true,
-    container: document.head,
-  });
   const root = ReactDOM.createRoot(rootElement);
 
   const handle = {
@@ -131,26 +119,24 @@ export function showTranslationPanel(text, rect) {
     rect,
     render() {
       root.render(
-        <React.StrictMode>
-          <CacheProvider value={cache}>
-            <SettingProvider context="tranbox">
-              <ThemeProvider disableCssBaseline>
-                <TranslationPanel text={handle.text} rect={handle.rect} onClose={handle.close} />
-              </ThemeProvider>
-            </SettingProvider>
-          </CacheProvider>
-        </React.StrictMode>
+        <StrictMode>
+          <SettingProvider context="tranbox">
+            <ThemeProvider>
+              <TranslationPanel
+                text={handle.text}
+                rect={handle.rect}
+                onClose={handle.close}
+              />
+            </ThemeProvider>
+          </SettingProvider>
+        </StrictMode>
       );
     },
     close() {
       current = null;
       cleanupHost?.();
       root.unmount();
-      cache.sheet.flush();
       host.remove();
-      if (globalThis.__KISS_PORTAL_CONTAINER__ === portalHost) {
-        globalThis.__KISS_PORTAL_CONTAINER__ = null;
-      }
     },
   };
   current = handle;

@@ -11,6 +11,12 @@ const userscriptWebpack = (config, env) => {
       __dirname,
       "src/libs/stubs/empty-object.js"
     ),
+    // Use Preact as the React runtime for the settings UI and translation panel.
+    "react$": require.resolve("preact/compat"),
+    "react-dom$": require.resolve("preact/compat"),
+    "react-dom/client$": require.resolve("preact/compat/client"),
+    "react/jsx-runtime$": require.resolve("preact/jsx-runtime"),
+    "react/jsx-dev-runtime$": require.resolve("preact/jsx-dev-runtime"),
   };
 
   const banner = `// ==UserScript==

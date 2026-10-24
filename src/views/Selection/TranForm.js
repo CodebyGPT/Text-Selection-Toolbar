@@ -1,14 +1,18 @@
 import { isApiConfigured } from "../../config/serviceSelection";
-import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
-import MenuItem from "@mui/material/MenuItem";
-import Grid from "@mui/material/Grid";
-import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
-import DoneIcon from "@mui/icons-material/Done";
-import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
-import CircularProgress from "@mui/material/CircularProgress";
-import ContentPasteIcon from "@mui/icons-material/ContentPaste";
+import {
+  Box,
+  CircularProgress,
+  Grid,
+  IconButton,
+  MenuItem,
+  Stack,
+  TextField,
+} from "../../components/base";
+import {
+  ContentPasteIcon,
+  DoneIcon,
+  ReplayRoundedIcon,
+} from "../../components/icons";
 import { useI18n } from "../../hooks/I18n";
 import {
   OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
@@ -745,7 +749,7 @@ export default function TranForm({
                 setEditMode(true);
               }}
               onKeyDown={(event) => {
-                if (event.nativeEvent.isComposing) return;
+                if (event.isComposing) return;
                 if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
                   event.preventDefault();
                   if (!event.repeat && editText.trim()) submitTranslation();

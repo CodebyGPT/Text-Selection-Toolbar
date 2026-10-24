@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import Box from "@mui/material/Box";
+import { Box } from "../../components/base";
 import { isMobile } from "../../libs/mobile";
 import TranslationPanelSurface from "../../components/TranslationPanel/Surface";
 import { limitNumber } from "../../libs/utils";

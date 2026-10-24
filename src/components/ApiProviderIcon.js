@@ -1,5 +1,5 @@
-import Box from "@mui/material/Box";
-import ApiRoundedIcon from "@mui/icons-material/ApiRounded";
+import { Box } from "./base";
+import { ApiRoundedIcon } from "./icons";
 import {
   API_SPE_TYPES,
   OPT_TRANS_TRANSLATOR_API,

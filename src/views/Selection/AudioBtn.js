@@ -1,5 +1,5 @@
-import IconButton from "@mui/material/IconButton";
-import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import { IconButton } from "../../components/base";
+import { VolumeUpIcon } from "../../components/icons";
 import { useEffect, useRef, useState } from "react";
 import { useAudio } from "../../hooks/Audio";
 import { canSpeak, speak } from "../../libs/speech";

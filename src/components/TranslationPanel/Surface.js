@@ -1,6 +1,8 @@
-import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
-import { TRANSLATION_PANEL_STYLES } from "./styles";
+import { Box, Paper } from "../base";
+import {
+  PANEL_BASE_STYLES,
+  TRANSLATION_PANEL_STYLES,
+} from "./styles";
 
 /** Shared panel appearance; each host owns its positioning and available space. */
 export default function TranslationPanelSurface({
@@ -26,6 +28,7 @@ export default function TranslationPanelSurface({
       sx={{ width, maxWidth: "100%", minWidth: 0 }}
     >
       <style>{TRANSLATION_PANEL_STYLES}</style>
+      <style>{PANEL_BASE_STYLES}</style>
       {header}
       <Box
         className={`kt-translation-panel__body ${bodyClassName}`}

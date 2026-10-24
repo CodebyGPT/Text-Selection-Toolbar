@@ -5,21 +5,12 @@
   "author": "CodebyGPT",
   "private": true,
   "dependencies": {
-    "@emotion/cache": "^11.11.0",
-    "@emotion/css": "^11.13.5",
-    "@emotion/react": "^11.11.1",
-    "@emotion/styled": "^11.11.0",
-    "@mui/icons-material": "^5.15.15",
-    "@mui/lab": "5.0.0-alpha.170",
-    "@mui/material": "^5.15.15",
     "@streamparser/json": "^0.0.22",
     "dompurify": "^3.4.0",
-    "postcss-selector-parser": "6.1.2",
+    "preact": "^10.29.8",
     "query-string": "^8.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-markdown": "^8.0.7",
-    "react-router-dom": "^6.30.6",
     "webextension-polyfill": "^0.10.0"
   },
   "scripts": {
