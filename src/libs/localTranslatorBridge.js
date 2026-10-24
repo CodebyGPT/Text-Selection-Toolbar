@@ -11,9 +11,6 @@ export const LOCAL_TRANSLATOR_RESPONSE_SOURCE =
   "local-translator-for-chromium";
 export const DEFAULT_LOCAL_TRANSLATOR_TIMEOUT = 30; // seconds
 
-const getPageWindow = () =>
-  (typeof unsafeWindow !== "undefined" ? unsafeWindow : undefined) || window;
-
 const missingExtensionError = () =>
   new Error(
     "Local Translator for Chromium 未响应：请确认已安装并启用该扩展，或改用其它翻译接口。"
@@ -30,7 +27,6 @@ export function translateWithLocalTranslator({
   timeout = DEFAULT_LOCAL_TRANSLATOR_TIMEOUT,
   signal,
 }) {
-  const pageWindow = getPageWindow();
   const requestId = `tst-${Date.now().toString(36)}-${Math.random()
     .toString(36)
     .slice(2)}`;
@@ -64,7 +60,7 @@ export function translateWithLocalTranslator({
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      pageWindow.removeEventListener("message", onMessage);
+      window.removeEventListener("message", onMessage);
       signal?.removeEventListener?.("abort", onAbort);
       done(value);
     };
@@ -76,8 +72,8 @@ export function translateWithLocalTranslator({
 
     timer = setTimeout(() => settle(reject, missingExtensionError()), timeoutMs);
     signal?.addEventListener?.("abort", onAbort, { once: true });
-    pageWindow.addEventListener("message", onMessage);
-    pageWindow.postMessage(
+    window.addEventListener("message", onMessage);
+    window.postMessage(
       {
         source: LOCAL_TRANSLATOR_REQUEST_SOURCE,
         type: "translate",

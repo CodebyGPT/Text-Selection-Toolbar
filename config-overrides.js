@@ -59,7 +59,6 @@ const userscriptWebpack = (config, env) => {
 // @grant         GM.setClipboard
 // @grant         GM_setClipboard
 // @grant         GM_addStyle
-// @grant         unsafeWindow
 // @connect       localhost
 // @connect       127.0.0.1
 // @sandbox       DOM
