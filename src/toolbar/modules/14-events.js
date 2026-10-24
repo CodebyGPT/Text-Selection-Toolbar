@@ -45,10 +45,83 @@ function trimRangeWhitespace(selection) {
 let lastSelectionRoot = null;
 let selectionScrollTargets = [];
 
-function getSelectionRootFromEvent(event) {
-    const target = event?.composedPath?.()[0] || event?.target;
-    const root = target?.getRootNode?.();
-    return root && root.host ? root : document;
+function selectionOwnedByRoot(selection, root) {
+    try {
+        return selection.getRangeAt(0).startContainer.getRootNode() === root;
+    } catch (e) {
+        return false;
+    }
+}
+
+// The mouseup target is not necessarily inside the shadow root that owns the
+// selection: a full-line drag often releases on the host or its padding. Check
+// the event path first, then fall back to a bounded search of open shadow roots.
+function findShadowSelection(start) {
+    if (!start) return null;
+    const queue = [start];
+    const seen = new Set();
+    while (queue.length) {
+        const node = queue.shift();
+        if (!node || seen.has(node)) continue;
+        seen.add(node);
+        if (node.nodeType === 1) {
+            if (node.shadowRoot) {
+                const selection = typeof node.shadowRoot.getSelection === 'function'
+                    ? node.shadowRoot.getSelection()
+                    : null;
+                if (selection && selection.rangeCount > 0 && selectionOwnedByRoot(selection, node.shadowRoot)) {
+                    return { selection, root: node.shadowRoot };
+                }
+                queue.push(node.shadowRoot);
+            }
+            for (const child of node.children) queue.push(child);
+        } else if (node.nodeType === 11) {
+            for (const child of node.children) queue.push(child);
+        }
+    }
+    return null;
+}
+
+function getSelectionFromEvent(event) {
+    const path = event?.composedPath?.() || [];
+    const seenRoots = new Set();
+    for (const node of path) {
+        // Prefer the node's own shadow root before its parent root; a host node
+        // belongs to the outer tree but owns the nested selection.
+        const roots = [node?.shadowRoot, node?.getRootNode?.()].filter(Boolean);
+        for (const root of roots) {
+            if (root === document || !root.host || seenRoots.has(root)) continue;
+            seenRoots.add(root);
+            if (typeof root.getSelection !== 'function') continue;
+            const selection = root.getSelection();
+            if (selection && selection.rangeCount > 0 && selectionOwnedByRoot(selection, root)) {
+                return { selection, root };
+            }
+        }
+    }
+
+    const target = event?.target;
+    const targetRoot = target?.getRootNode?.();
+    const start = targetRoot?.host || target;
+
+    // Plain light-DOM selections need no shadow scan; keep the common path cheap.
+    const pathHasShadow = path.some((node) => {
+        if (!node) return false;
+        if (node.shadowRoot) return true;
+        const root = node.getRootNode?.();
+        return Boolean(root && root.host);
+    });
+    if (!pathHasShadow) {
+        return { selection: window.getSelection(), root: document };
+    }
+
+    const found = findShadowSelection(start);
+    if (found) return found;
+
+    const pageFound = findShadowSelection(document.documentElement);
+    if (pageFound) return pageFound;
+
+    return { selection: window.getSelection(), root: document };
 }
 
 function getSelectionForRoot(root) {
@@ -106,8 +179,7 @@ function handleSelectionMouseUp(e) {
     // Resolve the selection while the event path is still alive. Deferring this
     // to the setTimeout below loses composedPath(), and some sites also clear
     // the selection on mouseup before the timer runs.
-    const selectionRoot = getSelectionRootFromEvent(e);
-    const selection = getSelectionForRoot(selectionRoot);
+    const { selection, root: selectionRoot } = getSelectionFromEvent(e);
     if (!selection || selection.rangeCount === 0) {
         lastSelectionRoot = null;
         clearSelectionScrollTargets();
@@ -265,7 +337,7 @@ async function handleExternalCopy(e) {
         }
     }
     if (!text) {
-        const sel = getSelectionForRoot(getSelectionRootFromEvent(e));
+        const sel = getSelectionFromEvent(e).selection;
         text = sel ? sel.toString() : '';
     }
     if (!text) return;
@@ -310,7 +382,7 @@ function handleInputPasteMouseUp(e) {
                 }
             }
         } else if (target.isContentEditable) {
-            const sel = getSelectionForRoot(getSelectionRootFromEvent(e));
+            const sel = getSelectionFromEvent(e).selection;
             if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
                 selectedText = sel.toString();
                 hasSelection = true;
@@ -370,7 +442,7 @@ function handleInputPasteMouseUp(e) {
         const textArg = (mode === 'paste') ? cache.text : selectedText;
 
         const rect = (target.isContentEditable && hasSelection)
-            ? getSmartSelectionState(getSelectionForRoot(getSelectionRootFromEvent(e)))
+            ? getSmartSelectionState(getSelectionFromEvent(e).selection)
             : null;
         if (!hostElement) initContainer();
         renderButton(rect, e.clientX, e.clientY, textArg, '', mode, target, false, cache, showIdCardCheck);
