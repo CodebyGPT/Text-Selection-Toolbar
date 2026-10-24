@@ -3233,54 +3233,59 @@ function handleSelectionMouseUp(e) {
     if (hostElement && e.composedPath().includes(hostElement)) return;
     if (!hostElement) initContainer();
     if (isScrolling) return;
+
+    // Resolve the selection while the event path is still alive. Deferring this
+    // to the setTimeout below loses composedPath(), and some sites also clear
+    // the selection on mouseup before the timer runs.
+    const selectionRoot = getSelectionRootFromEvent(e);
+    const selection = getSelectionForRoot(selectionRoot);
+    if (!selection || selection.rangeCount === 0) {
+        lastSelectionRoot = null;
+        clearSelectionScrollTargets();
+        hideUI();
+        return;
+    }
+    lastSelectionRoot = selectionRoot;
+
+    const target = document.activeElement;
+    const isTextInput = target && (
+        (['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.disabled && !target.readOnly)
+    );
+    const isEditable = isTextInput || Boolean(target && target.isContentEditable);
+
+    // Page selections trim edge whitespace; editable selections keep it.
+    if (!isEditable && !trimRangeWhitespace(selection)) {
+        hideUI();
+        return;
+    }
+
+    const text = selection.toString();
+    if (!text) {
+        hideUI();
+        return;
+    }
+    if (!isEditable && text.trim().length === 0) {
+        hideUI();
+        return;
+    }
+    // Whitespace-only input/textarea selection is handled by the capture
+    // mouseup handler, which expands it and builds the delete/paste UI.
+    if (isTextInput && text.trim().length === 0) return;
+
+    const range = selection.getRangeAt(0);
+    const container = document.createElement('div');
+    container.appendChild(range.cloneContents());
+    const html = container.innerHTML;
+    cachedSelection = { text, html };
+
+    // Snapshot geometry before any page handler can mutate the range.
+    const rect = getSmartSelectionState(selection);
+    bindSelectionScrollTargets(selection);
+    initContainer();
+
+    const releaseX = e.clientX;
+    const releaseY = e.clientY;
     setTimeout(async () => {
-        const selectionRoot = getSelectionRootFromEvent(e);
-        const selection = getSelectionForRoot(selectionRoot);
-        if (!selection || selection.rangeCount === 0) {
-            lastSelectionRoot = null;
-            clearSelectionScrollTargets();
-            hideUI();
-            return;
-        }
-        lastSelectionRoot = selectionRoot;
-
-        const target = document.activeElement;
-        const isTextInput = target && (
-            (['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.disabled && !target.readOnly)
-        );
-        const isEditable = isTextInput || Boolean(target && target.isContentEditable);
-
-        // Page selections trim edge whitespace; editable selections keep it.
-        if (!isEditable && !trimRangeWhitespace(selection)) {
-            hideUI();
-            return;
-        }
-
-        const text = selection.toString();
-        if (!text) {
-            hideUI();
-            return;
-        }
-        if (!isEditable && text.trim().length === 0) {
-            hideUI();
-            return;
-        }
-        // Whitespace-only input/textarea selection is handled by the capture
-        // mouseup handler, which expands it and builds the delete/paste UI.
-        if (isTextInput && text.trim().length === 0) return;
-
-        const range = selection.getRangeAt(0);
-        const container = document.createElement('div');
-        container.appendChild(range.cloneContents());
-        cachedSelection = {
-            text: text,
-            html: container.innerHTML
-        };
-        // Selection endpoint wins; null makes renderButton use the release point.
-        const rect = getSmartSelectionState(selection);
-        bindSelectionScrollTargets(selection);
-
-        initContainer();
         let cache = null;
         if (getConfig('enablePaste')) {
             cache = await safeGetValue('smart_paste_cache', null);
@@ -3289,7 +3294,7 @@ function handleSelectionMouseUp(e) {
         const cacheValid = cache && cache.text && (Date.now() - cache.timestamp < getPasteTtlMs()) && !(isChineseEnv && cache.type === 'pan_code');
         const isInput = isEditable;
         const mode = (cacheValid && isInput) ? PASTE_MODE_THREE_BTNS : 'default';
-        renderButton(rect, e.clientX, e.clientY, text, cachedSelection.html || '', mode, isInput ? target : null, isInput, cache);
+        renderButton(rect, releaseX, releaseY, text, html || '', mode, isInput ? target : null, isInput, cache);
     }, 10);
 }
 
