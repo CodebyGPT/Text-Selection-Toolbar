@@ -170,7 +170,7 @@ export default function TranslationPanelHeader({
             <Logo size={16} />
           </span>
           <span className="kt-tranbox-header__title">
-            {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
+            划词翻译面板（power by KISS Translator）
           </span>
         </span>
       )}

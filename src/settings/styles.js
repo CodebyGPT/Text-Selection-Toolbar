@@ -146,17 +146,6 @@ export const SETTINGS_APP_CSS = String.raw`
   color: #e8a33d;
 }
 :host .kiss-st-row__control { flex: 0 0 auto; }
-:host .kiss-st-order-btn {
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  display: inline-grid;
-  place-items: center;
-}
-:host .kiss-st-order-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
 :host .kiss-st-input,
 :host .kiss-st-select {
   min-width: 220px;
@@ -253,6 +242,23 @@ export const SETTINGS_APP_CSS = String.raw`
 }
 :host .kiss-st-btn:hover { border-color: var(--st-accent); }
 :host .kiss-st-btn:disabled { opacity: .5; cursor: default; }
+:host .kiss-st-btn.kiss-st-order-btn {
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+:host .kiss-st-btn.kiss-st-order-btn svg {
+  display: block;
+}
+:host .kiss-st-btn.kiss-st-order-btn:disabled {
+  opacity: .35;
+  cursor: default;
+}
 :host .kiss-st-btn--primary {
   background: var(--st-accent);
   border-color: var(--st-accent);
