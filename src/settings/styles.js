@@ -9,6 +9,8 @@ export const SETTINGS_APP_CSS = String.raw`
   --st-accent: #8ab4f8;
   --st-accent-text: #0b1b33;
   --st-danger: #ff8a80;
+  --st-btn-height: 36px;
+  --st-btn-pad-x: 14px;
   color-scheme: dark;
   min-height: 100vh;
   box-sizing: border-box;
@@ -230,8 +232,8 @@ export const SETTINGS_APP_CSS = String.raw`
 :host .kiss-st-switch input:checked + span { background: var(--st-accent); }
 :host .kiss-st-switch input:checked + span::after { transform: translateX(20px); }
 :host .kiss-st-btn {
-  height: 36px;
-  padding: 0 14px;
+  height: var(--st-btn-height);
+  padding: 0 var(--st-btn-pad-x);
   border: 1px solid var(--st-border);
   border-radius: 9px;
   background: var(--st-panel);
@@ -242,23 +244,19 @@ export const SETTINGS_APP_CSS = String.raw`
 }
 :host .kiss-st-btn:hover { border-color: var(--st-accent); }
 :host .kiss-st-btn:disabled { opacity: .5; cursor: default; }
-:host .kiss-st-btn.kiss-st-order-btn {
+/* Icon-only variant: square control, no text padding. */
+:host .kiss-st-btn--icon {
   box-sizing: border-box;
-  width: 36px;
-  height: 36px;
+  width: var(--st-btn-height);
+  height: var(--st-btn-height);
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   line-height: 0;
 }
-:host .kiss-st-btn.kiss-st-order-btn svg {
-  display: block;
-}
-:host .kiss-st-btn.kiss-st-order-btn:disabled {
-  opacity: .35;
-  cursor: default;
-}
+:host .kiss-st-btn--icon svg { display: block; }
+:host .kiss-st-btn--icon:disabled { opacity: .35; cursor: default; }
 :host .kiss-st-btn--primary {
   background: var(--st-accent);
   border-color: var(--st-accent);

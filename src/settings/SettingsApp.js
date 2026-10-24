@@ -866,7 +866,7 @@ function MenuManagementSection({ value, patch, hasBlockRules }) {
               )}
               <button
                 type="button"
-                className="kiss-st-btn kiss-st-order-btn"
+                className="kiss-st-btn kiss-st-btn--icon"
                 title="上移"
                 aria-label="上移"
                 disabled={index === 0}
@@ -888,7 +888,7 @@ function MenuManagementSection({ value, patch, hasBlockRules }) {
               </button>
               <button
                 type="button"
-                className="kiss-st-btn kiss-st-order-btn"
+                className="kiss-st-btn kiss-st-btn--icon"
                 title="下移"
                 aria-label="下移"
                 disabled={index === order.length - 1}
