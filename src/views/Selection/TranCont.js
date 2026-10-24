@@ -628,7 +628,7 @@ export default function TranCont({
               )}
             </Box>
           ),
-          endAdornment: (
+          labelAction: (
             <Stack
               onPointerDown={onActionPointerDown}
               className={

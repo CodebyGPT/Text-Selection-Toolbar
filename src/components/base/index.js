@@ -463,8 +463,21 @@ export const TextField = forwardRef(function TextField(
         ...style,
       },
     },
-    label
-      ? createElement("span", { className: "kt-field__label" }, label)
+    label || InputProps.labelAction
+      ? createElement(
+          "div",
+          { className: "kt-field__header" },
+          label
+            ? createElement("span", { className: "kt-field__label" }, label)
+            : createElement("span", { className: "kt-field__label" }),
+          InputProps.labelAction
+            ? createElement(
+                "span",
+                { className: "kt-field__label-actions" },
+                InputProps.labelAction
+              )
+            : null
+        )
       : null,
     createElement(
       "div",

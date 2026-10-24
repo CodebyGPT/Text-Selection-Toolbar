@@ -758,7 +758,7 @@ export default function TranForm({
               }}
               InputProps={{
                 ...sourceHeightLock.rootProps,
-                endAdornment: (
+                labelAction: (
                   <Stack
                     className={
                       isPlaygound

@@ -42,14 +42,6 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 .kt-translation-config-actions .kt-tranbox-header--compact { padding: 0; }
 .kt-translation-panel__body .MuiGrid-container { width: 100%; margin: 0; padding: 5px; border-radius: 12px; background: var(--kt-sf1); }
 .kt-translation-panel__body .MuiGrid-item { padding: 5px !important; }
-@container kt-translation-content (width < 420px) {
-  .kt-translation-config > .kt-translation-config__service { flex-basis: 100%; max-width: 100%; }
-  .kt-translation-config > .kt-translation-config__language { flex-basis: 50%; max-width: 50%; }
-}
-@container kt-translation-content (width < 480px) {
-  .kt-translation-config-row .kt-translation-config__service { flex-basis: 100%; max-width: 100%; }
-  .kt-translation-config-row .kt-translation-config__language { flex-basis: 50%; max-width: 50%; }
-}
 .kt-translation-panel__body .MuiFilledInput-root { border-radius: 12px; }
 .kt-translation-panel__body .MuiInputLabel-root { font-size: 12px; }
 .kt-translation-panel__body .MuiInputBase-input { font-size: 12.5px; }
@@ -65,13 +57,15 @@ export const PANEL_BASE_STYLES = String.raw`
 /* Lightweight Preact UI primitives (replace MUI) */
 .kt-field { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .kt-field--full { width: 100%; }
-.kt-field__label { padding-inline: 2px; color: var(--kt-onv); font-size: 11px; line-height: 1.3; }
+.kt-field__header { display: flex; align-items: center; gap: 8px; min-height: 20px; }
+.kt-field__label { flex: 1; min-width: 0; padding-inline: 2px; color: var(--kt-onv); font-size: 11px; line-height: 1.3; }
+.kt-field__label-actions { flex: none; display: flex; align-items: center; gap: 1px; margin-block: -5px; }
 .kt-field__control { position: relative; display: flex; align-items: stretch; min-width: 0; }
-.kt-field__control > .kt-field__input { flex: 1; }
+.kt-field__control > .kt-field__input, .kt-field__control > .kt-multiselect { flex: 1; min-width: 0; }
 .kt-field__input { box-sizing: border-box; width: 100%; min-height: ${px(T.panelControlHeight)}; padding: 8px ${px(T.panelControlPaddingX)}; border: 1px solid var(--kt-linev); border-radius: ${px(T.panelControlRadius)}; outline: none; background: var(--kt-sf1); color: var(--kt-on); font: inherit; font-size: ${px(T.fontSizeControl)}; }
 .kt-field__input:focus { border-color: var(--kt-pri); box-shadow: inset 0 0 0 1px var(--kt-pri); }
 .kt-field__select { cursor: pointer; }
-.kt-field textarea.kt-field__input { display: block; min-height: 40px; max-height: 260px; padding-inline-end: 38px; resize: none; line-height: 1.5; }
+.kt-field textarea.kt-field__input { display: block; min-height: 40px; max-height: 260px; padding-inline-end: 16px; resize: none; line-height: 1.5; }
 .kt-field.kt-height-locked { display: flex; flex-direction: column; }
 .kt-field.kt-height-locked .kt-field__control { flex: 1; min-height: 0; }
 .kt-field.kt-height-locked .kt-field__input { height: 100%; }
@@ -85,7 +79,7 @@ export const PANEL_BASE_STYLES = String.raw`
 .kt-resize-grip:hover svg { opacity: .9; transform: scale(1.08); }
 .kt-resize-grip:active { color: var(--kt-pri); }
 .kt-resize-grip:active svg { opacity: 1; transform: scale(.95); }
-.kt-multiselect { position: relative; }
+.kt-multiselect { position: relative; width: 100%; min-width: 0; }
 .kt-multiselect__control { width: 100%; min-height: ${px(T.panelControlHeight)}; padding: 8px ${px(T.panelControlPaddingX)}; border: 1px solid var(--kt-linev); border-radius: ${px(T.panelControlRadius)}; background: var(--kt-sf1); color: var(--kt-on); cursor: pointer; font: inherit; font-size: ${px(T.fontSizeControl)}; text-align: left; }
 .kt-multiselect__control:focus-visible { outline: 2px solid var(--kt-pri); outline-offset: 1px; }
 .kt-multiselect__menu { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 20; max-height: 240px; overflow: auto; padding: 5px; border: 1px solid var(--kt-linev); border-radius: 10px; background: var(--kt-sf0); box-shadow: var(--kt-shadow-2); }
@@ -102,9 +96,8 @@ export const PANEL_BASE_STYLES = String.raw`
 .kt-alert { padding: 10px ${px(T.panelControlPaddingX)}; border-radius: ${px(T.panelControlRadius)}; font-size: ${px(T.fontSizeBody)}; line-height: 1.5; }
 .kt-alert--error { background: var(--kt-errc); color: var(--kt-onerrc); }
 .kt-alert--info { background: var(--kt-sf2); color: var(--kt-on); }
-.kt-translation-config { display: flex; flex-wrap: wrap; gap: ${px(T.space8)}; padding: ${px(T.space5)}; border-radius: ${px(T.panelControlRadius)}; background: var(--kt-sf1); }
-.kt-translation-config__service { flex: 1 1 240px; min-width: 0; }
-.kt-translation-config__language { flex: 1 1 140px; min-width: 0; }
+.kt-translation-config { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); gap: ${px(T.space8)}; padding: ${px(T.space5)}; border-radius: ${px(T.panelControlRadius)}; background: var(--kt-sf1); }
+.kt-translation-config__service, .kt-translation-config__language { min-width: 0; }
 .kt-playground-config__grid { display: flex; flex-wrap: wrap; gap: 8px; }
 .kt-playground-config__service { flex: 1 1 220px; min-width: 0; }
 

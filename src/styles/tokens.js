@@ -22,7 +22,7 @@ export const UI_TOKENS = Object.freeze({
   panelIconButtonSize: 34,
 
   // Panel surface geometry.
-  panelRadius: 16,
+  panelRadius: 8,
   panelHeaderHeight: 56,
   panelContentPadding: 14,
 
