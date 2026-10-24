@@ -36,7 +36,7 @@ import {
   PASTE_TTL_MIN,
   PASTE_TTL_MAX,
 } from "../config/toolbar";
-import { translateDom } from "./translate";
+import { translateDom, translateText } from "./translate";
 
 let saveQueue = Promise.resolve();
 
@@ -1134,7 +1134,11 @@ function PanelTab({ setting, update }) {
           onChange={(v) => updatePanel({ apiSlugs: [v] })}
           options={apis.map((api) => [
             api.apiSlug,
-            `${api.apiName || api.apiType}${isExternalApi(api) ? "（外部）" : ""}`,
+            `${api.apiName || api.apiType}${
+              isExternalApi(api)
+                ? translateText("（外部）", setting.uiLang)
+                : ""
+            }`,
           ])}
         />
       </Row>

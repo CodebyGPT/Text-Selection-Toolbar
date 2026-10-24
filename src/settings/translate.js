@@ -208,6 +208,17 @@ const EN = {
   "User Prompt": "User Prompt",
   "名称": "Name",
   "网址匹配": "URL pattern",
+  "外部": "External",
+  "（外部）": " (External)",
+  "菜单管理": "Menu Management",
+  "编辑网页": "Edit Page",
+  "隐藏网页元素": "Hide Page Elements",
+  "脚本设置": "Script Settings",
+  "上移": "Move up",
+  "下移": "Move down",
+  "端口": "Port",
+  "请求超时时间 (s)": "Request timeout (s)",
+  "选择接口": "Choose service",
 };
 
 const originals = new WeakMap();
@@ -223,6 +234,16 @@ function translate(value, lang) {
   const translated = (lang === "ru" ? RU[trimmed] : EN[trimmed]) || EN[trimmed];
   if (!translated) return value;
   return value.replace(trimmed, translated);
+}
+
+/** Translate a composed/dynamic label with the same dictionaries used by the UI. */
+export function translateText(value, lang) {
+  let resolved = lang;
+  if (!resolved || resolved === "auto") {
+    const nav = String(globalThis.navigator?.language || "").toLowerCase();
+    resolved = nav.startsWith("ru") ? "ru" : nav.startsWith("zh") ? "zh" : "en";
+  }
+  return translate(value, resolved);
 }
 
 function translateNode(node, lang) {
