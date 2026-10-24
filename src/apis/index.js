@@ -15,6 +15,7 @@ import {
   OPT_LANGS_TO_CODE,
   OPT_LANGDETECTOR_MAP,
   defaultNobatchUserPrompt,
+  isExternalApi,
 } from "../config";
 import { getSetting } from "../libs/storage";
 import { kissLog } from "../libs/log";
@@ -32,21 +33,17 @@ import {
   handleSummarize,
 } from "./trans";
 import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
-import { getBatchQueue } from "../libs/batchQueue";
 import { isTranslatorAPIAvailable } from "../libs/browser";
 import { chromeDetect, chromeTranslate } from "../libs/builtinAI";
 import { fnPolyfill } from "../libs/fetch";
 import { normalizeHttpTimeout } from "../libs/request";
 import { getFetchPool } from "../libs/pool";
-import { supportsServiceFeature } from "../providers/features";
-import { getCapabilityDescriptor } from "../providers/capabilities";
 import { supportsApiCapability } from "../config/serviceSelection";
 import { trustedTypesHelper } from "../libs/trustedTypes";
 import { getDocInfo } from "../libs/docInfo";
 import { providerCacheSignature } from "../providers/cache";
 
 const PROMPT_CACHE_SALT = "prompt-cache";
-const PROMPT_CACHE_SCOPE_BATCH = "batch";
 const PROMPT_CACHE_SCOPE_NOBATCH = "nobatch";
 const PROMPT_CACHE_SCOPE_PLAIN = "plain";
 const PROMPT_CACHE_SCOPE_QWEN_MT = "qwen-mt";
@@ -84,27 +81,15 @@ const getTranslationLanguageMatch = ({
 };
 
 function getTranslatePromptCacheScope(apiSetting = {}) {
-  if (!API_SPE_TYPES.ai.has(apiSetting.apiType)) {
-    return PROMPT_CACHE_SCOPE_PLAIN;
-  }
-
-  return apiSetting.useBatchFetch && API_SPE_TYPES.batch.has(apiSetting.apiType)
-    ? PROMPT_CACHE_SCOPE_BATCH
-    : PROMPT_CACHE_SCOPE_NOBATCH;
+  return API_SPE_TYPES.ai.has(apiSetting.apiType)
+    ? PROMPT_CACHE_SCOPE_NOBATCH
+    : PROMPT_CACHE_SCOPE_PLAIN;
 }
 
 function getPromptCacheFields(apiSetting = {}, promptScope, glossary = {}) {
   let fields = [];
 
-  if (promptScope === PROMPT_CACHE_SCOPE_BATCH) {
-    fields = [apiSetting.systemPrompt || ""];
-    if (apiSetting.batchUserPrompt) {
-      fields.push(apiSetting.batchUserPrompt);
-    }
-    if (apiSetting.batchProtocol) {
-      fields.push(apiSetting.batchProtocol);
-    }
-  } else if (promptScope === PROMPT_CACHE_SCOPE_NOBATCH) {
+  if (promptScope === PROMPT_CACHE_SCOPE_NOBATCH) {
     fields = [
       apiSetting.nobatchPrompt || "",
       apiSetting.nobatchUserPrompt ?? defaultNobatchUserPrompt,
@@ -282,7 +267,6 @@ const apiTranslatorAPITranslate = async ({ text, from, to, apiSetting }) => {
  * @param {string} params.toLang 目标翻译语言
  * @param {Object} params.apiSetting 翻译接口的配置参数项
  * @param {string} params.glossary 自定义词汇术语替换表
- * @param {Function} params.onStreamChunk 流式响应增量回调函数 (用于 SSE/LLM 翻译)
  * @param {Object} params.docInfo 视频/文档摘要等额外上下文环境数据
  * @param {boolean} params.useCache 是否应用本地请求缓存 (默认 true)
  * @param {boolean} params.usePool 是否应用限制连接池 (默认 true)
@@ -297,7 +281,6 @@ export const apiTranslate = async ({
   toLang,
   apiSetting = DEFAULT_API_SETTING,
   glossary,
-  onStreamChunk,
   docInfo,
   useCache = true,
   cacheMode = "default",
@@ -319,8 +302,11 @@ export const apiTranslate = async ({
       new Error("Translation capability is disabled or unsupported."),
       { code: "CAPABILITY_DISABLED" }
     );
+
+  if (isExternalApi(apiSetting)) {
+    throw new Error("外部翻译接口请通过工具栏翻译按钮调用。");
+  }
   const { apiType, apiSlug } = apiSetting;
-  const useBatchFetch = apiSetting.useBatchFetch && cacheMode === "default";
   const langMap = OPT_LANGS_TO_SPEC[apiType] || OPT_LANGS_SPEC_DEFAULT;
   const fromMap = OPT_LANGS_FROM_SPEC[apiType] || langMap;
   const from = fromMap.get(fromLang);
@@ -393,59 +379,8 @@ export const apiTranslate = async ({
       to,
       apiSetting,
     });
-  } else if (useBatchFetch && supportsServiceFeature(apiSetting, "batch")) {
-    // 2.2 支持批量翻译的传统接口 (如 Google/Microsoft/DeepL 等)
-    // 使用 BatchQueue 进行零散文本大合并，节省网络交互次数，大幅提升网页整页翻译的载入速度
-    const {
-      apiSlug,
-      batchInterval,
-      batchSize,
-      batchLength,
-      batchConcurrency,
-      useStream,
-      useContext,
-    } = apiSetting;
-    const enableStream =
-      useStream !== false && supportsServiceFeature(apiSetting, "stream");
-    const configuredBatchConcurrency = Number(batchConcurrency);
-    const effectiveBatchConcurrency =
-      useContext && API_SPE_TYPES.context.has(apiType)
-        ? 1
-        : Number.isFinite(configuredBatchConcurrency) &&
-            configuredBatchConcurrency >= 1
-          ? Math.floor(configuredBatchConcurrency)
-          : 1;
-    const key = `${apiSlug}_${fromLang}_${toLang}_${textFormat}_${enableStream ? "stream" : "batch"}_${promptSig}_${effectiveBatchConcurrency}`;
-    const queue = getBatchQueue(key, handleTranslate, {
-      batchInterval,
-      batchSize: getCapabilityDescriptor(apiSetting, "translate")?.batch
-        ?.maxItems
-        ? Math.min(
-            batchSize || 10,
-            getCapabilityDescriptor(apiSetting, "translate").batch.maxItems
-          )
-        : batchSize,
-      batchLength,
-      batchConcurrency: effectiveBatchConcurrency,
-    });
-
-    translation = await queue.addTask(text, {
-      from,
-      to,
-      fromLang,
-      toLang,
-      langMap,
-      glossary,
-      textFormat,
-      apiSetting,
-      usePool,
-      onStreamChunk,
-      docInfo,
-      signal,
-      capture,
-    });
   } else {
-    // 2.3 不支持批量翻译、需要单个请求执行的 API (如某些流式大模型 API)
+    // 2.2 单段文本请求：面板一次只翻译一段，不再聚合或流式返回。
     const generator = handleTranslate([text], {
       from,
       to,
@@ -457,7 +392,6 @@ export const apiTranslate = async ({
       apiSetting,
       usePool,
       docInfo,
-      onStreamChunk,
       signal,
       capture,
     });
@@ -465,26 +399,6 @@ export const apiTranslate = async ({
     for await (const item of generator) {
       if (item.id !== 0) {
         continue;
-      }
-
-      const isComplete = item.isComplete !== false;
-      if (!isComplete) {
-        if (onStreamChunk) {
-          onStreamChunk({
-            id: item.id,
-            text: item.partialText,
-            isComplete: false,
-          });
-        }
-        continue;
-      }
-
-      if (onStreamChunk) {
-        onStreamChunk({
-          id: item.id,
-          text: item.result,
-          isComplete: true,
-        });
       }
       translation = item.result;
     }

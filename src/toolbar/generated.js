@@ -52,8 +52,10 @@ const DEFAULT_CONFIG = {
     enableTranslate: true, // show the KISS translate action
     // Sensitivity for the language-match gate: 15 / 35 / 55 / 75 (%).
     translateHideThreshold: 15,
-    showBlockMenu: true,   // show the "hide page selection toolbar" menu entries
+    showBlockMenu: true,   // show the "hide page elements" menu entry
     showEditMenu: true,    // show the "edit page" menu entry
+    showTranslateMenu: true,
+    showClearMenu: true,
 };
 
 // Chinese-only extras (cloud-drive codes, smart fallback engine) follow the
@@ -698,38 +700,22 @@ async function initDefaultSearchEngine() {
     }
 }
 
-function registerMenus() {
-    if (typeof GM_registerMenuCommand !== 'function') return;
-    if (window.top !== window) return;
-
-    // Entry points only. Turning these off never touches saved block rules;
-    // applySavedBlockingRules() keeps running regardless.
-    if (getConfig('showBlockMenu') !== false) {
-        GM_registerMenuCommand(t('menu_block'), () => {
-            activateElementPicker();
-        });
-
-        GM_registerMenuCommand(t('menu_clear'), async () => {
-            const domain = location.hostname;
-            if (!confirm(t('confirm_clear', domain))) return;
-            const rules = await safeGetValue('blocked_elements', {});
-            if (!rules[domain]) {
-                alert(t('alert_no_rules'));
-                return;
-            }
-            delete rules[domain];
-            await safeSetValue('blocked_elements', rules);
-            if (typeof configCache !== 'undefined') configCache['blocked_elements'] = rules;
-            alert(t('alert_cleared'));
-            location.reload();
-        });
+// Clear all element-blocking rules for the current page. The userscript menu
+// registration lives in common.js so the user-defined order can be applied.
+async function clearPageBlockRules() {
+    const domain = location.hostname;
+    if (!confirm(t('confirm_clear', domain))) return false;
+    const rules = await safeGetValue('blocked_elements', {});
+    if (!rules[domain]) {
+        alert(t('alert_no_rules'));
+        return false;
     }
-
-    if (getConfig('showEditMenu') !== false) {
-        GM_registerMenuCommand(t('menu_edit'), () => {
-            toggleEditMode(!isEditMode);
-        });
-    }
+    delete rules[domain];
+    await safeSetValue('blocked_elements', rules);
+    if (typeof configCache !== 'undefined') configCache['blocked_elements'] = rules;
+    alert(t('alert_cleared'));
+    location.reload();
+    return true;
 }
 
 
@@ -2097,7 +2083,8 @@ async function copyToClipboard(text, html) {
 }
 
 // Show toast (inside Shadow DOM)
-function showToast(msg) {
+function showToast(msg, duration = 1200) {
+    if (!shadowRoot) initContainer();
     let toast = shadowRoot.querySelector('.sc-toast');
     if (!toast) {
         toast = document.createElement('div');
@@ -2115,7 +2102,7 @@ function showToast(msg) {
     if (toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
         toast.classList.remove('show');
-    }, 1200);
+    }, duration);
 }
 
 
@@ -4253,6 +4240,20 @@ function unregisterVisibilityCleanup() {
     }
 }
 
+// Host-facing readiness: userscript menus are registered only after the
+// toolbar has loaded its configuration, so menu actions never see an empty
+// configCache.
+let resolveToolbarReady = null;
+const toolbarReady = new Promise((resolve) => {
+    resolveToolbarReady = resolve;
+});
+
+function markToolbarReady() {
+    if (!resolveToolbarReady) return;
+    resolveToolbarReady();
+    resolveToolbarReady = null;
+}
+
 (function () {
     'use strict';
 
@@ -4267,11 +4268,10 @@ function unregisterVisibilityCleanup() {
 
             // Auto-set default search engine based on timezone on first run
             await initDefaultSearchEngine();
+            markToolbarReady();
 
-            // 2. Register menus after config is loaded (so getConfig in menus reads correct values)
-            registerMenus();
-
-            // 3. Apply blocking rules
+            // 2. Apply blocking rules (userscript menu commands are registered
+            //    by the host from the user-defined menu order).
             applySavedBlockingRules();
 
             // 4. In unlock mode, smart intercept Ctrl+scroll
@@ -4317,6 +4317,7 @@ function unregisterVisibilityCleanup() {
             }
 
         } catch (e) {
+            markToolbarReady();
             //console.error('Smart Copy startup failed:', e);
         }
     })();
@@ -8030,4 +8031,12 @@ document.addEventListener('dragstart', (e) => {
 }, true);
 
 
+
+  return {
+    showToast,
+    ready: toolbarReady,
+    toggleEditModeMenu: () => toggleEditMode(!isEditMode),
+    activateElementPicker,
+    clearPageBlockRules,
+  };
 }

@@ -7,6 +7,7 @@ import ThemeProvider from "../hooks/M3Theme";
 import TranBox from "../views/Selection/TranBox";
 import useTranBoxState from "../hooks/useTranBoxState";
 import { SELECTION_STYLES } from "../views/Selection/styles";
+import { isExternalApi } from "../config";
 import { isolateShadowHost, mountShadowHost } from "./shadowHost";
 
 let current = null;
@@ -46,6 +47,12 @@ function TranslationPanel({ text, rect, onClose }) {
 
   if (!showBox) return null;
 
+  // External handoff services are invoked straight from the toolbar button and
+  // never appear in the panel's service selector.
+  const panelApis = (setting.transApis || []).filter(
+    (api) => !isExternalApi(api)
+  );
+
   const close = () => {
     setShowBox(false);
     onClose?.();
@@ -63,9 +70,8 @@ function TranslationPanel({ text, rect, onClose }) {
         boxPosition={boxPosition}
         setBoxPosition={setBoxPosition}
         tranboxSetting={tranboxSetting}
-        transApis={setting.transApis}
+        transApis={panelApis}
         prompts={setting.prompts}
-        subtitleSetting={setting.subtitleSetting}
         setShowBox={(next) => (next ? setShowBox(true) : close())}
         simpleStyle={simpleStyle}
         setSimpleStyle={setSimpleStyle}

@@ -1,4 +1,8 @@
-import { OPT_TRANS_TRANSLATOR_API, isTranslatorAPISupported } from "./apiConstants";
+import {
+  OPT_TRANS_TRANSLATOR_API,
+  OPT_TRANS_STRANSLATE,
+  isTranslatorAPISupported,
+} from "./apiConstants";
 import {
   PROVIDER_CAPABILITIES,
   supportsProviderCapability,
@@ -11,6 +15,15 @@ import { validateServiceConfig } from "../providers/instances";
 
 export const SOURCE_TYPES = ["builtin", "local", "network"];
 export const CAPABILITIES = PROVIDER_CAPABILITIES;
+
+/**
+ * External services do not return a translation to the panel. They receive
+ * the selected text from the toolbar and hand it to another application.
+ */
+export const isExternalApi = (api) =>
+  Boolean(
+    api && (api.external === true || api.apiType === OPT_TRANS_STRANSLATE)
+  );
 
 /** Pure metadata projection shared by forms, selectors and task admission. */
 export function projectApiCapabilities(api) {

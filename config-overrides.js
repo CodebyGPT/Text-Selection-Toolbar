@@ -7,10 +7,6 @@ const path = require("path");
 const userscriptWebpack = (config, env) => {
   config.resolve.alias = {
     ...config.resolve.alias,
-    [path.resolve(__dirname, "src/libs/interpreter.js")]: path.resolve(
-      __dirname,
-      "src/libs/stubs/interpreter-gm.js"
-    ),
     "webextension-polyfill$": path.resolve(
       __dirname,
       "src/libs/stubs/empty-object.js"
@@ -62,7 +58,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       127.0.0.1
 // @sandbox       DOM
 // @inject-into   content
-// @run-at        document-end
+// @run-at        document-start
 // ==/UserScript==
 
 `;

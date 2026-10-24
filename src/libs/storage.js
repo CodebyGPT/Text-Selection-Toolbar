@@ -23,10 +23,15 @@ import {
   CURRENT_SETTINGS_VERSION,
   DEFAULT_TRANBOX_SETTING,
   normalizeApiThinkingSettings,
+  OPT_TRANS_OLLAMA,
+  PROMPT_CATEGORY_BATCH_SYSTEM,
+  PROMPT_CATEGORY_SUBTITLE,
+  PROMPT_CATEGORY_SUMMARY,
   KV_SETTING_KEY,
   KV_RULES_KEY,
 } from "../config";
 import { isExt, isGm } from "./client";
+import { defaultServices } from "../config/defaultServices";
 import { browser } from "./browser";
 import { kissLog } from "./log";
 import { debounce } from "./utils";
@@ -532,13 +537,6 @@ function migrateLegacyApiSlugs(setting) {
       setting.tranboxSetting = { ...panel, apiSlugs: next };
     }
   }
-  const subtitle = setting.subtitleSetting;
-  if (subtitle && subtitle.apiSlug) {
-    const next = migrateApiSlug(subtitle.apiSlug);
-    if (next !== subtitle.apiSlug) {
-      setting.subtitleSetting = { ...subtitle, apiSlug: next };
-    }
-  }
 }
 
 const writeSettingBackupBeforeV2 = (setting) =>
@@ -565,22 +563,75 @@ const mergeSettingWithDefault = (setting) => {
   delete mergedSetting.apiSlug;
   // BuiltinAI was renamed to TranslatorAPI; rewrite saved service references.
   migrateLegacyApiSlugs(mergedSetting);
+
+  // The panel translates a single text at a time: aggregation, streaming,
+  // smart context and legacy hooks are no longer supported. Strip their saved
+  // values so old settings cannot silently reactivate those code paths.
+  const panelApis = (Array.isArray(mergedSetting.transApis)
+    ? mergedSetting.transApis
+    : []
+  )
+    .filter((api) => api && api.apiType !== OPT_TRANS_OLLAMA)
+    .map((api) => {
+      const {
+        reqHook,
+        resHook,
+        batchPromptSlug,
+        systemPrompt,
+        batchUserPrompt,
+        batchProtocol,
+        ...rest
+      } = api;
+      return {
+        ...rest,
+        useBatchFetch: false,
+        useStream: false,
+        useContext: false,
+      };
+    });
+
+  // Presets are not deletable, so make sure newly shipped presets (such as the
+  // STranslate handoff) also reach settings saved before they existed.
+  const knownApiSlugs = new Set(panelApis.map((api) => api.apiSlug));
+  defaultServices().forEach((preset) => {
+    if (!knownApiSlugs.has(preset.apiSlug)) {
+      panelApis.push(preset);
+      knownApiSlugs.add(preset.apiSlug);
+    }
+  });
+
+  mergedSetting.transApis = panelApis;
+  if (Array.isArray(mergedSetting.tranboxSetting?.apiSlugs)) {
+    const validSlugs = new Set(panelApis.map((api) => api.apiSlug));
+    mergedSetting.tranboxSetting = {
+      ...mergedSetting.tranboxSetting,
+      apiSlugs: mergedSetting.tranboxSetting.apiSlugs.filter((slug) =>
+        validSlugs.has(slug)
+      ),
+    };
+  }
+
+  // Prompts that belonged to removed features are dropped with their features.
+  const removedPromptCategories = new Set([
+    PROMPT_CATEGORY_BATCH_SYSTEM,
+    PROMPT_CATEGORY_SUBTITLE,
+    PROMPT_CATEGORY_SUMMARY,
+  ]);
+  mergedSetting.prompts = (Array.isArray(mergedSetting.prompts)
+    ? mergedSetting.prompts
+    : []
+  ).filter((prompt) => !removedPromptCategories.has(prompt?.category));
+  // Subtitle, hover and input-box translation were removed with the rest of
+  // the KISS feature set; drop their saved configuration.
+  delete mergedSetting.subtitleSetting;
+  delete mergedSetting.mouseHoverSetting;
+  delete mergedSetting.inputRule;
   if (mergedSetting.uiLang === "zh-CN" || mergedSetting.uiLang === "zh_TW") {
     mergedSetting.uiLang = "zh";
   }
   if (!["auto", "zh", "en", "ru"].includes(mergedSetting.uiLang)) {
     mergedSetting.uiLang = "auto";
   }
-  if (mergedSetting.inputRule) {
-    mergedSetting.inputRule = {
-      ...mergedSetting.inputRule,
-      triggerShortcut: [],
-    };
-  }
-  mergedSetting.tranboxSetting = {
-    ...mergedSetting.tranboxSetting,
-    tranboxShortcut: [],
-  };
 
   // 设置读取时只在内存中归一化一次，避免每次请求重复解析模型能力。
   return {

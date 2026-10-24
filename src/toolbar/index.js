@@ -53,16 +53,42 @@ export function setToolbarValue(key, value) {
 }
 
 let installed = false;
+let toolbarApi = null;
 
-export function installToolbar({ translateSelection } = {}) {
-  if (installed) return;
+export function installToolbar({ openSettings, translateSelection } = {}) {
+  if (installed) return toolbarApi;
   installed = true;
-  installTextSelectionToolbar({
+  toolbarApi = installTextSelectionToolbar({
     getValue: getToolbarValue,
     setValue: setToolbarValue,
-    openSettings: null,
+    openSettings,
     translateSelection,
     detectLanguage: quickDetectLang,
     countScriptChars,
   });
+  return toolbarApi;
+}
+
+/** Show a toast inside the toolbar Shadow DOM. Returns false if unavailable. */
+export function showToolbarToast(message, duration) {
+  if (typeof toolbarApi?.showToast !== "function") return false;
+  toolbarApi.showToast(message, duration);
+  return true;
+}
+
+export function toggleEditPageMenu() {
+  return toolbarApi?.toggleEditModeMenu?.();
+}
+
+export function activateHideElementsMenu() {
+  return toolbarApi?.activateElementPicker?.();
+}
+
+export function clearPageBlockRulesMenu() {
+  return toolbarApi?.clearPageBlockRules?.();
+}
+
+/** Resolves once the toolbar has loaded its configuration. */
+export function waitForToolbarReady() {
+  return toolbarApi?.ready || Promise.resolve();
 }

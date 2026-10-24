@@ -10,7 +10,6 @@ import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { apiTranslate } from "../../apis";
-import { supportsServiceFeature } from "../../providers/features";
 import {
   API_SPE_TYPES,
   OPT_TRANS_TRANSLATOR_API,
@@ -25,19 +24,6 @@ import useTextareaHeightLock, {
   useTextareaGripStyle,
   useReleaseOnGripHidden,
 } from "../../hooks/useTextareaHeightLock";
-
-/**
- * Determine whether selection translation results can render incrementally.
- *
- * @param {Object} apiSetting Translation API settings.
- * @returns {boolean} Whether this API should display streaming chunks immediately.
- */
-const canRenderStream = (apiSetting) =>
-  Boolean(
-    apiSetting?.useStream &&
-      supportsServiceFeature(apiSetting, "stream") &&
-      (apiSetting.streamRenderMode || "disabled") !== "disabled"
-  );
 
 /**
  * Normalize the text payload from a streaming callback.
@@ -324,32 +310,6 @@ export default function TranCont({
     let active = true;
     requestPendingRef.current = true;
     const controller = new AbortController();
-    const enableStreamRender = canRenderStream(apiSetting);
-
-    /**
-     * Synchronize streaming text from the translation queue with the output field.
-     *
-     * @param {Object} chunk Streaming translation chunk.
-     * @param {string|string[]} chunk.text Translation text parsed from this chunk.
-     */
-    const handleStreamChunk = enableStreamRender
-      ? ({ text: chunkText }) => {
-          // Ignore late chunks from replaced or canceled requests.
-          if (!active || controller.signal.aborted) {
-            return;
-          }
-
-          const nextText = normalizeTranslationText(
-            chunkText,
-            apiSetting.apiType,
-            text,
-            parseLatex
-          );
-          if (nextText) {
-            setTrText(nextText);
-          }
-        }
-      : undefined;
 
     (async () => {
       try {
@@ -365,7 +325,6 @@ export default function TranCont({
             apiSetting,
             textFormat: "text",
             translateVariants,
-            onStreamChunk: handleStreamChunk,
             // Pass cancellation through so stale requests stop using the network and updating the UI.
             signal: controller.signal,
           });

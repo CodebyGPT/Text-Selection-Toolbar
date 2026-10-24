@@ -146,6 +146,21 @@ export const SETTINGS_APP_CSS = String.raw`
   color: #e8a33d;
 }
 :host .kiss-st-row__control { flex: 0 0 auto; }
+:host .kiss-st-drag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 6px;
+  color: var(--st-muted);
+  cursor: grab;
+  user-select: none;
+}
+:host .kiss-st-drag:hover {
+  color: var(--st-text);
+  background: rgba(255, 255, 255, 0.06);
+}
+:host .kiss-st-drag:active { cursor: grabbing; }
 :host .kiss-st-input,
 :host .kiss-st-select {
   min-width: 220px;
@@ -286,6 +301,10 @@ export const SETTINGS_APP_CSS = String.raw`
   color: var(--st-muted);
   font-size: 11px;
   font-weight: 600;
+}
+:host .kiss-st-badge--external {
+  color: #4a9eff;
+  border-color: #4a9eff;
 }
 :host .kiss-st-spacer { flex: 1; }
 :host .kiss-st-grid {

@@ -61,7 +61,7 @@ export function getSupportedCapabilityDescriptor(instance, capability) {
 
 export function usesStreaming(instance, capability) {
   return (
-    instance.useStream !== false &&
+    instance.useStream === true &&
     Boolean(
       getCapabilityDescriptor(instance, capability)?.outputModes?.includes(
         "stream"

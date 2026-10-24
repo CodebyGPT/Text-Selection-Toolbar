@@ -15,6 +15,14 @@ const contracts = {
     stream: false,
     usesMessages: false,
   },
+  // External handoff: the toolbar sends the selection to STranslate and does
+  // not expect a translation result back.
+  STranslate: {
+    names: ["translate"],
+    batch: false,
+    stream: false,
+    usesMessages: false,
+  },
   Ollama: {
     names: textCapabilities,
     batch: true,

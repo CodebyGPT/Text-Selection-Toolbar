@@ -13,8 +13,6 @@ import {
   INPUT_PLACE_FROM,
   INPUT_PLACE_TO,
   INPUT_PLACE_TEXT,
-  defaultSystemPrompt,
-  defaultSubtitlePrompt,
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
   defaultDictUserPrompt,
@@ -25,8 +23,6 @@ import {
   INPUT_PLACE_FROM_LANG,
   INPUT_PLACE_GLOSSARY,
   INPUT_PLACE_SEGMENTS,
-  defaultSystemPromptXml,
-  defaultSystemPromptLines,
   INPUT_PLACE_SUMMARY,
   INPUT_PLACE_CONTEXT,
   PROMPT_PROTOCOL_LINE,
@@ -38,13 +34,7 @@ import { isExt } from "../libs/client";
 import { isBg } from "../libs/browser";
 
 import {
-  callLegacyRequestHook,
-  callLegacyResponseHook,
-} from "../providers/legacyHooks";
-
-import {
   parseJsonObj,
-  extractJson,
   stripMarkdownCodeBlock,
   parseAITerms,
 } from "../libs/utils";
@@ -60,7 +50,6 @@ import {
 import { createSubtitleIndexAligner } from "../libs/subtitleIndexAlign";
 import { kissLog } from "../libs/log";
 import { fetchData, fetchStream } from "../libs/fetch";
-import { getMsgHistory } from "./history";
 import { parseBilingualVtt } from "../subtitle/vtt";
 import { getDocInfo } from "../libs/docInfo";
 import { chromeSummarize } from "../libs/builtinAI";
@@ -722,7 +711,7 @@ const genInit = ({
  * @param {*}
  * @returns
  */
-export const genTransReq = async ({ reqHook, ...args }) => {
+export const genTransReq = async (args) => {
   Object.assign(args, selectNativeEndpoint(args));
   const {
     apiType,
@@ -818,39 +807,6 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     Object.assign(body, parseJsonObj(customBody));
   }
 
-  // 执行 request hook
-  if (reqHook?.trim() && !events) {
-    try {
-      const req = {
-        url,
-        body,
-        headers,
-        userMsg,
-        method,
-      };
-      const hookResult = await callLegacyRequestHook(
-        reqHook,
-        {
-          ...args,
-          defaultSystemPrompt,
-          defaultSystemPromptXml,
-          defaultSystemPromptLines,
-          defaultSubtitlePrompt,
-          defaultNobatchPrompt,
-          defaultNobatchUserPrompt,
-          req,
-        },
-        req
-      );
-      if (hookResult && hookResult.url) {
-        return genInit(hookResult);
-      }
-    } catch (err) {
-      kissLog("run req hook", err);
-      throw new Error(`Request hook error: ${err.message}`);
-    }
-  }
-
   return genInit({ url, body, headers, userMsg, method });
 };
 
@@ -869,9 +825,6 @@ export const parseTransRes = async (
     fromLang,
     toLang,
     langMap,
-    resHook,
-    // thinkIgnore,
-    history,
     userMsg,
     apiType,
     useBatchFetch,
@@ -879,36 +832,6 @@ export const parseTransRes = async (
     textFormat = "text",
   }
 ) => {
-  // 执行 response hook
-  if (resHook?.trim()) {
-    try {
-      const hookResult = await callLegacyResponseHook(resHook, {
-        apiType,
-        userMsg,
-        res,
-        texts,
-        from,
-        to,
-        fromLang,
-        toLang,
-        langMap,
-        extractJson,
-        parseAIRes,
-      });
-      if (hookResult && Array.isArray(hookResult.translations)) {
-        if (history && userMsg && hookResult.modelMsg) {
-          history.add(userMsg, hookResult.modelMsg);
-        }
-        return hookResult.translations;
-      } else if (Array.isArray(hookResult)) {
-        return hookResult;
-      }
-    } catch (err) {
-      kissLog("run res hook", err);
-      throw new Error(`Response hook error: ${err.message}`);
-    }
-  }
-
   const parser = nativeResponseParsers[apiType];
   if (parser) {
     const result = parser(
@@ -920,7 +843,6 @@ export const parseTransRes = async (
         fromLang,
         toLang,
         langMap,
-        history,
         userMsg,
         apiType,
         useBatchFetch,
@@ -1222,25 +1144,11 @@ export async function* handleNativeTranslate(
     return;
   }
 
-  let history = null;
-  let hisMsgs = [];
-  const {
-    apiType,
-    apiSlug,
-    contextSize,
-    useContext,
-    fetchInterval,
-    fetchLimit,
-    httpTimeout,
-    useStream,
-  } = apiSetting;
-  if (useContext && getBuiltinServiceDefinition(apiType)?.supportsContext) {
-    history = getMsgHistory(apiSlug, contextSize);
-    hisMsgs = history.getAll();
-  }
+  const { apiType, fetchInterval, fetchLimit, httpTimeout, useStream } =
+    apiSetting;
 
   const enableStream =
-    useStream !== false &&
+    useStream === true &&
     getBuiltinServiceDefinition(
       apiType
     )?.capabilities.translate?.outputModes.includes("stream");
@@ -1256,7 +1164,6 @@ export async function* handleNativeTranslate(
       langMap,
       glossary,
       textFormat,
-      hisMsgs,
       useStream: requestUseStream,
       docInfo,
     });
@@ -1283,7 +1190,6 @@ export async function* handleNativeTranslate(
       fromLang,
       toLang,
       langMap,
-      history,
       userMsg,
       ...apiSetting,
       textFormat,
@@ -1310,7 +1216,6 @@ export async function* handleNativeTranslate(
         init,
         {
           apiType,
-          history,
           userMsg,
           useBatchFetch: apiSetting.useBatchFetch,
           batchProtocol: apiSetting.batchProtocol,
@@ -1363,7 +1268,6 @@ async function* handleTranslateStreamInternal(
   init,
   {
     apiType,
-    history,
     userMsg,
     useBatchFetch,
     batchProtocol,
@@ -1518,13 +1422,6 @@ async function* handleTranslateStreamInternal(
   for (const item of newlyYieldable) {
     yield item;
   }
-
-  if (history && userMsg) {
-    history.addPair(userMsg, {
-      role: "assistant",
-      content: fullContent,
-    });
-  }
 }
 
 /**
@@ -1578,7 +1475,7 @@ export const handleNativeSubtitle = async ({
     apiSetting;
   const enableStream =
     Boolean(onSubtitleChunk) &&
-    useStream !== false &&
+    useStream === true &&
     getBuiltinServiceDefinition(apiType)?.supportsSubtitleCallbackStream;
 
   const [input, init] = await genTransReq({

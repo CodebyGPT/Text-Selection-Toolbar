@@ -24,7 +24,31 @@ export const DEFAULT_TOOLBAR_SETTING = {
   translateHideThreshold: 15,
   showBlockMenu: true,
   showEditMenu: true,
+  showTranslateMenu: true,
+  showClearMenu: true,
+  menuOrder: ["translate", "edit", "block", "clear", "settings"],
 };
+
+export const TOOLBAR_MENU_ORDER_DEFAULT = [
+  "translate",
+  "edit",
+  "block",
+  "clear",
+  "settings",
+];
+
+/** Keep saved orders stable and append newly introduced menu items. */
+export function normalizeToolbarMenuOrder(order) {
+  const known = new Set(TOOLBAR_MENU_ORDER_DEFAULT);
+  const result = [];
+  (Array.isArray(order) ? order : []).forEach((id) => {
+    if (known.has(id) && !result.includes(id)) result.push(id);
+  });
+  TOOLBAR_MENU_ORDER_DEFAULT.forEach((id) => {
+    if (!result.includes(id)) result.push(id);
+  });
+  return result;
+}
 
 export const TOOLBAR_SEARCH_ENGINES = {
   google: { name: "Google", url: "https://www.google.com/search?q=%s" },

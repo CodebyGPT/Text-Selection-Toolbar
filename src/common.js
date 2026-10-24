@@ -1,15 +1,19 @@
-import {
-  getSettingWithDefault,
-} from "./libs/storage";
-import { isIframe } from "./libs/iframe";
-import { matchRule } from "./libs/rules";
-import { trySyncAllSubRules } from "./libs/subRules";
-import { isInBlacklist } from "./libs/blacklist";
-import { createBlacklistStartupRecovery } from "./libs/blacklistStartup";
-import { runSubtitle } from "./subtitle/subtitle";
+import { getSettingWithDefault } from "./libs/storage";
 import { logger } from "./libs/log";
-import TranslatorManager from "./libs/translatorManager";
-import { installToolbar } from "./toolbar";
+import { newI18n, isExternalApi } from "./config";
+import {
+  DEFAULT_TOOLBAR_SETTING,
+  normalizeToolbarMenuOrder,
+} from "./config/toolbar";
+import { invokeExternalApi } from "./libs/externalTranslate";
+import {
+  installToolbar,
+  showToolbarToast,
+  toggleEditPageMenu,
+  activateHideElementsMenu,
+  clearPageBlockRulesMenu,
+  waitForToolbarReady,
+} from "./toolbar";
 
 /**
  * 建立旧式 GM_* API 到现代 GM 对象的兼容垫片。
@@ -84,7 +88,9 @@ function showErr(message) {
   banner.appendChild(messageText);
   banner.appendChild(closeButton);
 
-  document.body.appendChild(banner);
+  const root = document.body || document.documentElement;
+  if (!root) return;
+  root.appendChild(banner);
 
   // 渐隐淡出效果
   const removeBanner = () => {
@@ -101,86 +107,77 @@ function showErr(message) {
   setTimeout(removeBanner, 10000); // 10秒后自动消失
 }
 
+/** Open the local settings overlay; loaded lazily to keep page startup cheap. */
+function openSettings(path) {
+  import("./settings")
+    .then(({ openSettings: open }) => open(path))
+    .catch((err) => console.error("[Text Selection Toolbar]", err));
+}
+
+/** Open a blank translation panel for manual input. */
+function openTranslatePanel() {
+  import("./libs/translationPanel")
+    .then(({ showTranslationPanel }) => showTranslationPanel("", null))
+    .catch((err) => console.error("[Text Selection Toolbar]", err));
+}
+
 /**
- * 依据匹配规则，获取用户生词本中的所有单词用于高亮显示。
- * @param {Object} rule 当前页面的翻译匹配规则
- * @returns {Promise<Array<string>>} 生词本里的单词数组
+ * Register the userscript-manager menu entries in the order chosen in
+ * Settings → General → Menu Management. Disabled entries are not registered.
  */
-const IFRAME_TEXT_CHECK_TIMEOUT = 1000;
-const blacklistStartupRecovery = createBlacklistStartupRecovery({
-  getHref: () => document?.location?.href || "",
-  onUnblocked: () => run(),
-});
-const IFRAME_TEXT_IGNORE_SELECTOR = [
-  "script",
-  "style",
-  "template",
-  "noscript",
-  "svg",
-  "canvas",
-  "iframe",
-  "input",
-  "textarea",
-  "select",
-  "option",
-  ".notranslate",
-  "[translate='no']",
-  "[contenteditable='true']",
-].join(", ");
+function registerMenus(setting) {
+  if (!globalThis.GM?.registerMenuCommand) return;
+  if (window.top !== window) return;
 
-function waitForDocumentReady(timeout = IFRAME_TEXT_CHECK_TIMEOUT) {
-  if (document.readyState !== "loading") {
-    return Promise.resolve();
-  }
+  const toolbarSetting = {
+    ...DEFAULT_TOOLBAR_SETTING,
+    ...(setting.toolbarSetting || {}),
+  };
+  const i18n = newI18n(setting.uiLang || "zh");
 
-  return new Promise((resolve) => {
-    const done = () => {
-      clearTimeout(timer);
-      document.removeEventListener("DOMContentLoaded", done);
-      resolve();
-    };
-    const timer = setTimeout(done, timeout);
-    document.addEventListener("DOMContentLoaded", done, { once: true });
-  });
-}
+  const items = {
+    translate: {
+      label: i18n("menu_translate_panel", "翻译面板"),
+      enabled: toolbarSetting.showTranslateMenu !== false,
+      action: openTranslatePanel,
+    },
+    edit: {
+      label: i18n("menu_edit_page", "编辑网页"),
+      enabled: toolbarSetting.showEditMenu !== false,
+      action: toggleEditPageMenu,
+    },
+    block: {
+      label: i18n("menu_hide_elements", "隐藏网页元素"),
+      enabled: toolbarSetting.showBlockMenu !== false,
+      action: activateHideElementsMenu,
+    },
+    clear: {
+      label: i18n("menu_clear_hidden_rules", "清空该网页的隐藏规则"),
+      enabled: toolbarSetting.showClearMenu !== false,
+      action: clearPageBlockRulesMenu,
+    },
+    settings: {
+      label: i18n("menu_script_settings", "脚本设置"),
+      enabled: true,
+      action: () => openSettings(),
+    },
+  };
 
-function hasIframeTranslatableText() {
-  if (!document.body) return false;
-
-  const walker = document.createTreeWalker(
-    document.body,
-    NodeFilter.SHOW_TEXT,
-    {
-      acceptNode(node) {
-        if (!node.nodeValue?.trim()) {
-          return NodeFilter.FILTER_REJECT;
-        }
-
-        if (node.parentElement?.closest(IFRAME_TEXT_IGNORE_SELECTOR)) {
-          return NodeFilter.FILTER_REJECT;
-        }
-
-        return NodeFilter.FILTER_ACCEPT;
-      },
+  normalizeToolbarMenuOrder(toolbarSetting.menuOrder).forEach((id) => {
+    const item = items[id];
+    if (item?.enabled) {
+      globalThis.GM.registerMenuCommand(item.label, item.action);
     }
-  );
-
-  return Boolean(walker.nextNode());
-}
-
-async function waitForIframeTranslatableText() {
-  await waitForDocumentReady();
-  return hasIframeTranslatableText();
+  });
 }
 
 /**
  * 前端翻译器的核心运行总入口。
+ * KISS 侧只保留工具栏翻译按钮弹出的翻译面板；其余翻译功能均已移除。
  * @param {boolean} isUserscript 是否作为油猴 Userscript 脚本模式运行 (false 代表作为浏览器 Extension 运行)
  */
 export async function run(isUserscript = false) {
   try {
-    const href = document?.location?.href || "";
-
     if (isUserscript) {
       ensureUserscriptGM();
 
@@ -207,78 +204,44 @@ export async function run(isUserscript = false) {
       return;
     }
 
-    // 4. Start the Text Selection Toolbar before the page blacklist / rule /
-    // subscription gates. The blacklist only disables page translation: the
-    // selection toolbar (and super-selection) is a page utility and must keep
-    // working on blacklisted sites. It keeps its own Shadow DOM and only
-    // creates UI after a selection, so startup stays cheap.
+    // 4. 只启动划词工具栏；工具栏的翻译按钮是翻译面板唯一入口。
+    //    It keeps its own Shadow DOM and only creates UI after a selection,
+    //    so startup stays cheap.
     installToolbar({
-      translateSelection: (text, rect) => {
+      openSettings,
+      translateSelection: async (text, rect) => {
+        try {
+          const current = await getSettingWithDefault();
+          const apiSlug = (current.tranboxSetting?.apiSlugs || [])[0];
+          const api = (current.transApis || []).find(
+            (item) => item.apiSlug === apiSlug && !item.isDisabled
+          );
+
+          if (isExternalApi(api)) {
+            try {
+              // External services hand the text to another application and
+              // show the translation in their own window. Success is silent.
+              await invokeExternalApi(api, text);
+            } catch (err) {
+              const message = err?.message || "外部翻译接口调用失败。";
+              if (!showToolbarToast(message, 3200)) showErr(message);
+            }
+            return;
+          }
+        } catch (err) {
+          console.error("[Text Selection Toolbar] resolve API failed", err);
+        }
+
         import("./libs/translationPanel")
           .then(({ showTranslationPanel }) => showTranslationPanel(text, rect))
           .catch((err) => console.error("[Text Selection Toolbar]", err));
       },
     });
 
-    // 5. 网页黑名单校验，命中时彻底不启动翻译
-    if (isInBlacklist(href, setting.blacklist)) {
-      if (!isUserscript) {
-        blacklistStartupRecovery.watch();
-      }
-      return;
-    }
-
-    if (!isUserscript) {
-      blacklistStartupRecovery.cancel();
-    }
-
-    // 5.1. iframe 空内容拦截：默认允许 iframe 翻译，但空 iframe 不继续挂载后续脚本
-    if (isIframe && !(await waitForIframeTranslatableText())) {
-      return;
-    }
-
-    if (isInBlacklist(href, setting.tranboxSetting?.blacklist)) {
-      setting.tranboxSetting.transOpen = false;
-    }
-
-    // Mouse-hover and input-box translation were removed.
-    if (setting.mouseHoverSetting) {
-      setting.mouseHoverSetting.useMouseHover = false;
-    }
-
-    // 7. 匹配当前网页专用的规则 (三级规则合并：个人 > 订阅 > 内置全局)
-    const rule = await matchRule(href, setting);
-
-    // Rule/subscription loading may outlive an API edit. Refresh this list
-    // before constructing a runtime that can immediately start translating.
-    const latestApiSetting = isUserscript
-      ? setting
-      : await getSettingWithDefault();
-    const runtimeSetting = Array.isArray(latestApiSetting?.transApis)
-      ? { ...setting, transApis: latestApiSetting.transApis }
-      : setting;
-
-    // 8. 创建翻译调度器管理器并启动
-    const translatorManager = new TranslatorManager({
-      setting: runtimeSetting,
-      rule,
-      isIframe,
-      isUserscript,
-      transboxOnly: isPdfDocument,
-    });
-    translatorManager.start();
-
-    // 9. 若当前页面是嵌套的 iframe，不进行视频字幕翻译，避免多个 iframe 里重复跑字幕服务造成冲突
-    if (isIframe || isPdfDocument) {
-      return;
-    }
-
-    // 10. 启动视频字幕翻译子模块 (仅在顶级 frame 下运行)
-    runSubtitle({ href, setting: runtimeSetting, rule, isUserscript });
-
-    // 11. 在油猴环境下，每次进入顶级页面时尝试触发一次订阅规则的自动同步检查 (每日一次)
+    // 5. 按用户在“菜单管理”中设置的顺序注册油猴菜单。
     if (isUserscript) {
-      trySyncAllSubRules(setting);
+      await waitForToolbarReady();
+      registerMenus(setting);
     }
   } catch (err) {
     console.error("[Text Selection Toolbar]", err);

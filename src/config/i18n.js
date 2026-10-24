@@ -1833,6 +1833,26 @@ export const I18N = {
     zh: `打开脚本设置`,
     en: `Open Script Settings`
   },
+  menu_translate_panel: {
+    zh: `翻译面板`,
+    en: `Translation Panel`
+  },
+  menu_edit_page: {
+    zh: `编辑网页`,
+    en: `Edit Page`
+  },
+  menu_hide_elements: {
+    zh: `隐藏网页元素`,
+    en: `Hide Page Elements`
+  },
+  menu_clear_hidden_rules: {
+    zh: `清空该网页的隐藏规则`,
+    en: `Clear Hidden Rules for This Page`
+  },
+  menu_script_settings: {
+    zh: `脚本设置`,
+    en: `Script Settings`
+  },
   follow_selection: {
     zh: `翻译框跟随选中文本`,
     en: `Transbox Follow Selection`

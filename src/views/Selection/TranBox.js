@@ -39,17 +39,8 @@ export default function TranBox(props) {
     const withPrompt = props.transApis.map((api) =>
       withScenePrompt(api, props.tranboxSetting)
     );
-    return resolveApiPromptList(
-      withPrompt,
-      props.prompts,
-      props.subtitleSetting
-    );
-  }, [
-    props.transApis,
-    props.tranboxSetting,
-    props.prompts,
-    props.subtitleSetting,
-  ]);
+    return resolveApiPromptList(withPrompt, props.prompts);
+  }, [props.transApis, props.tranboxSetting, props.prompts]);
 
   return props.showBox ? (
     <DraggableResizable

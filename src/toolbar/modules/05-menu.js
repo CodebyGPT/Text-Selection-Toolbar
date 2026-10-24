@@ -28,36 +28,20 @@ async function initDefaultSearchEngine() {
     }
 }
 
-function registerMenus() {
-    if (typeof GM_registerMenuCommand !== 'function') return;
-    if (window.top !== window) return;
-
-    // Entry points only. Turning these off never touches saved block rules;
-    // applySavedBlockingRules() keeps running regardless.
-    if (getConfig('showBlockMenu') !== false) {
-        GM_registerMenuCommand(t('menu_block'), () => {
-            activateElementPicker();
-        });
-
-        GM_registerMenuCommand(t('menu_clear'), async () => {
-            const domain = location.hostname;
-            if (!confirm(t('confirm_clear', domain))) return;
-            const rules = await safeGetValue('blocked_elements', {});
-            if (!rules[domain]) {
-                alert(t('alert_no_rules'));
-                return;
-            }
-            delete rules[domain];
-            await safeSetValue('blocked_elements', rules);
-            if (typeof configCache !== 'undefined') configCache['blocked_elements'] = rules;
-            alert(t('alert_cleared'));
-            location.reload();
-        });
+// Clear all element-blocking rules for the current page. The userscript menu
+// registration lives in common.js so the user-defined order can be applied.
+async function clearPageBlockRules() {
+    const domain = location.hostname;
+    if (!confirm(t('confirm_clear', domain))) return false;
+    const rules = await safeGetValue('blocked_elements', {});
+    if (!rules[domain]) {
+        alert(t('alert_no_rules'));
+        return false;
     }
-
-    if (getConfig('showEditMenu') !== false) {
-        GM_registerMenuCommand(t('menu_edit'), () => {
-            toggleEditMode(!isEditMode);
-        });
-    }
+    delete rules[domain];
+    await safeSetValue('blocked_elements', rules);
+    if (typeof configCache !== 'undefined') configCache['blocked_elements'] = rules;
+    alert(t('alert_cleared'));
+    location.reload();
+    return true;
 }

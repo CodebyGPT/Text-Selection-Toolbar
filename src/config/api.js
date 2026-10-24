@@ -3,11 +3,6 @@ import {
   DEFAULT_HTTP_TIMEOUT,
   DEFAULT_FETCH_LIMIT,
   DEFAULT_FETCH_INTERVAL,
-  DEFAULT_BATCH_INTERVAL,
-  DEFAULT_BATCH_SIZE,
-  DEFAULT_BATCH_LENGTH,
-  DEFAULT_BATCH_CONCURRENCY,
-  DEFAULT_CONTEXT_SIZE,
   INPUT_PLACE_TO,
   INPUT_PLACE_TEXT,
   INPUT_PLACE_TONE,
@@ -55,7 +50,8 @@ export const BUILTIN_PLACEHOLDERS = ["{ }", "{{ }}", "[ ]", "[[ ]]"];
 export const BUILTIN_PLACETAGS = ["i", "a", "b", "x", "span"];
 export const PLACETAG_FORMATS = ["compact", "attribute"]; // 占位符格式：简洁格式、属性格式
 
-export const defaultNobatchPrompt = `You are a professional, authentic machine translation engine.`;
+export const defaultNobatchPrompt = `You are a professional, authentic machine translation engine.
+If the content to translate is a URL, code, or file path, do not translate it and output it as-is.`;
 export const defaultNobatchUserPrompt = `# Context
 Title: ${INPUT_PLACE_TITLE}
 Description: ${INPUT_PLACE_DESCRIPTION}
@@ -106,51 +102,6 @@ Output: {"translations":[{"id":1,"text":"一个<b>React</b>组件","sourceLangua
 
 Fail-safe: On any error, return {"translations":[]}.`;
 
-export const defaultSystemPromptXml = `Act as a professional machine translation engine. Output raw XML format only (<root><t id="0">...</t></root>). No Markdown fences, no conversational filler. If the content to translate is a URL, code, or file path, do not translate it and output it as-is.`;
-
-export const defaultSystemPromptLines = `Act as a professional machine translation engine. Output raw text lines in "ID | Text" format strictly. No Markdown fences, no conversational filler. If the content to translate is a URL, code, or file path, do not translate it and output it as-is.`;
-
-export const defaultSystemPromptJson = `Act as a professional machine translation engine. Output a raw JSON array strictly. No Markdown fences, no conversational filler. If the content to translate is a URL, code, or file path, do not translate it and output it as-is.`;
-
-export const defaultBatchUserPromptLines = `${INPUT_PLACE_GLOSSARY}
-${INPUT_PLACE_TONE}
-Translate each numbered line below into ${INPUT_PLACE_TO}. Maintain the exact "{id} | {translation}" format for each line. Preserve all HTML-like tags, and keep <br> for internal newlines. Output ONLY the translated result without any additional explanation:
-${INPUT_PLACE_SEGMENTS}`;
-
-export const defaultBatchUserPromptXml = `${INPUT_PLACE_TITLE}
-${INPUT_PLACE_DESCRIPTION}
-${INPUT_PLACE_SUMMARY}
-${INPUT_PLACE_CONTEXT}
-${INPUT_PLACE_GLOSSARY}
-${INPUT_PLACE_TONE}
-Translate the text within each <t id="..."> tag below into ${INPUT_PLACE_TO}. Maintain the exact <t id="..."> tag structure and id attributes. Preserve all internal HTML-like tags. Output ONLY the translated XML result without any additional explanation:
-${INPUT_PLACE_SEGMENTS}`;
-
-export const defaultBatchUserPromptJson = `${INPUT_PLACE_TITLE}
-${INPUT_PLACE_DESCRIPTION}
-${INPUT_PLACE_SUMMARY}
-${INPUT_PLACE_CONTEXT}
-${INPUT_PLACE_GLOSSARY}
-${INPUT_PLACE_TONE}
-Translate the text field of each object in the JSON array below into ${INPUT_PLACE_TO}. Keep the id unchanged and output a raw JSON array. Output ONLY the translated JSON result without any additional explanation:
-${INPUT_PLACE_SEGMENTS}`;
-
-// const defaultSubtitlePrompt = `Goal: Convert raw subtitle event JSON into a clean, sentence-based JSON array.
-
-// Output (valid JSON array, output ONLY this array):
-// [{
-//   "text": "string",        // Full sentence with correct punctuation
-//   "translation": "string", // Translation in ${INPUT_PLACE_TO}
-//   "start": int,            // Start time (ms)
-//   "end": int,              // End time (ms)
-// }]
-
-// Guidelines:
-// 1. **Segmentation**: Merge sequential 'utf8' strings from 'segs' into full sentences, merging groups logically.
-// 2. **Punctuation**: Ensure proper sentence-final punctuation (., ?, !); add if missing.
-// 3. **Translation**: Translate 'text' into ${INPUT_PLACE_TO}, place result in 'translation'.
-// 4. **Special Cases**: '[Music]' (and similar cues) are standalone entries. Translate appropriately (e.g., '[音乐]', '[Musique]').
-// `;
 
 // 专家级AI词典系统提示词
 export const defaultDictPrompt = createEnglishDictionaryPrompt({
@@ -341,40 +292,6 @@ export const defaultDictUserPrompt = `# Input Data
 ${INPUT_PLACE_TEXT}`;
 
 // AI 字幕默认使用 boundary-v3：模型返回句末事件 ID、原文锚点和译文，最终原文与时间轴仍由程序重建。
-export const defaultSubtitlePrompt = `# Context
-Title: ${INPUT_PLACE_TITLE}
-Description: ${INPUT_PLACE_DESCRIPTION}
-Summary: ${INPUT_PLACE_SUMMARY}
-Tone: ${INPUT_PLACE_TONE}
-
-# Glossary (Terminology):
-${INPUT_PLACE_GLOSSARY}
-
-# Task
-Group the input word-level JSON array into readable, well-paced bilingual subtitle segments. Target Language: ${INPUT_PLACE_TO}.
-
-# Output Contract
-1. STRICTLY output a valid JSON array only. No markdown formatting (e.g., do not use \`\`\`json fences), no preamble, and no postscript.
-2. Format per element: {"e":<last_word_id>, "o":"exact merged source text", "t":"translation"}
-3. The "e" field must be an inclusive, exact word ID from the input and must increase strictly. The first segment starts at ID 0; every later segment starts at the previous "e" + 1.
-4. Completeness: Cover every input item exactly once. The final "e" must equal the final input ID. No missing items, overlaps, or gaps.
-5. For each segment, first determine its exact input range from the previous "e" + 1 through the current "e", then merge every source item in that range verbatim into "o". Do not paraphrase, normalize, translate, omit, or add source text in "o".
-6. Do not return start IDs, timestamps, or any extra fields. The application reconstructs them from the input.
-
-# Rules
-1. Hard Source Length Limit:
-   - For space-separated source languages, each source span MUST contain no more than 15 words; aim for 8-12 words when a natural boundary exists.
-   - For Chinese, Japanese, and other non-space-separated source languages, each source span MUST contain no more than 30 source characters.
-   - If a sentence exceeds the applicable limit, split it at a clause, comma, conjunction, or natural phrase boundary. The hard length limit takes priority over keeping a long grammatical sentence intact.
-2. Sentence Boundaries: Never merge two complete sentences into one subtitle segment. Terminal punctuation such as .?!。！？ normally ends the current segment.
-3. Pause Indicators: An optional "pauseMs" field is the timeline gap in milliseconds after the current input item. If "pauseMs" is missing, treat it as 0 milliseconds and do not infer a pause. Larger positive values indicate stronger sentence boundaries, but grammatical correctness and semantic coherence always take priority.
-4. Exact Translation Alignment: Build "o" first from the exact source span covered by the current "e", starting after the previous "e". Then translate only the current "o" into "t". The "t" field MUST NOT omit that span, translate future input items, or carry text from adjacent segments.
-5. Silent Self-Check: Before returning, silently verify that every "e", "o", and "t" correspond one-to-one, every "o" matches its exact input range, all source-length limits are satisfied, and all input items are covered exactly once. Do not output the self-check or any reasoning.
-6. Translation Quality: Keep "t" concise, accurate, and natural while strictly adhering to the provided Context, Tone, and Glossary. When a term matches the Glossary, output ONLY the glossary value; never echo the source term alongside it and never wrap the value in parentheses.
-
-# Example
-Input: [{"id":0,"text":"Once"},{"id":1,"text":"the"},{"id":2,"text":"assets"},{"id":3,"text":"are"},{"id":4,"text":"ready,"},{"id":5,"text":"open"},{"id":6,"text":"the"},{"id":7,"text":"storyboard"},{"id":8,"text":"tab.","pauseMs":850},{"id":9,"text":"This"},{"id":10,"text":"is"},{"id":11,"text":"where"},{"id":12,"text":"everything"},{"id":13,"text":"comes"},{"id":14,"text":"together."},{"id":15,"text":"If"},{"id":16,"text":"a"},{"id":17,"text":"scene"},{"id":18,"text":"does"},{"id":19,"text":"not"},{"id":20,"text":"match"},{"id":21,"text":"your"},{"id":22,"text":"idea,"},{"id":23,"text":"regenerate"},{"id":24,"text":"it"},{"id":25,"text":"or"},{"id":26,"text":"adjust"},{"id":27,"text":"the"},{"id":28,"text":"prompt"},{"id":29,"text":"carefully"},{"id":30,"text":"until"},{"id":31,"text":"it"},{"id":32,"text":"feels"},{"id":33,"text":"right."}]
-Output: [{"e":8,"o":"Once the assets are ready, open the storyboard tab.","t":"素材准备好后，打开故事板标签页。"},{"e":14,"o":"This is where everything comes together.","t":"一切从这里开始整合。"},{"e":22,"o":"If a scene does not match your idea,","t":"如果某个场景与你的想法不符，"},{"e":33,"o":"regenerate it or adjust the prompt carefully until it feels right.","t":"请重新生成，或仔细调整提示词，直到效果合适。"}]`;
 
 // 翻译接口默认参数
 const defaultApi = {
@@ -390,7 +307,6 @@ const defaultApi = {
   model: "", // 模型名称
   modelListUrl: "", // 模型列表接口地址
   systemPrompt: "",
-  batchPromptSlug: "batch-translation-json",
   subtitlePrompt: "",
   subtitlePromptSlug: "subtitle-segmentation",
   nobatchPrompt: "",
@@ -403,22 +319,11 @@ const defaultApi = {
   aiTerms: "", // AI智能专业术语（apiSetting.aiTerms，全路径生效：整页/划词/输入框/字幕；与规则级 #glossary 逐 key 合并时接口级覆盖同名）
   customHeader: "",
   customBody: "",
-  reqHook: "", // request 钩子函数
-  resHook: "", // response 钩子函数
   fetchLimit: DEFAULT_FETCH_LIMIT, // 最大请求数量
   fetchInterval: DEFAULT_FETCH_INTERVAL, // 请求间隔时间
   httpTimeout: DEFAULT_HTTP_TIMEOUT, // 请求超时时间
-  batchInterval: DEFAULT_BATCH_INTERVAL, // 批处理请求间隔时间
-  batchSize: DEFAULT_BATCH_SIZE, // 每次最多发送段落数量
-  batchLength: DEFAULT_BATCH_LENGTH, // 每次发送最大文字数量
-  batchConcurrency: DEFAULT_BATCH_CONCURRENCY, // 同时执行的聚合批次数量
-  useBatchFetch: false, // 是否启用聚合发送请求
-  useStream: true, // 支持流式的接口默认开启，用户可以关闭
-  streamRenderMode: "disabled", // 流式渲染模式：disabled/realtime/segment
   transAllnow: false, // 是否立即全部翻译
   rootMargin: 2000, // 滚动加载提前触发距离
-  useContext: false, // 是否启用智能上下文
-  contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文历史条数上限（按完整轮次取整）
   temperature: 0.0,
   maxTokens: 20480,
   thinkingMode: "disabled", // 思考模式：auto | enabled | disabled
@@ -504,7 +409,7 @@ export function normalizeApiModelListUrls(transApis = []) {
   return hasChanges ? nextApis : transApis;
 }
 
-export const DEFAULT_API_TYPE = OPT_TRANS_OLLAMA;
+export const DEFAULT_API_TYPE = OPT_TRANS_TRANSLATOR_API;
 export const DEFAULT_API_SETTING = DEFAULT_API_LIST.find(
   (a) => a.apiType === DEFAULT_API_TYPE
 );

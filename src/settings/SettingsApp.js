@@ -1,10 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  getSettingWithDefault,
-  putSetting,
-  getRulesWithDefault,
-  setRules as saveRulesToStorage,
-} from "../libs/storage";
+import { getSettingWithDefault, putSetting } from "../libs/storage";
 import { apiTranslate } from "../apis";
 import { fetchData } from "../libs/fetch";
 import { parseJsonObj } from "../libs/utils";
@@ -13,40 +8,29 @@ import { createBuiltinInstance } from "../builtin-plugins";
 import {
   OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
   OPT_LANGS_TO_REVERSED as OPT_LANGS_TO,
-  OPT_INPUT_TRANS_SIGNS,
-  OPT_INPUT_DOT_DISABLE,
-  OPT_INPUT_DOT_MOBILE,
-  OPT_INPUT_DOT_ALWAYS,
-  OPT_MOUSE_HOVER_DISPLAY_BILINGUAL,
-  OPT_MOUSE_HOVER_DISPLAY_BUBBLE,
-  OPT_MOUSE_HOVER_TRANS_PARAGRAPH,
-  OPT_MOUSE_HOVER_TRANS_REGION,
-  OPT_MOUSE_HOVER_TRANS_AREA,
-  OPT_MOUSE_HOVER_TRANS_DISPLAY_INLINE,
-  OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK,
-  OPT_ENHANCE_ON,
-  OPT_ENHANCE_OFF,
-  OPT_ENHANCE_MOBILE_OFF,
-  GLOBAL_KEY,
-  GLOBLA_RULE,
-  DEFAULT_RULE,
   DEFAULT_API_LIST,
   OPT_TRANS_TRANSLATOR_API,
+  OPT_TRANS_STRANSLATE,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
-  BUILTIN_PLACEHOLDERS,
-  BUILTIN_PLACETAGS,
   PRESET_PROMPTS,
+  PROMPT_CATEGORY_SUBTITLE,
+  PROMPT_CATEGORY_SUMMARY,
   isPresetPromptSlug,
   getAllPrompts,
-  getBatchPromptOptions,
   getNobatchPromptOptions,
-  getSubtitlePromptOptions,
+  isExternalApi,
   isTranslatorAPISupported,
   resolveApiPromptSettings,
 } from "../config";
 import {
+  invokeExternalApi,
+  DEFAULT_STRANSLATE_PORT,
+  DEFAULT_STRANSLATE_TIMEOUT,
+} from "../libs/externalTranslate";
+import {
   DEFAULT_TOOLBAR_SETTING,
+  normalizeToolbarMenuOrder,
   TOOLBAR_SEARCH_ENGINES,
   PASTE_TTL_DEFAULT,
   PASTE_TTL_MIN,
@@ -75,10 +59,7 @@ function pathToTab(path) {
     path.includes("api") ||
     path.includes("tranbox") ||
     path.includes("panel") ||
-    path.includes("input") ||
-    path.includes("mousehover") ||
-    path.includes("subtitle") ||
-    path.includes("rules")
+    path.includes("prompt")
   )
     return "translation";
   return "general";
@@ -112,9 +93,22 @@ function Section({ title, children, footer, className = "" }) {
   );
 }
 
-function Row({ label, help, warn, children }) {
+function Row({
+  label,
+  help,
+  warn,
+  children,
+  onDragOver,
+  onDrop,
+  onDragLeave,
+}) {
   return (
-    <div className="kiss-st-row">
+    <div
+      className="kiss-st-row"
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragLeave={onDragLeave}
+    >
       <div className="kiss-st-row__label">
         <span>{label}</span>
         {warn && <small className="kiss-st-warn">{warn}</small>}
@@ -209,67 +203,14 @@ function Toggle({ value, onChange }) {
   );
 }
 
-const PRESET_API_TYPES = new Set([OPT_TRANS_TRANSLATOR_API, OPT_TRANS_OLLAMA]);
+const PRESET_API_TYPES = new Set([
+  OPT_TRANS_TRANSLATOR_API,
+  OPT_TRANS_STRANSLATE,
+  OPT_TRANS_OLLAMA,
+]);
 
 function Fields({ children }) {
   return <div className="kiss-st-grid">{children}</div>;
-}
-
-function RuntimeFields({ api, patch }) {
-  const autoTranslate = api.transAllnow === true;
-
-  return (
-    <Fields>
-      <label>
-        触发方式
-        <Select
-          value={String(api.transAllnow === true)}
-          onChange={(v) => patch("transAllnow", v === "true")}
-          options={[
-            ["false", "滚动到才翻译"],
-            ["true", "打开页面即翻译"],
-          ]}
-        />
-      </label>
-      <label>
-        滚动加载提前触发 (px)
-        <NumberInput
-          value={api.rootMargin}
-          min={0}
-          max={10000}
-          disabled={autoTranslate}
-          onChange={(v) => patch("rootMargin", v)}
-        />
-      </label>
-      <label>
-        占位符
-        <Select
-          value={api.placeholder}
-          onChange={(v) => patch("placeholder", v)}
-          options={BUILTIN_PLACEHOLDERS.map((item) => [item, item])}
-        />
-      </label>
-      <label>
-        占位标签
-        <Select
-          value={api.placetag}
-          onChange={(v) => patch("placetag", v)}
-          options={BUILTIN_PLACETAGS.map((item) => [item, `<${item}>`])}
-        />
-      </label>
-      <label>
-        占位符格式
-        <Select
-          value={api.placetagFormat}
-          onChange={(v) => patch("placetagFormat", v)}
-          options={[
-            ["compact", "简洁格式 <a1>"],
-            ["attribute", "属性格式 <a i=1>"],
-          ]}
-        />
-      </label>
-    </Fields>
-  );
 }
 
 function RequestFields({ api, patch }) {
@@ -300,99 +241,6 @@ function RequestFields({ api, patch }) {
           min={1}
           max={600}
           onChange={(v) => patch("httpTimeout", v)}
-        />
-      </label>
-    </Fields>
-  );
-}
-
-function BatchFields({ api, patch }) {
-  const batchOff = !api.useBatchFetch;
-
-  return (
-    <Fields>
-      <label>
-        聚合发送翻译请求
-        <Select
-          value={String(Boolean(api.useBatchFetch))}
-          onChange={(v) => patch("useBatchFetch", v === "true")}
-          options={[
-            ["true", "启用"],
-            ["false", "禁用"],
-          ]}
-        />
-      </label>
-      <label>
-        聚合批次并发数
-        <NumberInput
-          value={api.batchConcurrency}
-          min={1}
-          max={100}
-          disabled={batchOff}
-          onChange={(v) => patch("batchConcurrency", v)}
-        />
-      </label>
-      <label>
-        聚合请求等待时间 (ms)
-        <NumberInput
-          value={api.batchInterval}
-          min={10}
-          max={10000}
-          disabled={batchOff}
-          onChange={(v) => patch("batchInterval", v)}
-        />
-      </label>
-      <label>
-        聚合请求最大段落数
-        <NumberInput
-          value={api.batchSize}
-          min={1}
-          max={100}
-          disabled={batchOff}
-          onChange={(v) => patch("batchSize", v)}
-        />
-      </label>
-      <label>
-        聚合请求最大文本长度
-        <NumberInput
-          value={api.batchLength}
-          min={1000}
-          max={100000}
-          disabled={batchOff}
-          onChange={(v) => patch("batchLength", v)}
-        />
-      </label>
-    </Fields>
-  );
-}
-
-function StreamFields({ api, patch }) {
-  const streamOff = api.useStream === false;
-
-  return (
-    <Fields>
-      <label>
-        流式响应
-        <Select
-          value={String(api.useStream !== false)}
-          onChange={(v) => patch("useStream", v === "true")}
-          options={[
-            ["true", "启用"],
-            ["false", "禁用"],
-          ]}
-        />
-      </label>
-      <label>
-        流式渲染模式
-        <Select
-          value={api.streamRenderMode || "disabled"}
-          disabled={streamOff}
-          onChange={(v) => patch("streamRenderMode", v)}
-          options={[
-            ["disabled", "关闭"],
-            ["realtime", "实时追加"],
-            ["segment", "按段渲染"],
-          ]}
         />
       </label>
     </Fields>
@@ -437,36 +285,6 @@ function ModelFields({ api, patch }) {
   );
 }
 
-function ContextFields({ api, patch }) {
-  const contextOff = !api.useContext;
-
-  return (
-    <Fields>
-      <label>
-        智能上下文
-        <Select
-          value={String(Boolean(api.useContext))}
-          onChange={(v) => patch("useContext", v === "true")}
-          options={[
-            ["true", "启用"],
-            ["false", "禁用"],
-          ]}
-        />
-      </label>
-      <label>
-        上下文会话数量
-        <NumberInput
-          value={api.contextSize}
-          min={1}
-          max={20}
-          disabled={contextOff}
-          onChange={(v) => patch("contextSize", v)}
-        />
-      </label>
-    </Fields>
-  );
-}
-
 function CodeFields({ api, patch }) {
   return (
     <div className="kiss-st-stack">
@@ -486,39 +304,6 @@ function CodeFields({ api, patch }) {
           onChange={(v) => patch("customBody", v)}
         />
       </label>
-      <label>
-        请求钩子
-        <TextArea
-          value={api.reqHook}
-          placeholder={`1、第一个参数包含如下字段：'texts', 'from', 'to', 'url', 'key', 'model', 'systemPrompt', ...
-2、返回值必须是包含以下字段的对象： 'url', 'body', 'headers', 'method'
-3、如返回空值，则hook函数不会产生任何效果。
-
-// 示例
-async (args, { url, body, headers, userMsg, method } = {}) => {
-  return { url, body, headers, userMsg, method };
-}`}
-          onChange={(v) => patch("reqHook", v)}
-        />
-      </label>
-      <label>
-        响应钩子
-        <TextArea
-          value={api.resHook}
-          placeholder={`1、第一个参数包含如下字段：'res', ...
-2、返回值必须是包含以下字段的对象： 'translations'
-  （'translations' 应为一个二维数组：[[译文, 原文语言]]）
-3、如返回空值，则hook函数不会产生任何效果。
-
-// 示例
-async ({ res, ...args }) => {
-  const translations = [["你好", "en"]];
-  const modelMsg = {}; // 用于AI上下文
-  return { translations, modelMsg };
-}`}
-          onChange={(v) => patch("resHook", v)}
-        />
-      </label>
     </div>
   );
 }
@@ -526,34 +311,15 @@ async ({ res, ...args }) => {
 function PromptFields({ api, patch, prompts }) {
   const toOptions = (list) =>
     list.map((prompt) => [prompt.slug, prompt.name || prompt.slug]);
-  const batchMode = Boolean(api.useBatchFetch);
 
   return (
     <Fields>
       <label>
-        聚合翻译提示词
-        <Select
-          value={api.batchPromptSlug}
-          disabled={!batchMode}
-          onChange={(v) => patch("batchPromptSlug", v)}
-          options={toOptions(getBatchPromptOptions(prompts))}
-        />
-      </label>
-      <label>
-        单句翻译提示词
+        翻译提示词
         <Select
           value={api.nobatchPromptSlug}
-          disabled={batchMode}
           onChange={(v) => patch("nobatchPromptSlug", v)}
           options={toOptions(getNobatchPromptOptions(prompts))}
-        />
-      </label>
-      <label>
-        字幕翻译提示词
-        <Select
-          value={api.subtitlePromptSlug}
-          onChange={(v) => patch("subtitlePromptSlug", v)}
-          options={toOptions(getSubtitlePromptOptions(prompts))}
         />
       </label>
     </Fields>
@@ -582,7 +348,6 @@ function ApiEditor({
   onDelete,
   canDelete,
   prompts = [],
-  subtitleSetting,
 }) {
   const [open, setOpen] = useState(false);
   const [test, setTest] = useState({ loading: false, text: "", error: "" });
@@ -626,11 +391,29 @@ function ApiEditor({
   };
 
   const isTranslatorAPI = api.apiType === OPT_TRANS_TRANSLATOR_API;
+  const isSTranslate = api.apiType === OPT_TRANS_STRANSLATE;
+  const isExternal = isExternalApi(api);
   const isPreset = PRESET_API_TYPES.has(api.apiType);
   const isCustom = api.apiType === OPT_TRANS_CUSTOMIZE;
   const isOllama = api.apiType === OPT_TRANS_OLLAMA;
 
   const runTest = async () => {
+    if (isExternal) {
+      setOpen(true);
+      setTest({ loading: true, text: "", error: "" });
+      try {
+        await invokeExternalApi(api, "Hello, world!");
+        setTest({ loading: false, text: "已发送到 STranslate", error: "" });
+      } catch (error) {
+        setTest({
+          loading: false,
+          text: "",
+          error: error?.message || String(error),
+        });
+      }
+      return;
+    }
+
     if (testAbortRef.current) return;
     const controller = new AbortController();
     testAbortRef.current = controller;
@@ -640,11 +423,7 @@ function ApiEditor({
     try {
       // 与正式翻译走同一套配置解析：补齐提示词并附带 provider 描述，
       // 否则测试会绕过 provider 的超时控制，在流不结束时永久挂起。
-      const apiSetting = resolveApiPromptSettings(
-        { ...api },
-        prompts,
-        subtitleSetting
-      );
+      const apiSetting = resolveApiPromptSettings({ ...api }, prompts);
       const result = await Promise.race([
         apiTranslate({
           text: "Hello, world!",
@@ -705,7 +484,10 @@ function ApiEditor({
       >
         <strong>{api.apiName || api.apiType}</strong>
         {isPreset && <span className="kiss-st-badge">预设</span>}
-        <span className="kiss-st-badge">{api.apiType}</span>
+        {isExternal && (
+          <span className="kiss-st-badge kiss-st-badge--external">外部</span>
+        )}
+        {isCustom && <span className="kiss-st-badge">自定义</span>}
         <span className="kiss-st-spacer" />
         <span className="kiss-st-chev">展开/收起</span>
         <button
@@ -756,13 +538,37 @@ function ApiEditor({
           {test.text && <div className="kiss-st-ok">→ {test.text}</div>}
           {test.error && <div className="kiss-st-error">{test.error}</div>}
           <Fields>
-            <label>
-              名称
-              <TextInput
-                value={api.apiName}
-                onChange={(v) => patch("apiName", v)}
-              />
-            </label>
+            {!isPreset && (
+              <label>
+                名称
+                <TextInput
+                  value={api.apiName}
+                  onChange={(v) => patch("apiName", v)}
+                />
+              </label>
+            )}
+            {isSTranslate && (
+              <label>
+                端口
+                <NumberInput
+                  value={api.port ?? DEFAULT_STRANSLATE_PORT}
+                  min={1}
+                  max={65535}
+                  onChange={(v) => patch("port", v)}
+                />
+              </label>
+            )}
+            {isSTranslate && (
+              <label>
+                请求超时时间 (s)
+                <NumberInput
+                  value={api.httpTimeout ?? DEFAULT_STRANSLATE_TIMEOUT}
+                  min={1}
+                  max={600}
+                  onChange={(v) => patch("httpTimeout", v)}
+                />
+              </label>
+            )}
             {(isCustom || isOllama) && (
               <>
                 <label>
@@ -839,13 +645,11 @@ function ApiEditor({
             )}
           </Fields>
 
-          <RuntimeFields api={api} patch={patch} />
-          <RequestFields api={api} patch={patch} />
-          {!isTranslatorAPI && <BatchFields api={api} patch={patch} />}
-          {!isTranslatorAPI && <StreamFields api={api} patch={patch} />}
-          {!isTranslatorAPI && <ModelFields api={api} patch={patch} />}
-          {!isTranslatorAPI && <ContextFields api={api} patch={patch} />}
-          {!isTranslatorAPI && (
+          {!isExternal && <RequestFields api={api} patch={patch} />}
+          {!isTranslatorAPI && !isExternal && (
+            <ModelFields api={api} patch={patch} />
+          )}
+          {!isTranslatorAPI && !isExternal && (
             <PromptFields api={api} patch={patch} prompts={prompts} />
           )}
           {(isCustom || isOllama) && <CodeFields api={api} patch={patch} />}
@@ -944,7 +748,6 @@ function ApisTab({ setting, update }) {
           key={api.apiSlug}
           api={api}
           prompts={prompts}
-          subtitleSetting={setting.subtitleSetting}
           onChange={(next) => updateApi(index, next)}
           onDelete={() => removeApi(index)}
           canDelete={api.apiType === OPT_TRANS_CUSTOMIZE}
@@ -1023,6 +826,112 @@ function SearchEngineRow({ engine, index, onChange, onRemove }) {
         )}
       </div>
     </Row>
+  );
+}
+
+const TOOLBAR_MENU_LABELS = {
+  translate: "翻译面板",
+  edit: "编辑网页",
+  block: "隐藏网页元素",
+  clear: "清空该网页的隐藏规则",
+  settings: "脚本设置",
+};
+
+const TOOLBAR_MENU_TOGGLES = {
+  translate: "showTranslateMenu",
+  edit: "showEditMenu",
+  block: "showBlockMenu",
+  clear: "showClearMenu",
+};
+
+function MenuManagementSection({ value, patch, hasBlockRules }) {
+  const [draggedId, setDraggedId] = useState(null);
+  const order = normalizeToolbarMenuOrder(value.menuOrder);
+
+  const moveMenu = (sourceId, targetId, after) => {
+    if (!sourceId || sourceId === targetId) return;
+    const next = order.filter((id) => id !== sourceId);
+    let targetIndex = next.indexOf(targetId);
+    if (targetIndex < 0) return;
+    if (after) targetIndex += 1;
+    next.splice(targetIndex, 0, sourceId);
+    patch({ menuOrder: next });
+  };
+
+  return (
+    <Section title="菜单管理">
+      <div className="kiss-st-hint">
+        拖动右侧手柄调整油猴菜单顺序；关闭开关后不再注册对应菜单项。
+      </div>
+      {order.map((id) => {
+        const toggleKey = TOOLBAR_MENU_TOGGLES[id];
+        const enabled = !toggleKey || value[toggleKey] !== false;
+        return (
+          <Row
+            key={id}
+            label={TOOLBAR_MENU_LABELS[id]}
+            warn={
+              id === "block" && hasBlockRules && !enabled
+                ? "关闭后不再注册菜单项，已保存的隐藏规则仍然生效"
+                : null
+            }
+            onDragOver={(event) => {
+              if (!draggedId) return;
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              const sourceId =
+                draggedId || event.dataTransfer.getData("text/plain");
+              const rect = event.currentTarget.getBoundingClientRect();
+              const after =
+                event.clientY > rect.top + rect.height / 2;
+              moveMenu(sourceId, id, after);
+              setDraggedId(null);
+            }}
+          >
+            <div className="kiss-st-inline">
+              {toggleKey && (
+                <Toggle
+                  value={enabled}
+                  onChange={(next) => patch({ [toggleKey]: next })}
+                />
+              )}
+              <span
+                className="kiss-st-drag"
+                draggable
+                role="button"
+                tabIndex={0}
+                title="拖动排序"
+                aria-label="拖动排序"
+                style={{ opacity: draggedId === id ? 0.4 : 1 }}
+                onClick={(event) => event.stopPropagation()}
+                onDragStart={(event) => {
+                  setDraggedId(id);
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData("text/plain", id);
+                }}
+                onDragEnd={() => setDraggedId(null)}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </span>
+            </div>
+          </Row>
+        );
+      })}
+    </Section>
   );
 }
 
@@ -1156,25 +1065,6 @@ function ToolbarTab({ setting, update }) {
             onChange={(v) => patch({ enableDragPreview: v })}
           />
         </Row>
-        <Row
-          label="显示网页自带划词栏隐藏工具"
-          warn={
-            hasBlockRules && value.showBlockMenu === false
-              ? "此选项仅影响功能入口的可见性，不会清空或禁用现存规则"
-              : null
-          }
-        >
-          <Toggle
-            value={value.showBlockMenu !== false}
-            onChange={(v) => patch({ showBlockMenu: v })}
-          />
-        </Row>
-        <Row label="显示网页编辑工具">
-          <Toggle
-            value={value.showEditMenu !== false}
-            onChange={(v) => patch({ showEditMenu: v })}
-          />
-        </Row>
         <Row label="超级取词键" help="如 ControlLeft / AltLeft / ShiftLeft，留空禁用">
           <TextInput
             value={value.unlockHotkey}
@@ -1182,6 +1072,12 @@ function ToolbarTab({ setting, update }) {
           />
         </Row>
       </Section>
+
+      <MenuManagementSection
+        value={value}
+        patch={patch}
+        hasBlockRules={hasBlockRules}
+      />
 
       <Section title="搜索" className="kiss-st-card--overflow">
         {engines.map((engine, index) => (
@@ -1248,13 +1144,16 @@ function PanelTab({ setting, update }) {
           options={OPT_LANGS_TO}
         />
       </Row>
-      <Row label="翻译接口">
+      <Row
+        label="翻译接口"
+        help="选择带“外部”标签的接口后，点击工具栏翻译按钮会直接把文本发送给外部程序，不打开翻译面板"
+      >
         <Select
           value={(panel.apiSlugs || [])[0] || apis[0]?.apiSlug}
           onChange={(v) => updatePanel({ apiSlugs: [v] })}
           options={apis.map((api) => [
             api.apiSlug,
-            api.apiName || api.apiType,
+            `${api.apiName || api.apiType}${isExternalApi(api) ? "（外部）" : ""}`,
           ])}
         />
       </Row>
@@ -1276,322 +1175,6 @@ function PanelTab({ setting, update }) {
           onChange={(v) => updatePanel({ followSelection: v })}
         />
       </Row>
-    </Section>
-  );
-}
-
-function apiOptions(setting, includeGlobal = false) {
-  const options = (setting.transApis || [])
-    .filter(
-      (api) =>
-        !api.isDisabled &&
-        (api.apiType !== OPT_TRANS_TRANSLATOR_API || isTranslatorAPISupported())
-    )
-    .map((api) => [
-    api.apiSlug,
-    api.apiName || api.apiType,
-  ]);
-  return includeGlobal ? [[GLOBAL_KEY, "跟随网页规则"], ...options] : options;
-}
-
-
-function SubtitleTab({ setting, update }) {
-  const sub = setting.subtitleSetting || {};
-  const patch = (changes) =>
-    update({ subtitleSetting: { ...sub, ...changes } });
-  return (
-    <Section title="字幕翻译">
-      <Row label="启用字幕翻译">
-        <Toggle value={sub.enabled} onChange={(v) => patch({ enabled: v })} />
-      </Row>
-      <Row label="翻译接口">
-        <Select
-          value={sub.apiSlug}
-          onChange={(v) => patch({ apiSlug: v })}
-          options={apiOptions(setting)}
-        />
-      </Row>
-      <Row label="目标语言">
-        <Select
-          value={sub.toLang || "zh-CN"}
-          onChange={(v) => patch({ toLang: v })}
-          options={OPT_LANGS_TO}
-        />
-      </Row>
-      <Row label="自动翻译">
-        <Toggle
-          value={sub.autoTranslate}
-          onChange={(v) => patch({ autoTranslate: v })}
-        />
-      </Row>
-      <Row label="双语显示">
-        <Toggle
-          value={sub.isBilingual !== false}
-          onChange={(v) => patch({ isBilingual: v })}
-        />
-      </Row>
-      <Row label="显示顺序">
-        <Select
-          value={sub.displayOrder || "original-first"}
-          onChange={(v) => patch({ displayOrder: v })}
-          options={[
-            ["original-first", "原文在前"],
-            ["translation-first", "译文在前"],
-          ]}
-        />
-      </Row>
-      <Row label="模糊译文">
-        <Toggle
-          value={sub.blurTranslation}
-          onChange={(v) => patch({ blurTranslation: v })}
-        />
-      </Row>
-      <Row label="跳过广告">
-        <Toggle value={sub.skipAd} onChange={(v) => patch({ skipAd: v })} />
-      </Row>
-      <Row label="断句方式">
-        <Select
-          value={sub.useAlgorithmBreaker || "rule"}
-          onChange={(v) => patch({ useAlgorithmBreaker: v })}
-          options={[
-            ["rule", "规则断句"],
-            ["statistical", "统计断句"],
-          ]}
-        />
-      </Row>
-      <Row label="长句阈值">
-        <NumberInput
-          value={sub.longSentenceThreshold}
-          onChange={(v) => patch({ longSentenceThreshold: v })}
-        />
-      </Row>
-      <Row label="分块长度">
-        <NumberInput
-          value={sub.chunkLength}
-          onChange={(v) => patch({ chunkLength: v })}
-        />
-      </Row>
-      <Row label="提前翻译 (ms)">
-        <NumberInput
-          value={sub.preTrans}
-          onChange={(v) => patch({ preTrans: v })}
-        />
-      </Row>
-      <Row label="字幕悬浮查词">
-        <Select
-          value={sub.hoverLookupMode || OPT_ENHANCE_MOBILE_OFF}
-          onChange={(v) => patch({ hoverLookupMode: v })}
-          options={[
-            [OPT_ENHANCE_ON, "开启"],
-            [OPT_ENHANCE_OFF, "关闭"],
-            [OPT_ENHANCE_MOBILE_OFF, "移动端关闭"],
-          ]}
-        />
-      </Row>
-      <Row label="字幕列表">
-        <Select
-          value={sub.showList || OPT_ENHANCE_MOBILE_OFF}
-          onChange={(v) => patch({ showList: v })}
-          options={[
-            [OPT_ENHANCE_ON, "开启"],
-            [OPT_ENHANCE_OFF, "关闭"],
-            [OPT_ENHANCE_MOBILE_OFF, "移动端关闭"],
-          ]}
-        />
-      </Row>
-    </Section>
-  );
-}
-
-function RulesSection({ setting }) {
-  const [rules, setRules] = useState(null);
-  const [status, setStatus] = useState("");
-
-  useEffect(() => {
-    getRulesWithDefault().then(setRules);
-  }, []);
-
-  if (!rules) return null;
-
-  const global = rules.find((rule) => rule.pattern === "*") || {
-    ...GLOBLA_RULE,
-  };
-  const custom = rules.filter((rule) => rule.pattern !== "*");
-
-  const patchGlobal = (patch) =>
-    setRules((current) =>
-      current.map((rule) =>
-        rule.pattern === "*" ? { ...rule, ...patch } : rule
-      )
-    );
-
-  const patchCustom = (index, patch) =>
-    setRules((current) => {
-      const list = current.filter((rule) => rule.pattern !== "*");
-      list[index] = { ...list[index], ...patch };
-      return [current.find((rule) => rule.pattern === "*") || global, ...list];
-    });
-
-  const addRule = () =>
-    setRules((current) => [
-      ...current,
-      { ...DEFAULT_RULE, pattern: "example.com" },
-    ]);
-
-  const removeRule = (index) =>
-    setRules((current) => {
-      const list = current.filter((rule) => rule.pattern !== "*");
-      list.splice(index, 1);
-      return [current.find((rule) => rule.pattern === "*") || global, ...list];
-    });
-
-  const save = async () => {
-    await saveRulesToStorage(rules);
-    setStatus("网页规则已保存");
-  };
-
-  const boolOptions = [
-    ["true", "开启"],
-    ["false", "关闭"],
-    [GLOBAL_KEY, "继承"],
-  ];
-
-  return (
-    <Section
-      title="网页翻译"
-      footer={
-        <>
-          <div className="kiss-st-inline">
-            <button className="kiss-st-btn" onClick={addRule}>
-              + 添加自定义规则
-            </button>
-            <button className="kiss-st-btn kiss-st-btn--primary" onClick={save}>
-              保存网页规则
-            </button>
-          </div>
-          {status && <div className="kiss-st-ok">{status}</div>}
-        </>
-      }
-    >
-      <div className="kiss-st-hint">
-        全局规则决定默认的网页翻译行为；下面的自定义规则按网址覆盖全局。
-      </div>
-      <Row label="全局：翻译接口">
-        <Select
-          value={global.apiSlug || GLOBAL_KEY}
-          onChange={(v) => patchGlobal({ apiSlug: v })}
-          options={apiOptions(setting, true)}
-        />
-      </Row>
-      <Row label="全局：源语言">
-        <Select
-          value={global.fromLang || "auto"}
-          onChange={(v) => patchGlobal({ fromLang: v })}
-          options={[["auto", "自动检测"], ...OPT_LANGS_FROM]}
-        />
-      </Row>
-      <Row label="全局：目标语言">
-        <Select
-          value={global.toLang || "zh-CN"}
-          onChange={(v) => patchGlobal({ toLang: v })}
-          options={OPT_LANGS_TO}
-        />
-      </Row>
-      <Row label="全局：自动开启翻译">
-        <Select
-          value={String(global.transOpen)}
-          onChange={(v) => patchGlobal({ transOpen: v })}
-          options={boolOptions}
-        />
-      </Row>
-      <Row label="全局：翻译元素选择器">
-        <TextInput
-          value={global.selector}
-          onChange={(v) => patchGlobal({ selector: v })}
-        />
-      </Row>
-      <Row label="全局：忽略选择器">
-        <TextInput
-          value={global.ignoreSelector}
-          onChange={(v) => patchGlobal({ ignoreSelector: v })}
-        />
-      </Row>
-      <Row label="全局：根节点选择器">
-        <TextInput
-          value={global.rootsSelector}
-          onChange={(v) => patchGlobal({ rootsSelector: v })}
-        />
-      </Row>
-
-      {custom.map((rule, index) => (
-        <div key={`${rule.pattern}-${index}`} className="kiss-st-api">
-          <div className="kiss-st-api__head">
-            <strong>自定义规则 {index + 1}</strong>
-            <span className="kiss-st-spacer" />
-            <button
-              className="kiss-st-btn kiss-st-btn--danger"
-              onClick={() => removeRule(index)}
-            >
-              删除
-            </button>
-          </div>
-          <div className="kiss-st-grid">
-            <label>
-              网址匹配
-              <TextInput
-                value={rule.pattern}
-                onChange={(v) => patchCustom(index, { pattern: v })}
-              />
-            </label>
-            <label>
-              翻译元素选择器
-              <TextInput
-                value={rule.selector}
-                onChange={(v) => patchCustom(index, { selector: v })}
-              />
-            </label>
-            <label>
-              忽略选择器
-              <TextInput
-                value={rule.ignoreSelector}
-                onChange={(v) => patchCustom(index, { ignoreSelector: v })}
-              />
-            </label>
-            <label>
-              翻译接口
-              <Select
-                value={rule.apiSlug || GLOBAL_KEY}
-                onChange={(v) => patchCustom(index, { apiSlug: v })}
-                options={apiOptions(setting, true)}
-              />
-            </label>
-            <label>
-              源语言
-              <Select
-                value={rule.fromLang || GLOBAL_KEY}
-                onChange={(v) => patchCustom(index, { fromLang: v })}
-                options={[[GLOBAL_KEY, "继承"], ["auto", "自动检测"], ...OPT_LANGS_FROM]}
-              />
-            </label>
-            <label>
-              目标语言
-              <Select
-                value={rule.toLang || GLOBAL_KEY}
-                onChange={(v) => patchCustom(index, { toLang: v })}
-                options={[[GLOBAL_KEY, "继承"], ...OPT_LANGS_TO]}
-              />
-            </label>
-            <label>
-              自动翻译
-              <Select
-                value={String(rule.transOpen)}
-                onChange={(v) => patchCustom(index, { transOpen: v })}
-                options={boolOptions}
-              />
-            </label>
-          </div>
-        </div>
-      ))}
     </Section>
   );
 }
@@ -1682,6 +1265,12 @@ function PromptsSection({ setting, update }) {
   const customPrompts = stored.filter(
     (prompt) => !isPresetPromptSlug(prompt.slug)
   );
+  // Subtitle/summary prompts belonged to the removed subtitle feature.
+  const presetPrompts = PRESET_PROMPTS.filter(
+    (prompt) =>
+      prompt.category !== PROMPT_CATEGORY_SUBTITLE &&
+      prompt.category !== PROMPT_CATEGORY_SUMMARY
+  );
 
   const upsert = (prompt, changes) => {
     const next = { ...prompt, ...changes };
@@ -1721,7 +1310,7 @@ function PromptsSection({ setting, update }) {
         </div>
       }
     >
-      {PRESET_PROMPTS.map((preset) => {
+      {presetPrompts.map((preset) => {
         const override = overrides.get(preset.slug);
         return (
           <PromptRow
@@ -1752,8 +1341,6 @@ function TranslationTab({ setting, update }) {
       <ApisTab setting={setting} update={update} />
       <PromptsSection setting={setting} update={update} />
       <PanelTab setting={setting} update={update} />
-      <RulesSection setting={setting} />
-      <SubtitleTab setting={setting} update={update} />
     </>
   );
 }

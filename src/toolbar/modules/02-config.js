@@ -20,8 +20,10 @@ const DEFAULT_CONFIG = {
     enableTranslate: true, // show the KISS translate action
     // Sensitivity for the language-match gate: 15 / 35 / 55 / 75 (%).
     translateHideThreshold: 15,
-    showBlockMenu: true,   // show the "hide page selection toolbar" menu entries
+    showBlockMenu: true,   // show the "hide page elements" menu entry
     showEditMenu: true,    // show the "edit page" menu entry
+    showTranslateMenu: true,
+    showClearMenu: true,
 };
 
 // Chinese-only extras (cloud-drive codes, smart fallback engine) follow the

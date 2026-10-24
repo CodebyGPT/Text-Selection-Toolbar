@@ -26,6 +26,20 @@ function unregisterVisibilityCleanup() {
     }
 }
 
+// Host-facing readiness: userscript menus are registered only after the
+// toolbar has loaded its configuration, so menu actions never see an empty
+// configCache.
+let resolveToolbarReady = null;
+const toolbarReady = new Promise((resolve) => {
+    resolveToolbarReady = resolve;
+});
+
+function markToolbarReady() {
+    if (!resolveToolbarReady) return;
+    resolveToolbarReady();
+    resolveToolbarReady = null;
+}
+
 (function () {
     'use strict';
 
@@ -40,11 +54,10 @@ function unregisterVisibilityCleanup() {
 
             // Auto-set default search engine based on timezone on first run
             await initDefaultSearchEngine();
+            markToolbarReady();
 
-            // 2. Register menus after config is loaded (so getConfig in menus reads correct values)
-            registerMenus();
-
-            // 3. Apply blocking rules
+            // 2. Apply blocking rules (userscript menu commands are registered
+            //    by the host from the user-defined menu order).
             applySavedBlockingRules();
 
             // 4. In unlock mode, smart intercept Ctrl+scroll
@@ -90,6 +103,7 @@ function unregisterVisibilityCleanup() {
             }
 
         } catch (e) {
+            markToolbarReady();
             //console.error('Smart Copy startup failed:', e);
         }
     })();

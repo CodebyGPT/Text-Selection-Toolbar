@@ -4,13 +4,6 @@ import {
   defaultNobatchPromptConcise,
   defaultNobatchUserPromptConcise,
   defaultSystemPrompt,
-  defaultSystemPromptLines,
-  defaultSystemPromptXml,
-  defaultSystemPromptJson,
-  defaultBatchUserPromptJson,
-  defaultBatchUserPromptLines,
-  defaultBatchUserPromptXml,
-  defaultSubtitlePrompt,
   API_SPE_TYPES,
 } from "./api";
 import { normalizeApiCapabilities } from "./serviceSelection";
@@ -45,42 +38,12 @@ export const PROMPT_CATEGORY_BATCH_SYSTEM = "batch system prompt";
 export const PROMPT_CATEGORY_USER = "user prompt";
 export const PROMPT_CATEGORY_SUBTITLE = "subtitle prompt";
 export const PROMPT_CATEGORY_SUMMARY = "summary prompt";
-// 允许在设置界面“提示词管理”中展示和维护的分类列表
-export const PROMPT_TEMPLATE_CATEGORIES = [
-  PROMPT_CATEGORY_USER,
-  PROMPT_CATEGORY_BATCH_SYSTEM,
-  PROMPT_CATEGORY_SUBTITLE,
-  PROMPT_CATEGORY_SUMMARY,
-];
 
 // 各类功能默认使用的提示词 Slug，当未配置时作为后备默认值
 export const DEFAULT_NOBATCH_PROMPT_SLUG =
   PROMPT_SLUG_NOBATCH_TRANSLATION_CONCISE;
 export const DEFAULT_BATCH_PROMPT_SLUG = PROMPT_SLUG_BATCH_TRANSLATION_JSON;
 export const DEFAULT_SUBTITLE_PROMPT_SLUG = PROMPT_SLUG_SUBTITLE_SEGMENTATION;
-export const PROMPT_SLUG_DEFAULT_VIDEO_SUMMARY = "default_video_summary";
-export const DEFAULT_SUMMARY_PROMPT_SLUG = PROMPT_SLUG_DEFAULT_VIDEO_SUMMARY;
-
-export const DEFAULT_SUMMARY_PROMPT = {
-  slug: PROMPT_SLUG_DEFAULT_VIDEO_SUMMARY,
-  category: PROMPT_CATEGORY_SUMMARY,
-  nameKey: "preset_prompt_default_video_summary",
-  name: "视频总结",
-  systemPrompt: `Summarize the video using the provided title, description, and transcript. Write the entire summary, including headings, in {{to}}.
-
-Use the transcript as the primary source and the title and description as context. Include only information supported by the input. Do not invent facts or conclusions.
-
-Output Markdown with two sections:
-- Overview: 1–2 sentences describing the main topic.
-- Key Takeaways: up to 5 distinct bullet points, with a short bold label for each. Use fewer points when the content does not support 5.
-
-Translate the section headings into {{to}}. Return only the summary, without a preamble or Markdown code fences.`,
-  userPrompt: `Title: {{title}}
-Description: {{description}}
-
-Transcript:
-{{transcript}}`,
-};
 
 // 配置数据结构的版本号（用于检测并执行数据迁移升级逻辑）
 export const SETTINGS_VERSION_V1 = 1;
@@ -111,42 +74,6 @@ export const PRESET_PROMPTS = [
     systemPrompt: defaultNobatchPrompt,
     userPrompt: defaultNobatchUserPrompt,
   },
-  {
-    slug: PROMPT_SLUG_BATCH_TRANSLATION_JSON,
-    category: PROMPT_CATEGORY_BATCH_SYSTEM,
-    nameKey: "preset_prompt_batch_translation_json",
-    name: "Batch translation (JSON)",
-    protocol: PROMPT_PROTOCOL_JSON,
-    systemPrompt: defaultSystemPromptJson,
-    userPrompt: defaultBatchUserPromptJson,
-  },
-  {
-    slug: PROMPT_SLUG_BATCH_TRANSLATION_XML,
-    category: PROMPT_CATEGORY_BATCH_SYSTEM,
-    nameKey: "preset_prompt_batch_translation_xml",
-    name: "Batch translation (XML)",
-    protocol: PROMPT_PROTOCOL_XML,
-    systemPrompt: defaultSystemPromptXml,
-    userPrompt: defaultBatchUserPromptXml,
-  },
-  {
-    slug: PROMPT_SLUG_BATCH_TRANSLATION_LINE,
-    category: PROMPT_CATEGORY_BATCH_SYSTEM,
-    nameKey: "preset_prompt_batch_translation_line",
-    name: "Batch translation (LINE)",
-    protocol: PROMPT_PROTOCOL_LINE,
-    systemPrompt: defaultSystemPromptLines,
-    userPrompt: defaultBatchUserPromptLines,
-  },
-  {
-    slug: PROMPT_SLUG_SUBTITLE_SEGMENTATION,
-    category: PROMPT_CATEGORY_SUBTITLE,
-    nameKey: "preset_prompt_subtitle_segmentation",
-    name: "Subtitle AI segmentation",
-    systemPrompt: defaultSubtitlePrompt,
-    userPrompt: "",
-  },
-  DEFAULT_SUMMARY_PROMPT,
 ];
 
 const PRESET_PROMPT_SLUGS = new Set(
@@ -390,44 +317,6 @@ function getAvailableMigratedPromptSlug(promptBySlug, sourcePrompt, baseSlug) {
   return promptSlug;
 }
 
-/**
- * 获取提示词在界面上显示的名称（支持国际化 i18n 翻译）。
- *
- * @param {Object} prompt 提示词对象
- * @param {Function} i18n 多语言翻译函数
- * @returns {string} 对应的展示名称
- */
-export function getPromptDisplayName(prompt = {}, i18n) {
-  const normalizedPrompt = normalizePrompt(prompt);
-  if (normalizedPrompt.nameKey && typeof i18n === "function") {
-    return i18n(normalizedPrompt.nameKey, normalizedPrompt.name);
-  }
-
-  return normalizedPrompt.name || normalizedPrompt.slug;
-}
-
-/**
- * 获取提示词分类在界面上显示的名称（支持国际化）。
- *
- * @param {string} category 提示词分类常量
- * @param {Function} i18n 多语言翻译函数
- * @returns {string} 分类的展示名称
- */
-export function getPromptCategoryDisplayName(category, i18n) {
-  if (typeof i18n !== "function") {
-    return category || "";
-  }
-
-  const keyMap = {
-    [PROMPT_CATEGORY_BATCH_SYSTEM]: "prompt_category_batch_system",
-    [PROMPT_CATEGORY_USER]: "prompt_category_user",
-    [PROMPT_CATEGORY_SUBTITLE]: "prompt_category_subtitle",
-    [PROMPT_CATEGORY_SUMMARY]: "prompt_category_summary",
-  };
-
-  return i18n(keyMap[category], category || "");
-}
-
 function getPromptOptions(prompts = [], category) {
   return (Array.isArray(prompts) ? prompts : []).filter(
     (prompt) => prompt?.category === category
@@ -444,64 +333,6 @@ export function getNobatchPromptOptions(prompts = []) {
   return getPromptOptions(prompts, PROMPT_CATEGORY_USER);
 }
 
-/**
- * 获取所有可用的“聚合翻译 (Batch)”提示词选项
- *
- * @param {Array} prompts 全部可用提示词列表
- * @returns {Array}
- */
-export function getBatchPromptOptions(prompts = []) {
-  return getPromptOptions(prompts, PROMPT_CATEGORY_BATCH_SYSTEM);
-}
-
-/**
- * 获取所有翻译提示词综合选项（聚合与单句合并）
- *
- * @param {Array} prompts 全部可用提示词列表
- * @returns {Array} 聚合与单句提示词集合，每项带有 isBatch 标记
- */
-export function getAllTranslationPromptOptions(prompts = []) {
-  const batchOptions = getBatchPromptOptions(prompts).map((item) => ({
-    ...item,
-    isBatch: true,
-  }));
-  const nobatchOptions = getNobatchPromptOptions(prompts).map((item) => ({
-    ...item,
-    isBatch: false,
-  }));
-  return [...batchOptions, ...nobatchOptions];
-}
-
-/**
- * 获取带 [聚合] / [单句] 前缀的翻译提示词展示名称
- *
- * @param {Object} prompt 提示词对象
- * @param {Function} i18n 多语言翻译函数
- * @returns {string} 带有模式前缀的展示名称
- */
-export function getTranslationPromptDisplayName(prompt = {}, i18n) {
-  const baseName = getPromptDisplayName(prompt, i18n);
-  const isBatch =
-    prompt.isBatch !== undefined
-      ? Boolean(prompt.isBatch)
-      : prompt.category === PROMPT_CATEGORY_BATCH_SYSTEM;
-  const prefix = isBatch ? "[聚合] " : "[单句] ";
-  return `${prefix}${baseName}`;
-}
-
-/**
- * 获取所有可用的“字幕翻译/分句”提示词选项
- *
- * @param {Array} prompts 全部可用提示词列表
- * @returns {Array}
- */
-export function getSubtitlePromptOptions(prompts = []) {
-  return getPromptOptions(prompts, PROMPT_CATEGORY_SUBTITLE);
-}
-
-export function getSummaryPromptOptions(prompts = []) {
-  return getPromptOptions(prompts, PROMPT_CATEGORY_SUMMARY);
-}
 
 function hasPromptReference(source = {}, promptSlugFieldName, promptSlug) {
   return (
@@ -1034,42 +865,6 @@ export function resolveApiPromptSettings(
   const cleanedApiSetting = removeLegacyApiPromptIds(apiSetting);
   const nextApiSetting =
     cleanedApiSetting === apiSetting ? { ...apiSetting } : cleanedApiSetting;
-  const hasBatchPromptReference = hasPromptReferenceField(
-    nextApiSetting,
-    "batchPromptSlug"
-  );
-  const hasBatchPromptInlineValue = hasOwn(nextApiSetting, "systemPrompt");
-  const batchPromptSlug = getPromptFieldValue(
-    nextApiSetting,
-    "batchPromptSlug",
-    DEFAULT_BATCH_PROMPT_SLUG
-  );
-  const batchPrompt = findPromptBySlugOrDefault(
-    userPrompts,
-    batchPromptSlug,
-    DEFAULT_BATCH_PROMPT_SLUG
-  );
-
-  if (batchPrompt && (hasBatchPromptReference || !hasBatchPromptInlineValue)) {
-    nextApiSetting.batchPromptSlug = batchPrompt.slug;
-    nextApiSetting.systemPrompt = batchPrompt.systemPrompt;
-    nextApiSetting.batchUserPrompt = batchPrompt.userPrompt;
-    if (batchPrompt.protocol) {
-      nextApiSetting.batchProtocol = batchPrompt.protocol;
-    } else {
-      delete nextApiSetting.batchProtocol;
-    }
-  } else if (batchPrompt) {
-    if (
-      nextApiSetting.batchUserPrompt === undefined &&
-      batchPrompt.userPrompt
-    ) {
-      nextApiSetting.batchUserPrompt = batchPrompt.userPrompt;
-    }
-    if (!nextApiSetting.batchProtocol && batchPrompt.protocol) {
-      nextApiSetting.batchProtocol = batchPrompt.protocol;
-    }
-  }
 
   const hasNobatchPromptReference = hasPromptReferenceField(
     nextApiSetting,

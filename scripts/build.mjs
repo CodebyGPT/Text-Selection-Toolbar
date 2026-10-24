@@ -35,6 +35,10 @@ const env = {
 };
 
 console.log(`Building Text Selection Toolbar ${version}`);
+execFileSync(process.execPath, [path.resolve("scripts/build-toolbar.mjs")], {
+  env,
+  stdio: "inherit",
+});
 execFileSync(
   process.execPath,
   [path.resolve("node_modules/react-app-rewired/scripts/build.js")],

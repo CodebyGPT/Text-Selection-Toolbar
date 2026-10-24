@@ -8,7 +8,7 @@ export async function invokeTextScene(
   { signal, onText, nativeOptions } = {}
 ) {
   const streaming = Boolean(
-    api.useStream !== false && supportsServiceFeature(api, "stream", capability)
+    api.useStream === true && supportsServiceFeature(api, "stream", capability)
   );
   const call = invokeScene(api, capability, input, {
     signal,

@@ -32,7 +32,8 @@ async function copyToClipboard(text, html) {
 }
 
 // Show toast (inside Shadow DOM)
-function showToast(msg) {
+function showToast(msg, duration = 1200) {
+    if (!shadowRoot) initContainer();
     let toast = shadowRoot.querySelector('.sc-toast');
     if (!toast) {
         toast = document.createElement('div');
@@ -50,5 +51,5 @@ function showToast(msg) {
     if (toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
         toast.classList.remove('show');
-    }, 1200);
+    }, duration);
 }
