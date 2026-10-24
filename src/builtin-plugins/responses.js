@@ -1,4 +1,8 @@
-import { OPT_TRANS_OLLAMA, OPT_TRANS_CUSTOMIZE } from "../config";
+import {
+  OPT_TRANS_OLLAMA,
+  OPT_TRANS_CUSTOMIZE,
+  OPT_TRANS_MTRAN,
+} from "../config";
 
 function parseOllamaResponse(
   res,
@@ -27,4 +31,5 @@ function parseCustomizeResponse(res, { useBatchFetch }) {
 export const nativeResponseParsers = {
   [OPT_TRANS_OLLAMA]: parseOllamaResponse,
   [OPT_TRANS_CUSTOMIZE]: parseCustomizeResponse,
+  [OPT_TRANS_MTRAN]: parseCustomizeResponse,
 };

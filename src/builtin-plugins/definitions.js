@@ -23,6 +23,13 @@ const contracts = {
     stream: false,
     usesMessages: false,
   },
+  // Self-hosted MTranServer exposes KISS's simple JSON protocol at /kiss.
+  MTranServer: {
+    names: ["translate"],
+    batch: false,
+    stream: false,
+    usesMessages: false,
+  },
   Ollama: {
     names: textCapabilities,
     batch: true,

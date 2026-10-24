@@ -73,6 +73,11 @@ const MESSAGES = {
     'Supports polling calls separated by English commas ",".',
     "Поддерживается перебор значений через английскую запятую «,».",
   ],
+  mtranKeyPlaceholder: [
+    "MT_API_TOKEN（可选）",
+    "MT_API_TOKEN (optional)",
+    "MT_API_TOKEN (необязательно)",
+  ],
   modelListUrl: ["模型列表 URL", "Model list URL", "URL списка моделей"],
   model: ["模型", "Model", "Модель"],
   port: ["端口", "Port", "Порт"],

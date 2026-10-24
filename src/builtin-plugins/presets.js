@@ -1,6 +1,7 @@
 import {
   OPT_TRANS_TRANSLATOR_API,
   OPT_TRANS_STRANSLATE,
+  OPT_TRANS_MTRAN,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
 } from "../config/apiConstants";
@@ -18,6 +19,11 @@ export const NATIVE_PRESET_OVERRIDES = {
     port: 50020,
     httpTimeout: 10,
   },
+  // MTranServer exposes a KISS-compatible single-text endpoint at /kiss.
+  [OPT_TRANS_MTRAN]: {
+    url: "http://127.0.0.1:8989/kiss",
+    sourceType: "network",
+  },
   // The Ollama preset is no longer shipped, but its defaults stay here so a
   // legacy saved instance would still have a valid endpoint if it reappears.
   [OPT_TRANS_OLLAMA]: {
@@ -28,10 +34,11 @@ export const NATIVE_PRESET_OVERRIDES = {
   [OPT_TRANS_CUSTOMIZE]: {},
 };
 
-// Browser translator and the STranslate external handoff ship as enabled
+// Browser translator, STranslate handoff and MTranServer ship as enabled
 // presets. The Ollama preset was removed; the provider implementation stays so
 // existing saved Ollama instances keep working and remain editable.
 export const DEFAULT_ENABLED_API_TYPES = new Set([
   OPT_TRANS_TRANSLATOR_API,
   OPT_TRANS_STRANSLATE,
+  OPT_TRANS_MTRAN,
 ]);

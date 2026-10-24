@@ -11,6 +11,7 @@ import {
   DEFAULT_API_LIST,
   OPT_TRANS_TRANSLATOR_API,
   OPT_TRANS_STRANSLATE,
+  OPT_TRANS_MTRAN,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
   PRESET_PROMPTS,
@@ -194,6 +195,7 @@ function Toggle({ value, onChange }) {
 const PRESET_API_TYPES = new Set([
   OPT_TRANS_TRANSLATOR_API,
   OPT_TRANS_STRANSLATE,
+  OPT_TRANS_MTRAN,
   OPT_TRANS_OLLAMA,
 ]);
 
@@ -380,6 +382,7 @@ function ApiEditor({
 
   const isTranslatorAPI = api.apiType === OPT_TRANS_TRANSLATOR_API;
   const isSTranslate = api.apiType === OPT_TRANS_STRANSLATE;
+  const isMTran = api.apiType === OPT_TRANS_MTRAN;
   const isExternal = isExternalApi(api);
   const isPreset = PRESET_API_TYPES.has(api.apiType);
   const isCustom = api.apiType === OPT_TRANS_CUSTOMIZE;
@@ -546,24 +549,31 @@ function ApiEditor({
                 />
               </label>
             )}
-            {isSTranslate && (
+            {(isSTranslate || isMTran) && (
               <label>
                 {t("requestTimeout")}
                 <NumberInput
-                  value={api.httpTimeout ?? DEFAULT_STRANSLATE_TIMEOUT}
+                  value={
+                    api.httpTimeout ??
+                    (isSTranslate ? DEFAULT_STRANSLATE_TIMEOUT : 30)
+                  }
                   min={1}
                   max={600}
                   onChange={(v) => patch("httpTimeout", v)}
                 />
               </label>
             )}
-            {(isCustom || isOllama) && (
+            {(isCustom || isOllama || isMTran) && (
               <>
                 <label>
                   URL
                   <TextInput
                     value={api.url}
-                    placeholder="http://localhost:port/v1/chat/completions"
+                    placeholder={
+                      isMTran
+                        ? "http://127.0.0.1:8989/kiss"
+                        : "http://localhost:port/v1/chat/completions"
+                    }
                     onChange={(v) => patch("url", v)}
                   />
                 </label>
@@ -572,10 +582,18 @@ function ApiEditor({
                   <TextInput
                     value={api.key}
                     type="password"
-                    placeholder={t("keyPlaceholder")}
+                    placeholder={
+                      isMTran
+                        ? t("mtranKeyPlaceholder")
+                        : t("keyPlaceholder")
+                    }
                     onChange={(v) => patch("key", v)}
                   />
                 </label>
+              </>
+            )}
+            {(isCustom || isOllama) && (
+              <>
                 <label>
                   {t("modelListUrl")}
                   <TextInput
@@ -633,11 +651,13 @@ function ApiEditor({
             )}
           </Fields>
 
-          {!isExternal && <RequestFields api={api} patch={patch} />}
-          {!isTranslatorAPI && !isExternal && (
+          {!isExternal && !isMTran && (
+            <RequestFields api={api} patch={patch} />
+          )}
+          {!isTranslatorAPI && !isExternal && !isMTran && (
             <ModelFields api={api} patch={patch} />
           )}
-          {!isTranslatorAPI && !isExternal && (
+          {!isTranslatorAPI && !isExternal && !isMTran && (
             <PromptFields api={api} patch={patch} prompts={prompts} />
           )}
           {(isCustom || isOllama) && <CodeFields api={api} patch={patch} />}

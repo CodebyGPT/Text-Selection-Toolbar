@@ -4,8 +4,8 @@ import { OPT_TRANS_TRANSLATOR_API, isTranslatorAPISupported } from "./apiConstan
 
 /**
  * Installed settings keep their own list; these instances are only initial
- * defaults. Fresh installs ship with the enabled presets (TranslatorAPI and
- * the STranslate external handoff); custom endpoints are added on demand.
+ * defaults. Fresh installs ship with the enabled presets (TranslatorAPI,
+ * STranslate and MTranServer); custom endpoints are added on demand.
  */
 export function defaultServices() {
   return DEFAULT_API_LIST.filter(
