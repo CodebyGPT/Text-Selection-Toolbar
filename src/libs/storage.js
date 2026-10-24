@@ -1,5 +1,4 @@
 import {
-  APP_NAME,
   STOKEY_SETTING,
   STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
   STOKEY_SETTING_BACKUP_V3_BEFORE_V4,
@@ -650,21 +649,6 @@ export const migrateStoredSettingToV2 = async (
 
   await writeSettingBackupBeforeV2(backupSetting);
   return migrateSettingPromptsToV2(setting);
-};
-
-/**
- * Translation results are never cached anymore. Older builds wrote them into a
- * browser request-cache bucket, whose entries never expire on their own, so
- * drop that bucket once at startup.
- */
-export const purgeLegacyTranslationCache = async () => {
-  try {
-    if (typeof caches !== "undefined") {
-      await caches.delete(`${APP_NAME}_cache`);
-    }
-  } catch (err) {
-    kissLog("purge legacy translation cache", err);
-  }
 };
 
 /** Return false if migration cannot persist settings; reads still reject. */

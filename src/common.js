@@ -194,10 +194,6 @@ export async function run(isUserscript = false) {
       await runDataMigration();
     }
 
-    // 0.1 旧版本把译文写进浏览器的请求缓存桶；这些条目不会自己过期，启动时清一次。
-    const { purgeLegacyTranslationCache } = await import("./libs/storage");
-    await purgeLegacyTranslationCache();
-
     // 1. 加载本地设置
     const setting = await getSettingWithDefault();
 
