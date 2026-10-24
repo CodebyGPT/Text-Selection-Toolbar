@@ -453,7 +453,6 @@ function ApiEditor({
           fromLang: "auto",
           toLang: "zh-CN",
           apiSetting,
-          useCache: false,
           usePool: false,
           signal: controller.signal,
         }),

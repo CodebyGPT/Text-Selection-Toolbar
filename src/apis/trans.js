@@ -999,7 +999,6 @@ export const handleNativeDict = async ({
       let fullContent = "";
 
       for await (const rawData of fetchStream(input, init, {
-        useCache: false,
         usePool: true,
         fetchInterval,
         fetchLimit,
@@ -1052,7 +1051,6 @@ export const handleNativeDict = async ({
     });
 
     const fallbackRes = await fetchData(fallbackInput, fallbackInit, {
-      useCache: false,
       usePool: true,
       fetchInterval,
       fetchLimit,
@@ -1072,7 +1070,6 @@ export const handleNativeDict = async ({
   }
 
   const res = await fetchData(input, init, {
-    useCache: false,
     usePool: true,
     fetchInterval,
     fetchLimit,
@@ -1170,7 +1167,6 @@ export async function* handleNativeTranslate(
 
   const runNonStream = async function* (input, init, userMsg) {
     const response = await fetchData(input, init, {
-      useCache: false,
       usePool,
       fetchInterval,
       fetchLimit,
@@ -1292,7 +1288,6 @@ async function* handleTranslateStreamInternal(
 
   try {
     for await (const rawData of fetchStream(input, init, {
-      useCache: false,
       usePool,
       fetchInterval,
       fetchLimit,
@@ -1523,7 +1518,6 @@ export const handleNativeSubtitle = async ({
   }
 
   const res = await fetchData(input, init, {
-    useCache: false,
     usePool: true,
     fetchInterval,
     fetchLimit,
@@ -1594,7 +1588,6 @@ async function handleSubtitleStreamInternal(
   };
 
   for await (const rawData of fetchStream(input, init, {
-    useCache: false,
     usePool: true,
     fetchInterval,
     fetchLimit,
@@ -1669,7 +1662,6 @@ export const handleNativeSummarize = async ({
   prompt,
   to = "zh-CN",
   signal,
-  cacheMode,
 }) => {
   if (
     apiSetting.provider &&
@@ -1758,7 +1750,6 @@ export const handleNativeSummarize = async ({
   });
 
   const res = await fetchData(input, init, {
-    useCache: false,
     usePool: true,
     fetchInterval,
     fetchLimit,

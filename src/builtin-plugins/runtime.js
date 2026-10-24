@@ -68,7 +68,6 @@ const handlers = {
           toLang: input.targetLanguage,
           apiSetting: api,
           signal: ctx.signal,
-          useCache: false,
         });
         result.push({ id: item.id, text: trText });
         sourceLanguage ||= srCode;

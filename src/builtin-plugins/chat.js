@@ -40,7 +40,6 @@ export async function chatNative(input, api, ctx) {
     { method: request.method || "POST", headers, body: JSON.stringify(body) },
     {
       usePool: true,
-      useCache: false,
       fetchLimit: api.fetchLimit,
       fetchInterval: api.fetchInterval,
       httpTimeout: api.httpTimeout,

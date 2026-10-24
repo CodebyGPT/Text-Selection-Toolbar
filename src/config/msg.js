@@ -14,8 +14,6 @@ export const CMD_OPEN_SEPARATE_WINDOW = "openSeparateWindow"; // 打开独立的
 
 // --- 扩展运行中的内部通信 Message Action 常量 ---
 export const MSG_FETCH = "kiss_fetch"; // 代理请求 (避免内容脚本跨域限制)
-export const MSG_GET_HTTPCACHE = "get_httpcache"; // 获取网页翻译请求的本地缓存
-export const MSG_PUT_HTTPCACHE = "put_httpcache"; // 写入翻译请求的缓存数据
 export const MSG_OPEN_OPTIONS = "open_options"; // 打开扩展设置页面消息
 export const MSG_SAVE_RULE = "save_rule"; // 保存自定义的网页翻译规则
 export const MSG_EDIT_RULE = "edit_site_rule";
@@ -47,7 +45,6 @@ export const MSG_BUILTINAI_PROGRESS = "builtinai_progress"; // Chrome 内置模�
 export const MSG_LOCAL_AI_RPC = "local_ai_rpc";
 export const MSG_LOCAL_AI_CANCEL = "local_ai_cancel";
 export const MSG_SET_LOGLEVEL = "set_loglevel"; // 设置当前会话的日志等级
-export const MSG_CLEAR_CACHES = "clear_caches"; // 请求后台脚本清理本地翻译 HTTP 缓存
 export const MSG_OPEN_SEPARATE_WINDOW = "open_separate_window"; // 请求后台脚本开启独立窗口
 export const MSG_FIT_SEPARATE_WINDOW = "fit_separate_window"; // Fit the separate window after its content renders.
 export const MSG_UPDATE_SEPARATE_WINDOW_BOUNDS =

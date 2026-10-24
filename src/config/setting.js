@@ -20,7 +20,6 @@ export const DEFAULT_SYNC = {
   syncEncryptKey: "",
   syncMeta: {},
   subRulesSyncAt: 0,
-  dataCaches: {},
 };
 
 // --- 划词翻译面板配置（由工具栏翻译按钮打开） ---

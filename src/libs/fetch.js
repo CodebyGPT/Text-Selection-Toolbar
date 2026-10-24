@@ -1,11 +1,10 @@
 /**
  * @file fetch.js
  * @description 网络请求兼容入口。对外保留历史使用的 fetchData、fetchStream、fetchPatcher 等函数名，
- * 内部只负责组合缓存、并发池、普通请求适配和流式请求适配，避免调用方感知本次分层重构。
+ * 内部只负责组合并发池、普通请求适配和流式请求适配，避免调用方感知本次分层重构。
  */
 
 import { getFetchPool } from "./pool";
-import { getHttpCachePolyfill } from "./cache";
 import { createAsyncQueue } from "./stream";
 import {
   fetchGM,
@@ -19,12 +18,11 @@ import { fetchStreamNative, requestStream } from "./requestStream";
 export { fetchGM, fetchPatcher, fetchHandle, fnPolyfill, fetchStreamNative };
 
 /**
- * 发起普通网络请求，并按调用方配置应用缓存与并发池。
+ * 发起普通网络请求，并按调用方配置进入并发池。
  *
  * @param {string} input 请求 URL。
  * @param {Object} init Fetch 初始化参数。
  * @param {Object} [options={}] 请求选项。
- * @param {boolean} [options.useCache] 是否读取本地 HTTP 缓存。
  * @param {boolean} [options.usePool] 是否进入全局请求池。
  * @param {number} [options.fetchInterval] 请求池启动间隔。
  * @param {number} [options.fetchLimit] 请求池并发限制。
@@ -34,17 +32,10 @@ export { fetchGM, fetchPatcher, fetchHandle, fnPolyfill, fetchStreamNative };
 export const fetchData = async (
   input,
   init,
-  { useCache, usePool, fetchInterval, fetchLimit, ...opts } = {}
+  { usePool, fetchInterval, fetchLimit, ...opts } = {}
 ) => {
   if (!input?.trim()) {
     throw new Error("URL is empty");
-  }
-
-  if (useCache) {
-    const resCache = await getHttpCachePolyfill(input, init);
-    if (resCache) {
-      return resCache;
-    }
   }
 
   if (usePool) {
@@ -56,12 +47,11 @@ export const fetchData = async (
 };
 
 /**
- * 发起 SSE 流式网络请求，并按调用方配置应用缓存与并发池。
+ * 发起 SSE 流式网络请求，并按调用方配置进入并发池。
  *
  * @param {string} input 请求 URL。
  * @param {Object} init Fetch 初始化参数。
  * @param {Object} [options={}] 请求选项。
- * @param {boolean} [options.useCache] 是否读取本地 HTTP 缓存。
  * @param {boolean} [options.usePool] 是否进入全局请求池。
  * @param {number} [options.fetchInterval] 请求池启动间隔。
  * @param {number} [options.fetchLimit] 请求池并发限制。
@@ -71,18 +61,10 @@ export const fetchData = async (
 export async function* fetchStream(
   input,
   init,
-  { useCache, usePool, fetchInterval, fetchLimit, ...opts } = {}
+  { usePool, fetchInterval, fetchLimit, ...opts } = {}
 ) {
   if (!input?.trim()) {
     throw new Error("URL is empty");
-  }
-
-  if (useCache) {
-    const resCache = await getHttpCachePolyfill(input, init);
-    if (resCache) {
-      yield resCache;
-      return;
-    }
   }
 
   if (usePool) {
