@@ -248,6 +248,7 @@ export const SETTINGS_APP_CSS = String.raw`
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+  text-decoration: none;
 }
 :host .kiss-st-btn:hover { border-color: var(--st-accent); }
 :host .kiss-st-btn:disabled { opacity: .5; cursor: default; }

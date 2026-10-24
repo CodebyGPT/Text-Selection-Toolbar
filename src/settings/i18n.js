@@ -176,6 +176,7 @@ const MESSAGES = {
   about: ["关于", "About", "О программе"],
   version: ["版本号", "Version", "Версия"],
   homepage: ["主页", "Homepage", "Домашняя страница"],
+  openHomepage: ["打开主页", "Open homepage", "Открыть домашнюю страницу"],
   license: ["许可证", "License", "Лицензия"],
   disableFestival: ["禁用节日彩蛋", "Disable festival effects", "Отключить праздничные эффекты"],
   disableFestivalHelp: [

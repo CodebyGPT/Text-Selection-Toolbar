@@ -12,6 +12,7 @@ import {
   OPT_TRANS_TRANSLATOR_API,
   OPT_TRANS_STRANSLATE,
   OPT_TRANS_MTRAN,
+  OPT_TRANS_LOCAL_TRANSLATOR,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
   PRESET_PROMPTS,
@@ -196,8 +197,37 @@ const PRESET_API_TYPES = new Set([
   OPT_TRANS_TRANSLATOR_API,
   OPT_TRANS_STRANSLATE,
   OPT_TRANS_MTRAN,
+  OPT_TRANS_LOCAL_TRANSLATOR,
   OPT_TRANS_OLLAMA,
 ]);
+
+// Presets backed by a real upstream project get a home button in the header.
+const API_HOMEPAGES = {
+  [OPT_TRANS_STRANSLATE]: "https://github.com/STranslate/STranslate",
+  [OPT_TRANS_MTRAN]: "https://github.com/xxnuo/MTranServer",
+  [OPT_TRANS_LOCAL_TRANSLATOR]:
+    "https://github.com/CodebyGPT/Local-Translator-for-Chromium",
+};
+
+function HomeIcon() {
+  return (
+    <svg
+      viewBox="0 0 48 48"
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 18V42H39V18L24 6L9 18Z" />
+      <path d="M19 29V42H29V29H19Z" />
+      <path d="M9 42H39" />
+    </svg>
+  );
+}
 
 function Fields({ children }) {
   return <div className="kiss-st-grid">{children}</div>;
@@ -383,10 +413,12 @@ function ApiEditor({
   const isTranslatorAPI = api.apiType === OPT_TRANS_TRANSLATOR_API;
   const isSTranslate = api.apiType === OPT_TRANS_STRANSLATE;
   const isMTran = api.apiType === OPT_TRANS_MTRAN;
+  const isLocalTranslator = api.apiType === OPT_TRANS_LOCAL_TRANSLATOR;
   const isExternal = isExternalApi(api);
   const isPreset = PRESET_API_TYPES.has(api.apiType);
   const isCustom = api.apiType === OPT_TRANS_CUSTOMIZE;
   const isOllama = api.apiType === OPT_TRANS_OLLAMA;
+  const homepage = API_HOMEPAGES[api.apiType];
 
   const runTest = async () => {
     if (isExternal) {
@@ -481,6 +513,19 @@ function ApiEditor({
         {isCustom && <span className="kiss-st-badge">{t("custom")}</span>}
         <span className="kiss-st-spacer" />
         <span className="kiss-st-chev">{t("expandCollapse")}</span>
+        {homepage && (
+          <a
+            className="kiss-st-btn kiss-st-btn--icon"
+            href={homepage}
+            target="_blank"
+            rel="noreferrer"
+            title={t("openHomepage")}
+            aria-label={t("openHomepage")}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <HomeIcon />
+          </a>
+        )}
         <button
           className="kiss-st-btn"
           onClick={(event) => {
@@ -549,7 +594,7 @@ function ApiEditor({
                 />
               </label>
             )}
-            {(isSTranslate || isMTran) && (
+            {(isSTranslate || isMTran || isLocalTranslator) && (
               <label>
                 {t("requestTimeout")}
                 <NumberInput
@@ -651,13 +696,13 @@ function ApiEditor({
             )}
           </Fields>
 
-          {!isExternal && !isMTran && (
+          {!isExternal && !isMTran && !isLocalTranslator && (
             <RequestFields api={api} patch={patch} />
           )}
-          {!isTranslatorAPI && !isExternal && !isMTran && (
+          {!isTranslatorAPI && !isExternal && !isMTran && !isLocalTranslator && (
             <ModelFields api={api} patch={patch} />
           )}
-          {!isTranslatorAPI && !isExternal && !isMTran && (
+          {!isTranslatorAPI && !isExternal && !isMTran && !isLocalTranslator && (
             <PromptFields api={api} patch={patch} prompts={prompts} />
           )}
           {(isCustom || isOllama) && <CodeFields api={api} patch={patch} />}
