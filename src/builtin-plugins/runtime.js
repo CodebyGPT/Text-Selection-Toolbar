@@ -4,6 +4,7 @@ import { providerError } from "../providers/capabilities";
 import { providerHelpers } from "../providers/sdk";
 import {
   OPT_TRANS_TRANSLATOR_API,
+  OPT_TRANS_LOCAL_TRANSLATOR,
 } from "../config/apiConstants";
 import {
   OPT_LANGS_TO_SPEC,
@@ -53,7 +54,10 @@ const handlers = {
     };
   },
   async translate(input, api, ctx) {
-    if (api.apiType === OPT_TRANS_TRANSLATOR_API) {
+    if (
+      api.apiType === OPT_TRANS_TRANSLATOR_API ||
+      api.apiType === OPT_TRANS_LOCAL_TRANSLATOR
+    ) {
       const { apiTranslate } = await import("../apis");
       const result = [];
       let sourceLanguage;

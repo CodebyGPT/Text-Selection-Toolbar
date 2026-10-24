@@ -14,6 +14,7 @@ import {
   INPUT_PLACE_SEGMENTS,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_TRANSLATOR_API,
+  OPT_TRANS_LOCAL_TRANSLATOR,
   OPT_ALL_TRANS_TYPES,
 } from "./apiConstants";
 import {
@@ -338,6 +339,7 @@ const defaultApi = {
 // Display-only names; the slug stays machine-readable.
 const API_DISPLAY_NAMES = {
   [OPT_TRANS_TRANSLATOR_API]: "Translator API",
+  [OPT_TRANS_LOCAL_TRANSLATOR]: "Local Translator",
 };
 
 export const DEFAULT_API_LIST = OPT_ALL_TRANS_TYPES.map((apiType) =>

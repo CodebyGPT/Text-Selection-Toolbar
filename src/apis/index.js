@@ -10,6 +10,7 @@ import {
   MSG_BUILTINAI_DETECT,
   MSG_BUILTINAI_TRANSLATE,
   OPT_TRANS_TRANSLATOR_API,
+  OPT_TRANS_LOCAL_TRANSLATOR,
   URL_CACHE_SUBTITLE,
   URL_CACHE_CONTEXT,
   OPT_LANGS_TO_CODE,
@@ -379,8 +380,23 @@ export const apiTranslate = async ({
       to,
       apiSetting,
     });
+  } else if (apiType === OPT_TRANS_LOCAL_TRANSLATOR) {
+    // 2.2 同浏览器扩展：经页面消息桥交给 Local Translator for Chromium 离线翻译。
+    const { translateWithLocalTranslator } = await import(
+      "../libs/localTranslatorBridge"
+    );
+    translation = [
+      await translateWithLocalTranslator({
+        text,
+        from: fromLang,
+        to: toLang,
+        timeout: apiSetting.httpTimeout,
+        signal,
+      }),
+      "",
+    ];
   } else {
-    // 2.2 单段文本请求：面板一次只翻译一段，不再聚合或流式返回。
+    // 2.3 单段文本请求：面板一次只翻译一段，不再聚合或流式返回。
     const generator = handleTranslate([text], {
       from,
       to,

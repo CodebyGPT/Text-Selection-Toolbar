@@ -23,6 +23,14 @@ const contracts = {
     stream: false,
     usesMessages: false,
   },
+  // The Local Translator for Chromium extension answers on the page's
+  // postMessage channel from its own content script; no network is involved.
+  LocalTranslator: {
+    names: ["translate"],
+    batch: false,
+    stream: false,
+    usesMessages: false,
+  },
   // Self-hosted MTranServer exposes KISS's simple JSON protocol at /kiss.
   MTranServer: {
     names: ["translate"],

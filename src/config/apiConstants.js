@@ -43,6 +43,7 @@ export const OPT_SUG_MAP = new Set(OPT_SUG_ALL);
 export const OPT_TRANS_TRANSLATOR_API = "TranslatorAPI"; // 浏览器内置翻译 API
 export const OPT_TRANS_STRANSLATE = "STranslate"; // 外部程序 STranslate（仅转发划词文本）
 export const OPT_TRANS_MTRAN = "MTranServer"; // 自托管 MTranServer（KISS 兼容 /kiss 接口）
+export const OPT_TRANS_LOCAL_TRANSLATOR = "LocalTranslator"; // 同浏览器内的 Local Translator for Chromium 扩展（页面消息桥）
 export const OPT_TRANS_OLLAMA = "Ollama"; // 本地部署 Ollama 模型翻译
 export const OPT_TRANS_CUSTOMIZE = "Custom"; // 自定义翻译 API
 
@@ -51,6 +52,7 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_TRANSLATOR_API,
   OPT_TRANS_STRANSLATE,
   OPT_TRANS_MTRAN,
+  OPT_TRANS_LOCAL_TRANSLATOR,
   OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
 ];
