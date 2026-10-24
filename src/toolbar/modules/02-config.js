@@ -23,7 +23,6 @@ const DEFAULT_CONFIG = {
     showBlockMenu: true,   // show the "hide page elements" menu entry
     showEditMenu: true,    // show the "edit page" menu entry
     showTranslateMenu: true,
-    showClearMenu: true,
 };
 
 // Chinese-only extras (cloud-drive codes, smart fallback engine) follow the

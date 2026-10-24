@@ -153,7 +153,9 @@ function registerMenus(setting) {
     },
     clear: {
       label: i18n("menu_clear_hidden_rules", "清空该网页的隐藏规则"),
-      enabled: toolbarSetting.showClearMenu !== false,
+      // Clearing rules belongs to the hide-elements tool and is only shown
+      // while that tool is enabled; it is not a standalone menu-management row.
+      enabled: toolbarSetting.showBlockMenu !== false,
       action: clearPageBlockRulesMenu,
     },
     settings: {
@@ -165,8 +167,14 @@ function registerMenus(setting) {
 
   normalizeToolbarMenuOrder(toolbarSetting.menuOrder).forEach((id) => {
     const item = items[id];
-    if (item?.enabled) {
-      globalThis.GM.registerMenuCommand(item.label, item.action);
+    if (!item?.enabled) return;
+    globalThis.GM.registerMenuCommand(item.label, item.action);
+    // The clear action always follows the hide-elements entry.
+    if (id === "block" && items.clear.enabled) {
+      globalThis.GM.registerMenuCommand(
+        items.clear.label,
+        items.clear.action
+      );
     }
   });
 }

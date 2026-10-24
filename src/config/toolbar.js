@@ -25,15 +25,13 @@ export const DEFAULT_TOOLBAR_SETTING = {
   showBlockMenu: true,
   showEditMenu: true,
   showTranslateMenu: true,
-  showClearMenu: true,
-  menuOrder: ["translate", "edit", "block", "clear", "settings"],
+  menuOrder: ["translate", "edit", "block", "settings"],
 };
 
 export const TOOLBAR_MENU_ORDER_DEFAULT = [
   "translate",
   "edit",
   "block",
-  "clear",
   "settings",
 ];
 

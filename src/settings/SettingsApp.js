@@ -93,22 +93,9 @@ function Section({ title, children, footer, className = "" }) {
   );
 }
 
-function Row({
-  label,
-  help,
-  warn,
-  children,
-  onDragOver,
-  onDrop,
-  onDragLeave,
-}) {
+function Row({ label, help, warn, children }) {
   return (
-    <div
-      className="kiss-st-row"
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onDragLeave={onDragLeave}
-    >
+    <div className="kiss-st-row">
       <div className="kiss-st-row__label">
         <span>{label}</span>
         {warn && <small className="kiss-st-warn">{warn}</small>}
@@ -833,7 +820,6 @@ const TOOLBAR_MENU_LABELS = {
   translate: "翻译面板",
   edit: "编辑网页",
   block: "隐藏网页元素",
-  clear: "清空该网页的隐藏规则",
   settings: "脚本设置",
 };
 
@@ -841,29 +827,24 @@ const TOOLBAR_MENU_TOGGLES = {
   translate: "showTranslateMenu",
   edit: "showEditMenu",
   block: "showBlockMenu",
-  clear: "showClearMenu",
 };
 
 function MenuManagementSection({ value, patch, hasBlockRules }) {
-  const [draggedId, setDraggedId] = useState(null);
   const order = normalizeToolbarMenuOrder(value.menuOrder);
 
-  const moveMenu = (sourceId, targetId, after) => {
-    if (!sourceId || sourceId === targetId) return;
-    const next = order.filter((id) => id !== sourceId);
-    let targetIndex = next.indexOf(targetId);
-    if (targetIndex < 0) return;
-    if (after) targetIndex += 1;
-    next.splice(targetIndex, 0, sourceId);
+  const moveMenu = (id, delta) => {
+    const index = order.indexOf(id);
+    const target = index + delta;
+    if (index < 0 || target < 0 || target >= order.length) return;
+    const next = order.slice();
+    next.splice(index, 1);
+    next.splice(target, 0, id);
     patch({ menuOrder: next });
   };
 
   return (
     <Section title="菜单管理">
-      <div className="kiss-st-hint">
-        拖动右侧手柄调整油猴菜单顺序；关闭开关后不再注册对应菜单项。
-      </div>
-      {order.map((id) => {
+      {order.map((id, index) => {
         const toggleKey = TOOLBAR_MENU_TOGGLES[id];
         const enabled = !toggleKey || value[toggleKey] !== false;
         return (
@@ -875,21 +856,6 @@ function MenuManagementSection({ value, patch, hasBlockRules }) {
                 ? "关闭后不再注册菜单项，已保存的隐藏规则仍然生效"
                 : null
             }
-            onDragOver={(event) => {
-              if (!draggedId) return;
-              event.preventDefault();
-              event.dataTransfer.dropEffect = "move";
-            }}
-            onDrop={(event) => {
-              event.preventDefault();
-              const sourceId =
-                draggedId || event.dataTransfer.getData("text/plain");
-              const rect = event.currentTarget.getBoundingClientRect();
-              const after =
-                event.clientY > rect.top + rect.height / 2;
-              moveMenu(sourceId, id, after);
-              setDraggedId(null);
-            }}
           >
             <div className="kiss-st-inline">
               {toggleKey && (
@@ -898,35 +864,50 @@ function MenuManagementSection({ value, patch, hasBlockRules }) {
                   onChange={(next) => patch({ [toggleKey]: next })}
                 />
               )}
-              <span
-                className="kiss-st-drag"
-                draggable
-                role="button"
-                tabIndex={0}
-                title="拖动排序"
-                aria-label="拖动排序"
-                style={{ opacity: draggedId === id ? 0.4 : 1 }}
-                onClick={(event) => event.stopPropagation()}
-                onDragStart={(event) => {
-                  setDraggedId(id);
-                  event.dataTransfer.effectAllowed = "move";
-                  event.dataTransfer.setData("text/plain", id);
-                }}
-                onDragEnd={() => setDraggedId(null)}
+              <button
+                type="button"
+                className="kiss-st-btn kiss-st-order-btn"
+                title="上移"
+                aria-label="上移"
+                disabled={index === 0}
+                onClick={() => moveMenu(id, -1)}
               >
                 <svg
                   viewBox="0 0 24 24"
-                  width="18"
-                  height="18"
+                  width="16"
+                  height="16"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
+                  strokeLinejoin="round"
                   aria-hidden="true"
                 >
-                  <path d="M4 6h16M4 12h16M4 18h16" />
+                  <path d="m6 15 6-6 6 6" />
                 </svg>
-              </span>
+              </button>
+              <button
+                type="button"
+                className="kiss-st-btn kiss-st-order-btn"
+                title="下移"
+                aria-label="下移"
+                disabled={index === order.length - 1}
+                onClick={() => moveMenu(id, 1)}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
             </div>
           </Row>
         );
