@@ -423,15 +423,26 @@ export const TextField = forwardRef(function TextField(
     label
       ? createElement("span", { className: "kt-field__label" }, label)
       : null,
-    InputProps.startAdornment
-      ? createElement(
-          "span",
-          { className: "kt-field__start" },
-          InputProps.startAdornment
-        )
-      : null,
-    control,
-    InputProps.endAdornment || null,
+    createElement(
+      "div",
+      { className: "kt-field__control" },
+      InputProps.startAdornment
+        ? createElement(
+            "span",
+            { className: "kt-field__start" },
+            InputProps.startAdornment
+          )
+        : null,
+      control,
+      InputProps.endAdornment
+        ? createElement(
+            "span",
+            { className: "kt-field__end" },
+            InputProps.endAdornment
+          )
+        : null,
+      InputProps.overlay || null
+    ),
     helperText
       ? createElement("span", { className: "kt-field__helper" }, helperText)
       : null

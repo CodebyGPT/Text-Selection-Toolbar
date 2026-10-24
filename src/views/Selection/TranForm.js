@@ -759,78 +759,68 @@ export default function TranForm({
               InputProps={{
                 ...sourceHeightLock.rootProps,
                 endAdornment: (
-                  <>
-                    <Stack
-                      className={
-                        isPlaygound
-                          ? "kt-translation-text-field__actions"
-                          : undefined
-                      }
-                      direction="row"
-                      sx={
-                        isPlaygound
-                          ? undefined
-                          : {
-                              position: "absolute",
-                              right: 0,
-                              top: 0,
-                            }
-                      }
-                    >
-                      {editMode && editText !== text ? (
-                        /* Show the submit checkmark while editing. */
-                        <IconButton
-                          size="small"
-                          onPointerDown={(e) => e.preventDefault()}
-                          onClick={submitAndBlur}
-                          title={i18n("submit")}
-                          aria-label={i18n("submit")}
-                        >
-                          <DoneIcon fontSize="inherit" />
-                        </IconButton>
-                      ) : text ? (
-                        /* Show the copy action when text is present. */
-                        <CopyBtn
-                          text={text}
-                          title={i18n("copy")}
-                          copiedLabel={i18n("copy_success", "Copied")}
-                        />
-                      ) : (
-                        /* Show the paste action when the input is empty. */
-                        <IconButton
-                          size="small"
-                          onClick={handlePaste}
-                          title={i18n("paste")}
-                        >
-                          <ContentPasteIcon fontSize="inherit" />
-                        </IconButton>
-                      )}
-                      {text && editText.trim() === text && (
-                        <IconButton
-                          size="small"
-                          onPointerDown={(event) => event.preventDefault()}
-                          onClick={submitAndBlur}
-                          title={i18n("translate")}
-                          aria-label={i18n("translate")}
-                        >
-                          <ReplayRoundedIcon fontSize="inherit" />
-                        </IconButton>
-                      )}
-                    </Stack>
-                    {(editText.trim() ||
-                      sourceHeightLock.lockedHeight != null) && (
-                      <TextareaResizeGrip
-                        target={sourceHeightLock.textareaRef}
-                        onResize={sourceHeightLock.applyHeight}
-                        value={sourceHeightLock.lockedHeight}
-                        label={i18n("field_resize_height")}
-                        variant={gripStyle}
-                        onRelease={sourceHeightLock.releaseHeight}
-                        unlockHint={i18n("field_resize_unlock_hint")}
+                  <Stack
+                    className={
+                      isPlaygound
+                        ? "kt-translation-text-field__actions"
+                        : undefined
+                    }
+                    direction="row"
+                  >
+                    {editMode && editText !== text ? (
+                      /* Show the submit checkmark while editing. */
+                      <IconButton
+                        size="small"
+                        onPointerDown={(e) => e.preventDefault()}
+                        onClick={submitAndBlur}
+                        title={i18n("submit")}
+                        aria-label={i18n("submit")}
+                      >
+                        <DoneIcon fontSize="inherit" />
+                      </IconButton>
+                    ) : text ? (
+                      /* Show the copy action when text is present. */
+                      <CopyBtn
+                        text={text}
+                        title={i18n("copy")}
+                        copiedLabel={i18n("copy_success", "Copied")}
                       />
+                    ) : (
+                      /* Show the paste action when the input is empty. */
+                      <IconButton
+                        size="small"
+                        onClick={handlePaste}
+                        title={i18n("paste")}
+                      >
+                        <ContentPasteIcon fontSize="inherit" />
+                      </IconButton>
                     )}
-                  </>
+                    {text && editText.trim() === text && (
+                      <IconButton
+                        size="small"
+                        onPointerDown={(event) => event.preventDefault()}
+                        onClick={submitAndBlur}
+                        title={i18n("translate")}
+                        aria-label={i18n("translate")}
+                      >
+                        <ReplayRoundedIcon fontSize="inherit" />
+                      </IconButton>
+                    )}
+                  </Stack>
                 ),
+                overlay:
+                  (editText.trim() ||
+                    sourceHeightLock.lockedHeight != null) && (
+                    <TextareaResizeGrip
+                      target={sourceHeightLock.textareaRef}
+                      onResize={sourceHeightLock.applyHeight}
+                      value={sourceHeightLock.lockedHeight}
+                      label={i18n("field_resize_height")}
+                      variant={gripStyle}
+                      onRelease={sourceHeightLock.releaseHeight}
+                      unlockHint={i18n("field_resize_unlock_hint")}
+                    />
+                  ),
               }}
             />
           </Box>

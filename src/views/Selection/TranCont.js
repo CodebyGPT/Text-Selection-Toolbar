@@ -629,53 +629,43 @@ export default function TranCont({
             </Box>
           ),
           endAdornment: (
-            <>
-              <Stack
-                onPointerDown={onActionPointerDown}
-                className={
-                  isPlayground
-                    ? "kt-translation-text-field__actions"
-                    : undefined
-                }
-                direction="row"
-                sx={
-                  isPlayground
-                    ? undefined
-                    : {
-                        position: "absolute",
-                        right: 0,
-                        top: 0,
-                      }
-                }
-              >
-                {/* Copy the current translation, including partial text during streaming. */}
-                {trText && (
-                  <CopyBtn
-                    text={trText}
-                    title={i18n("copy")}
-                    copiedLabel={i18n("copy_success", "Copied")}
-                  />
-                )}
-                <BrowserTtsBtn
-                  serviceId={ttsApiSlug}
+            <Stack
+              onPointerDown={onActionPointerDown}
+              className={
+                isPlayground
+                  ? "kt-translation-text-field__actions"
+                  : undefined
+              }
+              direction="row"
+            >
+              {/* Copy the current translation, including partial text during streaming. */}
+              {trText && (
+                <CopyBtn
                   text={trText}
-                  lang={toLang}
-                  title={i18n("read_aloud")}
-                />
-              </Stack>
-              {(trText.trim() || resultHeightLock.lockedHeight != null) && (
-                <TextareaResizeGrip
-                  target={resultHeightLock.textareaRef}
-                  onResize={resultHeightLock.applyHeight}
-                  value={resultHeightLock.lockedHeight}
-                  label={i18n("field_resize_height")}
-                  variant={gripStyle}
-                  onRelease={resultHeightLock.releaseHeight}
-                  unlockHint={i18n("field_resize_unlock_hint")}
+                  title={i18n("copy")}
+                  copiedLabel={i18n("copy_success", "Copied")}
                 />
               )}
-            </>
+              <BrowserTtsBtn
+                serviceId={ttsApiSlug}
+                text={trText}
+                lang={toLang}
+                title={i18n("read_aloud")}
+              />
+            </Stack>
           ),
+          overlay:
+            (trText.trim() || resultHeightLock.lockedHeight != null) && (
+              <TextareaResizeGrip
+                target={resultHeightLock.textareaRef}
+                onResize={resultHeightLock.applyHeight}
+                value={resultHeightLock.lockedHeight}
+                label={i18n("field_resize_height")}
+                variant={gripStyle}
+                onRelease={resultHeightLock.releaseHeight}
+                unlockHint={i18n("field_resize_unlock_hint")}
+              />
+            ),
         }}
       />
       {/* Announce completed results without repeating every streaming chunk. */}

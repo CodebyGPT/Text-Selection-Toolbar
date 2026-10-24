@@ -66,15 +66,19 @@ export const PANEL_BASE_STYLES = String.raw`
 .kt-field { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .kt-field--full { width: 100%; }
 .kt-field__label { padding-inline: 2px; color: var(--kt-onv); font-size: 11px; line-height: 1.3; }
+.kt-field__control { position: relative; display: flex; align-items: stretch; min-width: 0; }
+.kt-field__control > .kt-field__input { flex: 1; }
 .kt-field__input { box-sizing: border-box; width: 100%; min-height: ${px(T.panelControlHeight)}; padding: 8px ${px(T.panelControlPaddingX)}; border: 1px solid var(--kt-linev); border-radius: ${px(T.panelControlRadius)}; outline: none; background: var(--kt-sf1); color: var(--kt-on); font: inherit; font-size: ${px(T.fontSizeControl)}; }
 .kt-field__input:focus { border-color: var(--kt-pri); box-shadow: inset 0 0 0 1px var(--kt-pri); }
 .kt-field__select { cursor: pointer; }
 .kt-field textarea.kt-field__input { display: block; min-height: 40px; max-height: 260px; padding-inline-end: 38px; resize: none; line-height: 1.5; }
+.kt-field.kt-height-locked { display: flex; flex-direction: column; }
+.kt-field.kt-height-locked .kt-field__control { flex: 1; min-height: 0; }
 .kt-field.kt-height-locked .kt-field__input { height: 100%; }
 .kt-field__helper { color: var(--kt-err); font-size: 11px; padding-inline: 4px; }
 .kt-field__start { position: absolute; left: 10px; top: 50%; display: flex; transform: translateY(-50%); }
-.kt-field:has(.kt-field__label) .kt-field__start { top: 22px; transform: none; }
-.kt-field__start + .kt-field__input { padding-inline-start: 32px; }
+.kt-field__end { position: absolute; right: 2px; top: 50%; display: flex; align-items: center; transform: translateY(-50%); }
+.kt-field__control:has(.kt-field__start) .kt-field__input { padding-inline-start: 32px; }
 /* End adornments position themselves against .kt-field; no wrapper context. */
 .kt-resize-grip svg { position: absolute; right: 4px; bottom: 4px; opacity: .38; transform: scale(1); transition: opacity .2s cubic-bezier(.2, 0, 0, 1), transform .2s cubic-bezier(.2, 0, 0, 1); pointer-events: none; user-select: none; }
 .kt-resize-grip:hover { color: var(--kt-on); }
