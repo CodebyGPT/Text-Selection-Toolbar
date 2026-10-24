@@ -21,7 +21,12 @@ function parseOllamaResponse(
   );
 }
 
-function parseCustomizeResponse(res, { useBatchFetch }) {
+function parseCustomizeResponse(res, ctx, helpers) {
+  // OpenAI-compatible /chat/completions response.
+  if (Array.isArray(res?.choices) && res.choices.length) {
+    return parseOllamaResponse(res, ctx, helpers);
+  }
+  const { useBatchFetch } = ctx;
   if (useBatchFetch) {
     return (res?.translations ?? res)?.map((item) => [item.text, item.src]);
   }
