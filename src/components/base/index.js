@@ -142,27 +142,6 @@ export const Stack = forwardRef(function Stack(
   });
 });
 
-export const Grid = forwardRef(function Grid(
-  { container, item, xs, md, spacing, sx, style, columns, ...props },
-  ref
-) {
-  const layout = container
-    ? {
-        display: "flex",
-        flexWrap: "wrap",
-        gap: spacing ? `${spacing * 8}px` : undefined,
-      }
-    : {};
-  const itemStyle = item
-    ? { minWidth: 0, flex: props.className ? undefined : "1 1 140px" }
-    : {};
-  return createElement("div", {
-    ...props,
-    ref,
-    style: { ...layout, ...itemStyle, ...sxToStyle(sx), ...style },
-  });
-});
-
 export const MenuItem = ({ value, children, ...props }) =>
   createElement("option", { value, ...props }, children);
 

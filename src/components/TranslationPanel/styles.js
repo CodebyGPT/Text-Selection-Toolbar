@@ -40,8 +40,6 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 .kt-translation-config-row > .kt-translation-config { flex: 1; min-width: 0; }
 .kt-translation-config-actions { display: flex; justify-content: flex-end; }
 .kt-translation-config-actions .kt-tranbox-header--compact { padding: 0; }
-.kt-translation-panel__body .MuiGrid-container { width: 100%; margin: 0; padding: 5px; border-radius: 12px; background: var(--kt-sf1); }
-.kt-translation-panel__body .MuiGrid-item { padding: 5px !important; }
 .kt-translation-panel__body .MuiFilledInput-root { border-radius: 12px; }
 .kt-translation-panel__body .MuiInputLabel-root { font-size: 12px; }
 .kt-translation-panel__body .MuiInputBase-input { font-size: 12.5px; }
@@ -103,6 +101,7 @@ export const PANEL_BASE_STYLES = String.raw`
 .kt-translation-config .kt-field__input,
 .kt-translation-config .kt-multiselect__control { height: 100%; }
 .kt-playground-config__grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.kt-playground-config__grid > div:not(.kt-playground-config__service) { flex: 1 1 140px; min-width: 0; }
 .kt-playground-config__service { flex: 1 1 220px; min-width: 0; }
 
 `;

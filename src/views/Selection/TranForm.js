@@ -2,7 +2,6 @@ import { isApiConfigured } from "../../config/serviceSelection";
 import {
   Box,
   CircularProgress,
-  Grid,
   IconButton,
   MenuItem,
   Stack,
@@ -344,9 +343,6 @@ export default function TranForm({
     [transApis]
   );
 
-  const xs = useMemo(() => (isPlaygound ? 6 : 4), [isPlaygound]);
-  const md = useMemo(() => (isPlaygound ? 3 : 4), [isPlaygound]);
-
   const activeApiSlugs = useMemo(
     () => resolveActiveApiSlugs(apiSlugs, optApis),
     [apiSlugs, optApis]
@@ -506,27 +502,20 @@ export default function TranForm({
             <>
               {isPlaygound && playgroundConfigHeader}
               {/* Service and language settings grid. */}
-              <Grid
+              <div
                 className={
                   isPlaygound
                     ? "kt-playground-config__grid"
                     : "kt-translation-config"
                 }
-                container
-                spacing={0}
-                sx={{ display: "grid" }}
-                columns={12}
               >
                 {/* Select multiple translation engines to compare their results. */}
-                <Grid
+                <div
                   className={
                     isPlaygound
                       ? "kt-playground-config__service"
                       : "kt-translation-config__service"
                   }
-                  item
-                  xs={xs}
-                  md={md}
                 >
                   <TextField
                     select
@@ -558,15 +547,12 @@ export default function TranForm({
                       </MenuItem>
                     ))}
                   </TextField>
-                </Grid>
+                </div>
                 {/* Source language. */}
-                <Grid
+                <div
                   className={
                     isPlaygound ? undefined : "kt-translation-config__language"
                   }
-                  item
-                  xs={xs}
-                  md={md}
                 >
                   <TextField
                     select
@@ -586,15 +572,12 @@ export default function TranForm({
                       </MenuItem>
                     ))}
                   </TextField>
-                </Grid>
+                </div>
                 {/* Target language. */}
-                <Grid
+                <div
                   className={
                     isPlaygound ? undefined : "kt-translation-config__language"
                   }
-                  item
-                  xs={xs}
-                  md={md}
                 >
                   <TextField
                     select
@@ -614,13 +597,13 @@ export default function TranForm({
                       </MenuItem>
                     ))}
                   </TextField>
-                </Grid>
+                </div>
 
                 {/* Show additional configuration controls in the Playground. */}
                 {isPlaygound && (
                   <>
                     {/* Secondary target language. */}
-                    <Grid item xs={xs} md={md}>
+                    <div>
                       <TextField
                         select
                         SelectProps={{ MenuProps: selectMenuProps }}
@@ -639,9 +622,9 @@ export default function TranForm({
                           </MenuItem>
                         ))}
                       </TextField>
-                    </Grid>
+                    </div>
                     {/* Language detection engine. */}
-                    <Grid item xs={xs} md={md}>
+                    <div>
                       <TextField
                         select
                         SelectProps={{ MenuProps: selectMenuProps }}
@@ -661,9 +644,9 @@ export default function TranForm({
                           </MenuItem>
                         ))}
                       </TextField>
-                    </Grid>
+                    </div>
                     {/* Read-only language detection result. */}
-                    <Grid item xs={xs} md={md}>
+                    <div>
                       <TextField
                         fullWidth
                         size="small"
@@ -697,10 +680,10 @@ export default function TranForm({
                           ),
                         }}
                       />
-                    </Grid>
+                    </div>
                   </>
                 )}
-              </Grid>
+              </div>
             </>
           )}
           {configActions}
