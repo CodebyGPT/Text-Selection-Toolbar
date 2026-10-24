@@ -11,8 +11,9 @@ import { isolateShadowHost, mountShadowHost } from "./shadowHost";
 let current = null;
 
 function TranslationPanel({ text, rect, onClose }) {
-  const { setting } = useSetting();
+  const { setting, updateChild } = useSetting();
   const tranboxSetting = setting.tranboxSetting;
+  const updateTranboxSetting = updateChild("tranboxSetting");
   const {
     boxSize,
     setBoxSize,
@@ -68,6 +69,9 @@ function TranslationPanel({ text, rect, onClose }) {
         boxPosition={boxPosition}
         setBoxPosition={setBoxPosition}
         tranboxSetting={tranboxSetting}
+        onApiSlugsChange={(slugs) =>
+          updateTranboxSetting({ apiSlugs: slugs })
+        }
         transApis={panelApis}
         prompts={setting.prompts}
         setShowBox={(next) => (next ? setShowBox(true) : close())}

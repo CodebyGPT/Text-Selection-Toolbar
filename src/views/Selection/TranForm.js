@@ -60,12 +60,14 @@ export const formatLanguageOptionName = (name) => {
 const hasPrompt = (value) => typeof value === "string" && Boolean(value.trim());
 
 const resolveActiveApiSlugs = (apiSlugs, optApis) => {
-  if (apiSlugs === undefined || apiSlugs === null) {
-    return optApis.slice(0, 1).map((api) => api.key);
-  }
-
+  const selected = Array.isArray(apiSlugs) ? apiSlugs : [];
   const validSlugs = new Set(optApis.map((api) => api.key));
-  return apiSlugs.filter((slug) => validSlugs.has(slug));
+  const valid = selected.filter((slug) => validSlugs.has(slug));
+  // Saved settings may contain the default TranslatorAPI on browsers without
+  // the built-in translation API. Never leave the panel without a selection
+  // when at least one service is available.
+  if (valid.length) return valid;
+  return optApis.slice(0, 1).map((api) => api.key);
 };
 
 /**
@@ -123,6 +125,7 @@ export default function TranForm({
   autoFocusInput = true,
   syncExternalTextWhileEditing = false,
   apiSlugsStorageKey = undefined,
+  onApiSlugsChange,
   playgroundConfigHeader = null,
   configActions = null,
   initialSettingsReady = true,
@@ -532,6 +535,7 @@ export default function TranForm({
                     onChange={(e) => {
                       setHasUserChangedApiSlugs(true);
                       setApiSlugs(e.target.value);
+                      onApiSlugsChange?.(e.target.value);
                       // 仅在宿主显式提供 storageKey 时写回（空数组 = 用户显式清空）。
                       if (apiSlugsStorageKey) {
                         writeStoredApiChoice(

@@ -72,6 +72,7 @@ export default function TranBox(props) {
         setText={props.setText}
         syncExternalTextWhileEditing
         apiSlugs={realApiSlugs}
+        onApiSlugsChange={props.onApiSlugsChange}
         fromLang={props.tranboxSetting.fromLang}
         toLang={props.tranboxSetting.toLang}
         toLang2={props.tranboxSetting.toLang2}

@@ -1124,8 +1124,23 @@ function PanelTab({ setting, update }) {
   const apis = (setting.transApis || []).filter(
     (api) =>
       !api.isDisabled &&
+      !isExternalApi(api) &&
       (api.apiType !== OPT_TRANS_TRANSLATOR_API || isTranslatorAPISupported())
   );
+  const storedApiSlugs = Array.isArray(panel.apiSlugs) ? panel.apiSlugs : [];
+  const validStoredApiSlugs = storedApiSlugs.filter((slug) =>
+    apis.some((api) => api.apiSlug === slug)
+  );
+  const selectedApiSlug = validStoredApiSlugs[0] || apis[0]?.apiSlug;
+
+  // The old default points at TranslatorAPI, which is unavailable in browsers
+  // without the built-in translation API. Persist the effective fallback so
+  // the panel and this single-select never disagree about the chosen service.
+  useEffect(() => {
+    if (validStoredApiSlugs.length || !selectedApiSlug) return;
+    updatePanel({ apiSlugs: [selectedApiSlug] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedApiSlug, validStoredApiSlugs.length]);
 
   return (
     <Section title={t("menuTranslate")}>
@@ -1155,13 +1170,11 @@ function PanelTab({ setting, update }) {
         help={t("panelApiHelp")}
       >
         <Select
-          value={(panel.apiSlugs || [])[0] || apis[0]?.apiSlug}
+          value={selectedApiSlug}
           onChange={(v) => updatePanel({ apiSlugs: [v] })}
           options={apis.map((api) => [
             api.apiSlug,
-            `${api.apiName || api.apiType}${
-              isExternalApi(api) ? t("externalSuffix") : ""
-            }`,
+            `${api.apiName || api.apiType}`,
           ])}
         />
       </Row>
