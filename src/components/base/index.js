@@ -5,7 +5,7 @@
  */
 import { createElement } from "preact";
 import { forwardRef } from "preact/compat";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 
 const UNITLESS = new Set([
   "aspectRatio",
@@ -302,6 +302,43 @@ function assignRef(ref, node) {
   else if (ref && typeof ref === "object") ref.current = node;
 }
 
+// MUI's multiline TextField grows with its content through TextareaAutosize.
+// Recreate that behaviour without pulling in the package: measure scrollHeight
+// after every value change and clamp to minRows/maxRows.
+function AutoSizeTextarea({ inputRef, minRows = 1, maxRows, locked, ...props }) {
+  const ref = useRef(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (locked) {
+      el.style.height = "";
+      el.style.overflowY = "";
+      return;
+    }
+    const style = window.getComputedStyle(el);
+    const lineHeight = parseFloat(style.lineHeight) || 20;
+    const padding =
+      (parseFloat(style.paddingTop) || 0) +
+      (parseFloat(style.paddingBottom) || 0);
+    const minHeight = lineHeight * Math.max(1, minRows) + padding;
+    const maxHeight = maxRows ? lineHeight * maxRows + padding : Infinity;
+    el.style.height = "auto";
+    el.style.overflowY = "hidden";
+    const next = Math.max(minHeight, Math.min(el.scrollHeight, maxHeight));
+    el.style.height = `${next}px`;
+    if (el.scrollHeight > maxHeight) el.style.overflowY = "auto";
+  }, [props.value, minRows, maxRows, locked]);
+
+  return createElement("textarea", {
+    ...props,
+    ref: (node) => {
+      ref.current = node;
+      assignRef(inputRef, node);
+    },
+  });
+}
+
 export const TextField = forwardRef(function TextField(
   {
     select = false,
@@ -390,9 +427,15 @@ export const TextField = forwardRef(function TextField(
       );
     }
   } else if (multiline) {
-    control = createElement("textarea", {
+    const locked = String(InputProps.className || "").includes(
+      "kt-height-locked"
+    );
+    control = createElement(AutoSizeTextarea, {
       ...inputCommon,
-      ref: (node) => assignRef(inputRef, node),
+      inputRef,
+      minRows,
+      maxRows,
+      locked,
       rows: minRows || 1,
       "data-max-rows": maxRows,
       value: value ?? "",

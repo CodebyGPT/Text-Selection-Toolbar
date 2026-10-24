@@ -77,7 +77,7 @@ export const PANEL_BASE_STYLES = String.raw`
 .kt-field.kt-height-locked .kt-field__input { height: 100%; }
 .kt-field__helper { color: var(--kt-err); font-size: 11px; padding-inline: 4px; }
 .kt-field__start { position: absolute; left: 10px; top: 50%; display: flex; transform: translateY(-50%); }
-.kt-field__end { position: absolute; right: 2px; top: 50%; display: flex; align-items: center; transform: translateY(-50%); }
+.kt-field__end { position: absolute; right: 2px; top: 2px; display: flex; align-items: center; }
 .kt-field__control:has(.kt-field__start) .kt-field__input { padding-inline-start: 32px; }
 /* End adornments position themselves against .kt-field; no wrapper context. */
 .kt-resize-grip svg { position: absolute; right: 4px; bottom: 4px; opacity: .38; transform: scale(1); transition: opacity .2s cubic-bezier(.2, 0, 0, 1), transform .2s cubic-bezier(.2, 0, 0, 1); pointer-events: none; user-select: none; }
