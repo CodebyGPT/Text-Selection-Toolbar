@@ -183,18 +183,22 @@ const MESSAGES = {
 
 const LANG_INDEX = { zh: 0, en: 1, ru: 2 };
 
-export function createSettingsI18n(lang) {
-  const resolved = resolveUiLang(lang);
-  const index = LANG_INDEX[resolved] ?? 1;
+// The settings overlay is a single-instance app. A module-level language keeps
+// `t` available to every component without prop drilling or a missing hook.
+let settingsLanguage = resolveUiLang("auto");
 
-  return function t(key, params) {
-    const entry = MESSAGES[key];
-    let text = entry ? entry[index] ?? entry[1] ?? entry[0] : key;
-    if (params) {
-      text = text.replace(/\{(\w+)\}/g, (match, name) =>
-        params[name] === undefined ? match : String(params[name])
-      );
-    }
-    return text;
-  };
+export function setSettingsLanguage(lang) {
+  settingsLanguage = resolveUiLang(lang);
+}
+
+export function t(key, params) {
+  const index = LANG_INDEX[settingsLanguage] ?? 1;
+  const entry = MESSAGES[key];
+  let text = entry ? entry[index] ?? entry[1] ?? entry[0] : key;
+  if (params) {
+    text = text.replace(/\{(\w+)\}/g, (match, name) =>
+      params[name] === undefined ? match : String(params[name])
+    );
+  }
+  return text;
 }

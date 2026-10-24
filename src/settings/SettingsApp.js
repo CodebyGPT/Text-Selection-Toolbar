@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getSettingWithDefault, putSetting } from "../libs/storage";
 import { apiTranslate } from "../apis";
 import { fetchData } from "../libs/fetch";
@@ -43,7 +36,7 @@ import {
   PASTE_TTL_MIN,
   PASTE_TTL_MAX,
 } from "../config/toolbar";
-import { createSettingsI18n } from "./i18n";
+import { setSettingsLanguage, t } from "./i18n";
 
 let saveQueue = Promise.resolve();
 
@@ -54,8 +47,6 @@ function persist(next) {
   return saveQueue;
 }
 
-const SettingsI18nContext = createContext((key) => key);
-const useT = () => useContext(SettingsI18nContext);
 
 const TABS = [
   ["general", "tabGeneral"],
@@ -211,7 +202,6 @@ function Fields({ children }) {
 }
 
 function RequestFields({ api, patch }) {
-  const t = useT();
   return (
     <Fields>
       <label>
@@ -246,7 +236,6 @@ function RequestFields({ api, patch }) {
 }
 
 function ModelFields({ api, patch }) {
-  const t = useT();
   return (
     <Fields>
       <label>
@@ -285,7 +274,6 @@ function ModelFields({ api, patch }) {
 }
 
 function CodeFields({ api, patch }) {
-  const t = useT();
   return (
     <div className="kiss-st-stack">
       <label>
@@ -309,7 +297,6 @@ function CodeFields({ api, patch }) {
 }
 
 function PromptFields({ api, patch, prompts }) {
-  const t = useT();
   const toOptions = (list) =>
     list.map((prompt) => [prompt.slug, prompt.name || prompt.slug]);
 
@@ -350,7 +337,6 @@ function ApiEditor({
   canDelete,
   prompts = [],
 }) {
-  const t = useT();
   const [open, setOpen] = useState(false);
   const [test, setTest] = useState({ loading: false, text: "", error: "" });
   const [models, setModels] = useState([]);
@@ -663,7 +649,6 @@ function ApiEditor({
 }
 
 function GeneralTab({ setting, update }) {
-  const t = useT();
   // The toolbar keeps its own language key; keep it in step with the global one
   // so there is a single "interface language" switch.
   const setUiLang = (v) => {
@@ -774,7 +759,6 @@ function legacySearchEngine(value) {
 }
 
 function SearchEngineRow({ engine, index, onChange, onRemove }) {
-  const t = useT();
   const [open, setOpen] = useState(false);
   const presets = Object.entries(TOOLBAR_SEARCH_ENGINES);
 
@@ -851,7 +835,6 @@ const TOOLBAR_MENU_TOGGLES = {
 };
 
 function MenuManagementSection({ value, patch, hasBlockRules }) {
-  const t = useT();
   const order = normalizeToolbarMenuOrder(value.menuOrder);
 
   const moveMenu = (id, delta) => {
@@ -939,7 +922,6 @@ function MenuManagementSection({ value, patch, hasBlockRules }) {
 }
 
 function ToolbarTab({ setting, update }) {
-  const t = useT();
   const value = { ...DEFAULT_TOOLBAR_SETTING, ...(setting.toolbarSetting || {}) };
   const patch = (changes) =>
     update({ toolbarSetting: { ...value, ...changes } });
@@ -1116,7 +1098,6 @@ function ToolbarTab({ setting, update }) {
 }
 
 function PanelTab({ setting, update }) {
-  const t = useT();
   const panel = setting.tranboxSetting || {};
   const updatePanel = (patch) =>
     update({ tranboxSetting: { ...panel, ...patch } });
@@ -1187,7 +1168,6 @@ function PanelTab({ setting, update }) {
 }
 
 function PromptRow({ prompt, isPreset, dirty, onPatch, onReset, onDelete }) {
-  const t = useT();
   const [open, setOpen] = useState(false);
 
   return (
@@ -1264,7 +1244,6 @@ function PromptRow({ prompt, isPreset, dirty, onPatch, onReset, onDelete }) {
 }
 
 function PromptsSection({ setting, update }) {
-  const t = useT();
   const stored = setting.prompts || [];
   const overrides = new Map(
     stored
@@ -1357,7 +1336,6 @@ function TranslationTab({ setting, update }) {
 }
 
 function AboutTab({ setting, update }) {
-  const t = useT();
   const meta = readScriptMeta();
   const value = { ...DEFAULT_TOOLBAR_SETTING, ...(setting.toolbarSetting || {}) };
   const patch = (changes) =>
@@ -1409,10 +1387,8 @@ function AboutTab({ setting, update }) {
 export default function SettingsApp({ initialPath = "/", onClose }) {
   const [tab, setTab] = useState(() => pathToTab(initialPath));
   const [setting, setSetting] = useState(null);
-  const t = useMemo(
-    () => createSettingsI18n(setting?.uiLang),
-    [setting?.uiLang]
-  );
+  // Keep the module-level translator in sync before rendering descendants.
+  setSettingsLanguage(setting?.uiLang || "auto");
   const themeRef = useRef(null);
   const meta = useMemo(readScriptMeta, []);
 
@@ -1439,8 +1415,7 @@ export default function SettingsApp({ initialPath = "/", onClose }) {
   }
 
   return (
-    <SettingsI18nContext.Provider value={t}>
-      <div className="kiss-st-app" ref={themeRef}>
+    <div className="kiss-st-app" ref={themeRef}>
         <header className="kiss-st-header">
           {meta.icon && (
             <img className="kiss-st-logo" src={meta.icon} alt="" />
@@ -1479,6 +1454,5 @@ export default function SettingsApp({ initialPath = "/", onClose }) {
           )}
         </main>
       </div>
-    </SettingsI18nContext.Provider>
   );
 }

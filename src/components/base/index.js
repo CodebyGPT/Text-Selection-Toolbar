@@ -431,13 +431,7 @@ export const TextField = forwardRef(function TextField(
         )
       : null,
     control,
-    InputProps.endAdornment
-      ? createElement(
-          "span",
-          { className: "kt-field__end" },
-          InputProps.endAdornment
-        )
-      : null,
+    InputProps.endAdornment || null,
     helperText
       ? createElement("span", { className: "kt-field__helper" }, helperText)
       : null
