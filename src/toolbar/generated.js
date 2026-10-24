@@ -3190,14 +3190,16 @@ function selectionOwnedByRoot(selection, root) {
 }
 
 // The mouseup target is not necessarily inside the shadow root that owns the
-// selection: a full-line drag often releases on the host or its padding. Check
-// the event path first, then fall back to a bounded search of open shadow roots.
+// selection: a full-line drag often releases on the host or its padding.
+// Ancestor roots expose a shadow-including selection too, so prefer the
+// deepest root that owns a usable range.
 function findShadowSelection(start) {
     if (!start) return null;
-    const queue = [start];
+    const queue = [{ node: start, depth: 0 }];
     const seen = new Set();
+    let best = null;
     while (queue.length) {
-        const node = queue.shift();
+        const { node, depth } = queue.shift();
         if (!node || seen.has(node)) continue;
         seen.add(node);
         if (node.nodeType === 1) {
@@ -3206,16 +3208,22 @@ function findShadowSelection(start) {
                     ? node.shadowRoot.getSelection()
                     : null;
                 if (selection && selection.rangeCount > 0 && selectionOwnedByRoot(selection, node.shadowRoot)) {
-                    return { selection, root: node.shadowRoot };
+                    if (!best || depth + 1 > best.depth) {
+                        best = { selection, root: node.shadowRoot, depth: depth + 1 };
+                    }
                 }
-                queue.push(node.shadowRoot);
+                queue.push({ node: node.shadowRoot, depth: depth + 1 });
             }
-            for (const child of node.children) queue.push(child);
+            for (const child of node.children) {
+                queue.push({ node: child, depth: depth + 1 });
+            }
         } else if (node.nodeType === 11) {
-            for (const child of node.children) queue.push(child);
+            for (const child of node.children) {
+                queue.push({ node: child, depth: depth + 1 });
+            }
         }
     }
-    return null;
+    return best ? { selection: best.selection, root: best.root } : null;
 }
 
 function getSelectionFromEvent(event) {
@@ -3235,7 +3243,9 @@ function getSelectionFromEvent(event) {
     // Prefer the innermost open shadow root that actually owns the range. The
     // mouseup target can be an outer host, so walking only its path roots can
     // pick an ancestor selection object instead of the real nested one.
-    const target = event?.target;
+    // composedPath()[0] keeps the real inner target even when event.target is
+    // retargeted to the outermost host.
+    const target = path[0] || event?.target;
     const targetRoot = target?.getRootNode?.();
     const start = targetRoot?.host || target;
     const found = findShadowSelection(start);
