@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { getSettingWithDefault, putSetting } from "../libs/storage";
 import { apiTranslate } from "../apis";
 import { fetchData } from "../libs/fetch";
@@ -36,7 +43,7 @@ import {
   PASTE_TTL_MIN,
   PASTE_TTL_MAX,
 } from "../config/toolbar";
-import { translateDom, translateText } from "./translate";
+import { createSettingsI18n } from "./i18n";
 
 let saveQueue = Promise.resolve();
 
@@ -47,10 +54,13 @@ function persist(next) {
   return saveQueue;
 }
 
+const SettingsI18nContext = createContext((key) => key);
+const useT = () => useContext(SettingsI18nContext);
+
 const TABS = [
-  ["general", "通用"],
-  ["translation", "翻译"],
-  ["about", "关于"],
+  ["general", "tabGeneral"],
+  ["translation", "tabTranslation"],
+  ["about", "tabAbout"],
 ];
 
 function pathToTab(path) {
@@ -201,10 +211,11 @@ function Fields({ children }) {
 }
 
 function RequestFields({ api, patch }) {
+  const t = useT();
   return (
     <Fields>
       <label>
-        最大并发请求数量
+        {t("maxConcurrency")}
         <NumberInput
           value={api.fetchLimit}
           min={1}
@@ -213,7 +224,7 @@ function RequestFields({ api, patch }) {
         />
       </label>
       <label>
-        每次请求间隔 (ms)
+        {t("requestInterval")}
         <NumberInput
           value={api.fetchInterval}
           min={0}
@@ -222,7 +233,7 @@ function RequestFields({ api, patch }) {
         />
       </label>
       <label>
-        请求超时时间 (s)
+        {t("requestTimeout")}
         <NumberInput
           value={api.httpTimeout}
           min={1}
@@ -235,10 +246,11 @@ function RequestFields({ api, patch }) {
 }
 
 function ModelFields({ api, patch }) {
+  const t = useT();
   return (
     <Fields>
       <label>
-        温度
+        {t("temperature")}
         <NumberInput
           value={api.temperature}
           min={0}
@@ -248,7 +260,7 @@ function ModelFields({ api, patch }) {
         />
       </label>
       <label>
-        最大 Token 数
+        {t("maxTokens")}
         <NumberInput
           value={api.maxTokens}
           min={0}
@@ -257,14 +269,14 @@ function ModelFields({ api, patch }) {
         />
       </label>
       <label>
-        思考模式
+        {t("thinkingMode")}
         <Select
           value={api.thinkingMode || "disabled"}
           onChange={(v) => patch("thinkingMode", v)}
           options={[
-            ["disabled", "关闭"],
-            ["auto", "自动"],
-            ["enabled", "开启"],
+            ["disabled", t("off")],
+            ["auto", t("auto")],
+            ["enabled", t("on")],
           ]}
         />
       </label>
@@ -273,21 +285,22 @@ function ModelFields({ api, patch }) {
 }
 
 function CodeFields({ api, patch }) {
+  const t = useT();
   return (
     <div className="kiss-st-stack">
       <label>
-        自定义请求头
+        {t("customHeader")}
         <TextArea
           value={api.customHeader}
-          placeholder={`使用JSON格式，例如 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0"`}
+          placeholder={t("customHeaderPlaceholder")}
           onChange={(v) => patch("customHeader", v)}
         />
       </label>
       <label>
-        自定义请求体
+        {t("customBody")}
         <TextArea
           value={api.customBody}
-          placeholder={`使用JSON格式，例如 "top_p": 0.7`}
+          placeholder={t("customBodyPlaceholder")}
           onChange={(v) => patch("customBody", v)}
         />
       </label>
@@ -296,13 +309,14 @@ function CodeFields({ api, patch }) {
 }
 
 function PromptFields({ api, patch, prompts }) {
+  const t = useT();
   const toOptions = (list) =>
     list.map((prompt) => [prompt.slug, prompt.name || prompt.slug]);
 
   return (
     <Fields>
       <label>
-        翻译提示词
+        {t("translationPrompt")}
         <Select
           value={api.nobatchPromptSlug}
           onChange={(v) => patch("nobatchPromptSlug", v)}
@@ -336,6 +350,7 @@ function ApiEditor({
   canDelete,
   prompts = [],
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [test, setTest] = useState({ loading: false, text: "", error: "" });
   const [models, setModels] = useState([]);
@@ -357,7 +372,7 @@ function ApiEditor({
     const url = (api.modelListUrl || "").trim();
     if (!url || modelsUrlRef.current === url) return;
     modelsUrlRef.current = url;
-    setModelNote("获取模型中…");
+    setModelNote(t("fetchingModels"));
     try {
       const headers = {};
       const key = (api.key || "")
@@ -369,11 +384,11 @@ function ApiEditor({
       const data = await fetchData(url, { headers });
       const ids = extractModelIds(data);
       setModels(ids);
-      setModelNote(ids.length ? "" : "未找到模型，可手动输入。");
+      setModelNote(ids.length ? "" : t("noModelsFound"));
     } catch (error) {
       modelsUrlRef.current = "";
       setModels([]);
-      setModelNote(`获取模型失败：${error.message}`);
+      setModelNote(t("fetchModelsFailed", { message: error.message }));
     }
   };
 
@@ -390,7 +405,7 @@ function ApiEditor({
       setTest({ loading: true, text: "", error: "" });
       try {
         await invokeExternalApi(api, "Hello, world!");
-        setTest({ loading: false, text: "已发送到 STranslate", error: "" });
+        setTest({ loading: false, text: t("sentToStranslate"), error: "" });
       } catch (error) {
         setTest({
           loading: false,
@@ -425,7 +440,7 @@ function ApiEditor({
           // 兜底超时：请求链路（尤其是 SSE 长连接）异常时也必须让按钮恢复。
           timer = setTimeout(() => {
             controller.abort();
-            reject(new Error("测试超时（60 秒未返回结果）"));
+            reject(new Error(t("testTimeout")));
           }, 60000);
         }),
       ]);
@@ -470,13 +485,13 @@ function ApiEditor({
         }}
       >
         <strong>{api.apiName || api.apiType}</strong>
-        {isPreset && <span className="kiss-st-badge">预设</span>}
+        {isPreset && <span className="kiss-st-badge">{t("preset")}</span>}
         {isExternal && (
-          <span className="kiss-st-badge kiss-st-badge--external">外部</span>
+          <span className="kiss-st-badge kiss-st-badge--external">{t("external")}</span>
         )}
-        {isCustom && <span className="kiss-st-badge">自定义</span>}
+        {isCustom && <span className="kiss-st-badge">{t("custom")}</span>}
         <span className="kiss-st-spacer" />
-        <span className="kiss-st-chev">展开/收起</span>
+        <span className="kiss-st-chev">{t("expandCollapse")}</span>
         <button
           className="kiss-st-btn"
           onClick={(event) => {
@@ -485,7 +500,7 @@ function ApiEditor({
           }}
           disabled={test.loading}
         >
-          {test.loading ? "测试中…" : "测试接口"}
+          {test.loading ? t("testLoading") : t("testApi")}
         </button>
         <span
           onClick={(event) => event.stopPropagation()}
@@ -504,7 +519,7 @@ function ApiEditor({
               resetPreset();
             }}
           >
-            重置
+            {t("reset")}
           </button>
         )}
         {canDelete && (
@@ -515,7 +530,7 @@ function ApiEditor({
               onDelete();
             }}
           >
-            删除
+            {t("delete")}
           </button>
         )}
       </div>
@@ -527,7 +542,7 @@ function ApiEditor({
           <Fields>
             {!isPreset && (
               <label>
-                名称
+                {t("name")}
                 <TextInput
                   value={api.apiName}
                   onChange={(v) => patch("apiName", v)}
@@ -536,7 +551,7 @@ function ApiEditor({
             )}
             {isSTranslate && (
               <label>
-                端口
+                {t("port")}
                 <NumberInput
                   value={api.port ?? DEFAULT_STRANSLATE_PORT}
                   min={1}
@@ -547,7 +562,7 @@ function ApiEditor({
             )}
             {isSTranslate && (
               <label>
-                请求超时时间 (s)
+                {t("requestTimeout")}
                 <NumberInput
                   value={api.httpTimeout ?? DEFAULT_STRANSLATE_TIMEOUT}
                   min={1}
@@ -571,12 +586,12 @@ function ApiEditor({
                   <TextInput
                     value={api.key}
                     type="password"
-                    placeholder="支持用英文逗号“,”分隔，轮询调用"
+                    placeholder={t("keyPlaceholder")}
                     onChange={(v) => patch("key", v)}
                   />
                 </label>
                 <label>
-                  模型列表 URL
+                  {t("modelListUrl")}
                   <TextInput
                     value={api.modelListUrl}
                     placeholder="http://localhost:port/v1/models"
@@ -584,7 +599,7 @@ function ApiEditor({
                   />
                 </label>
                 <label>
-                  模型
+                  {t("model")}
                   <div
                     className="kiss-st-combo"
                     onBlur={(event) => {
@@ -648,6 +663,7 @@ function ApiEditor({
 }
 
 function GeneralTab({ setting, update }) {
+  const t = useT();
   // The toolbar keeps its own language key; keep it in step with the global one
   // so there is a single "interface language" switch.
   const setUiLang = (v) => {
@@ -665,26 +681,26 @@ function GeneralTab({ setting, update }) {
   return (
     <>
       <div className="kiss-st-card">
-        <Row label="界面语言">
+        <Row label={t("uiLanguage")}>
           <Select
             value={setting.uiLang}
             onChange={setUiLang}
             options={[
-              ["auto", "跟随系统"],
-              ["zh", "简体中文"],
+              ["auto", t("followSystem")],
+              ["zh", t("simplifiedChinese")],
               ["en", "English"],
               ["ru", "Русский"],
             ]}
           />
         </Row>
-        <Row label="界面主题">
+        <Row label={t("interfaceTheme")}>
           <Select
             value={setting.darkMode}
             onChange={(v) => update({ darkMode: v })}
             options={[
-              ["auto", "跟随系统"],
-              ["light", "浅色"],
-              ["dark", "深色"],
+              ["auto", t("followSystem")],
+              ["light", t("light")],
+              ["dark", t("dark")],
             ]}
           />
         </Row>
@@ -713,7 +729,11 @@ function ApisTab({ setting, update }) {
     const used = new Set(apis.map((api) => api.apiSlug));
     let n = 1;
     while (used.has(`Custom-${n}`)) n += 1;
-    const api = createBuiltinInstance("Custom", `Custom-${n}`, `自定义接口 ${n}`);
+    const api = createBuiltinInstance(
+      "Custom",
+      `Custom-${n}`,
+      t("customApiName", { n })
+    );
     update({ transApis: [...apis, api] });
   };
   const removeApi = (index) =>
@@ -721,11 +741,11 @@ function ApisTab({ setting, update }) {
 
   return (
     <Section
-      title="翻译接口"
+      title={t("translationApi")}
       footer={
         <div className="kiss-st-inline">
           <button className="kiss-st-btn kiss-st-btn--primary" onClick={addCustom}>
-            + 添加自定义接口
+            {t("addCustomApi")}
           </button>
         </div>
       }
@@ -754,11 +774,12 @@ function legacySearchEngine(value) {
 }
 
 function SearchEngineRow({ engine, index, onChange, onRemove }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const presets = Object.entries(TOOLBAR_SEARCH_ENGINES);
 
   return (
-    <Row label={`搜索引擎 ${index + 1}`}>
+    <Row label={t("searchEngineN", { index: index + 1 })}>
       <div className="kiss-st-inline">
         <div
           className="kiss-st-combo"
@@ -768,7 +789,7 @@ function SearchEngineRow({ engine, index, onChange, onRemove }) {
         >
           <TextInput
             value={engine.name}
-            placeholder="搜索引擎名称"
+            placeholder={t("searchEngineName")}
             onFocus={() => setOpen(true)}
             onClick={() => setOpen(true)}
             onChange={(v) => {
@@ -799,7 +820,7 @@ function SearchEngineRow({ engine, index, onChange, onRemove }) {
         </div>
         <TextInput
           value={engine.url}
-          placeholder="用 %s 代替关键词"
+          placeholder={t("searchKeywordPlaceholder")}
           onChange={(v) => onChange({ ...engine, url: v })}
         />
         {index > 0 && (
@@ -808,7 +829,7 @@ function SearchEngineRow({ engine, index, onChange, onRemove }) {
             className="kiss-st-btn kiss-st-btn--danger"
             onClick={onRemove}
           >
-            删除
+            {t("delete")}
           </button>
         )}
       </div>
@@ -817,10 +838,10 @@ function SearchEngineRow({ engine, index, onChange, onRemove }) {
 }
 
 const TOOLBAR_MENU_LABELS = {
-  translate: "翻译面板",
-  edit: "编辑网页",
-  block: "隐藏网页元素",
-  settings: "脚本设置",
+  translate: "menuTranslate",
+  edit: "menuEdit",
+  block: "menuBlock",
+  settings: "menuSettings",
 };
 
 const TOOLBAR_MENU_TOGGLES = {
@@ -830,6 +851,7 @@ const TOOLBAR_MENU_TOGGLES = {
 };
 
 function MenuManagementSection({ value, patch, hasBlockRules }) {
+  const t = useT();
   const order = normalizeToolbarMenuOrder(value.menuOrder);
 
   const moveMenu = (id, delta) => {
@@ -843,17 +865,17 @@ function MenuManagementSection({ value, patch, hasBlockRules }) {
   };
 
   return (
-    <Section title="菜单管理">
+    <Section title={t("menuManagement")}>
       {order.map((id, index) => {
         const toggleKey = TOOLBAR_MENU_TOGGLES[id];
         const enabled = !toggleKey || value[toggleKey] !== false;
         return (
           <Row
             key={id}
-            label={TOOLBAR_MENU_LABELS[id]}
+            label={t(TOOLBAR_MENU_LABELS[id])}
             warn={
               id === "block" && hasBlockRules && !enabled
-                ? "关闭后不再注册菜单项，已保存的隐藏规则仍然生效"
+                ? t("blockMenuWarning")
                 : null
             }
           >
@@ -867,8 +889,8 @@ function MenuManagementSection({ value, patch, hasBlockRules }) {
               <button
                 type="button"
                 className="kiss-st-btn kiss-st-btn--icon"
-                title="上移"
-                aria-label="上移"
+                title={t("moveUp")}
+                aria-label={t("moveUp")}
                 disabled={index === 0}
                 onClick={() => moveMenu(id, -1)}
               >
@@ -889,8 +911,8 @@ function MenuManagementSection({ value, patch, hasBlockRules }) {
               <button
                 type="button"
                 className="kiss-st-btn kiss-st-btn--icon"
-                title="下移"
-                aria-label="下移"
+                title={t("moveDown")}
+                aria-label={t("moveDown")}
                 disabled={index === order.length - 1}
                 onClick={() => moveMenu(id, 1)}
               >
@@ -917,6 +939,7 @@ function MenuManagementSection({ value, patch, hasBlockRules }) {
 }
 
 function ToolbarTab({ setting, update }) {
+  const t = useT();
   const value = { ...DEFAULT_TOOLBAR_SETTING, ...(setting.toolbarSetting || {}) };
   const patch = (changes) =>
     update({ toolbarSetting: { ...value, ...changes } });
@@ -932,8 +955,8 @@ function ToolbarTab({ setting, update }) {
 
   return (
     <>
-      <Section title="工具栏外观">
-        <Row label="偏移量 (px)">
+      <Section title={t("toolbarAppearance")}>
+        <Row label={t("offset")}>
           <NumberInput
             value={value.offset}
             min={0}
@@ -941,7 +964,7 @@ function ToolbarTab({ setting, update }) {
             onChange={(v) => patch({ offset: v })}
           />
         </Row>
-        <Row label="停留时长 (ms)" help="0 表示不自动消失">
+        <Row label={t("displayTime")} help={t("neverAutoHide")}>
           <NumberInput
             value={value.timeout}
             min={0}
@@ -949,34 +972,34 @@ function ToolbarTab({ setting, update }) {
             onChange={(v) => patch({ timeout: v })}
           />
         </Row>
-        <Row label="按钮布局">
+        <Row label={t("buttonLayout")}>
           <Select
             value={value.buttonStyle}
             onChange={(v) => patch({ buttonStyle: v })}
             options={[
-              ["row", "横排胶囊"],
-              ["col", "竖向菜单"],
+              ["row", t("horizontalCapsule")],
+              ["col", t("verticalMenu")],
             ]}
           />
         </Row>
-        <Row label="滚动时">
+        <Row label={t("onScroll")}>
           <Select
             value={value.scrollRepaintMode}
             onChange={(v) => patch({ scrollRepaintMode: v })}
             options={[
-              ["always", "跟随重绘"],
-              ["viewport", "仅视口内重绘"],
-              ["hide", "滚动即隐藏"],
+              ["always", t("repaintWithSelection")],
+              ["viewport", t("repaintViewport")],
+              ["hide", t("hideOnScroll")],
             ]}
           />
         </Row>
-        <Row label="强制浅色按钮">
+        <Row label={t("forceLightButtons")}>
           <Toggle
             value={value.forceWhiteBlack}
             onChange={(v) => patch({ forceWhiteBlack: v })}
           />
         </Row>
-        <Row label="显示待粘贴的文本">
+        <Row label={t("showPendingPaste")}>
           <Toggle
             value={value.showPastePreview}
             onChange={(v) => patch({ showPastePreview: v })}
@@ -984,16 +1007,16 @@ function ToolbarTab({ setting, update }) {
         </Row>
       </Section>
 
-      <Section title="功能开关">
-        <Row label="显示翻译按钮">
+      <Section title={t("featureSwitches")}>
+        <Row label={t("showTranslateButton")}>
           <Toggle
             value={value.enableTranslate !== false}
             onChange={(v) => patch({ enableTranslate: v })}
           />
         </Row>
         <Row
-          label="翻译按钮隐藏阈值"
-          help="检测当前语言在选取文本中的占比，当占比达到阈值时隐藏工具栏中的翻译按钮"
+          label={t("translateHideThreshold")}
+          help={t("translateHideThresholdHelp")}
         >
           <Select
             value={value.translateHideThreshold ?? 15}
@@ -1007,19 +1030,19 @@ function ToolbarTab({ setting, update }) {
             ]}
           />
         </Row>
-        <Row label="识别不可见超链接">
+        <Row label={t("detectHiddenLinks")}>
           <Toggle
             value={value.enableHiddenLinks}
             onChange={(v) => patch({ enableHiddenLinks: v })}
           />
         </Row>
-        <Row label="闪电粘贴">
+        <Row label={t("smartPaste")}>
           <Toggle
             value={value.enablePaste}
             onChange={(v) => patch({ enablePaste: v })}
           />
         </Row>
-        <Row label="闪电粘贴有效期 (s)">
+        <Row label={t("pasteTtl")}>
           <NumberInput
             value={value.pasteTtl ?? PASTE_TTL_DEFAULT}
             min={PASTE_TTL_MIN}
@@ -1040,13 +1063,13 @@ function ToolbarTab({ setting, update }) {
             }}
           />
         </Row>
-        <Row label="链接拖拽预览">
+        <Row label={t("linkDragPreview")}>
           <Toggle
             value={value.enableDragPreview}
             onChange={(v) => patch({ enableDragPreview: v })}
           />
         </Row>
-        <Row label="超级取词键" help="如 ControlLeft / AltLeft / ShiftLeft，留空禁用">
+        <Row label={t("unlockHotkey")} help={t("unlockHotkeyHelp")}>
           <TextInput
             value={value.unlockHotkey}
             onChange={(v) => patch({ unlockHotkey: v })}
@@ -1060,7 +1083,7 @@ function ToolbarTab({ setting, update }) {
         hasBlockRules={hasBlockRules}
       />
 
-      <Section title="搜索" className="kiss-st-card--overflow">
+      <Section title={t("search")} className="kiss-st-card--overflow">
         {engines.map((engine, index) => (
           <SearchEngineRow
             key={index}
@@ -1084,15 +1107,16 @@ function ToolbarTab({ setting, update }) {
           disabled={engines.length >= 8}
           onClick={() => updateEngines([...engines, { name: "", url: "" }])}
         >
-          + 添加搜索引擎
+          {t("addSearchEngine")}
         </button>
-        {engines.length >= 8 && <small>最多 8 个</small>}
+        {engines.length >= 8 && <small>{t("maxSearchEngines")}</small>}
       </div>
     </>
   );
 }
 
 function PanelTab({ setting, update }) {
+  const t = useT();
   const panel = setting.tranboxSetting || {};
   const updatePanel = (patch) =>
     update({ tranboxSetting: { ...panel, ...patch } });
@@ -1103,22 +1127,22 @@ function PanelTab({ setting, update }) {
   );
 
   return (
-    <Section title="翻译面板">
-      <Row label="源语言">
+    <Section title={t("menuTranslate")}>
+      <Row label={t("sourceLang")}>
         <Select
           value={panel.fromLang || "auto"}
           onChange={(v) => updatePanel({ fromLang: v })}
-          options={[["auto", "自动检测"], ...OPT_LANGS_FROM]}
+          options={[["auto", t("autoDetect")], ...OPT_LANGS_FROM]}
         />
       </Row>
-      <Row label="目标语言">
+      <Row label={t("targetLang")}>
         <Select
           value={panel.toLang || "zh-CN"}
           onChange={(v) => updatePanel({ toLang: v })}
           options={OPT_LANGS_TO}
         />
       </Row>
-      <Row label="第二目标语言" help="用于反向互译">
+      <Row label={t("secondTargetLang")} help={t("reverseTranslation")}>
         <Select
           value={panel.toLang2 || "en"}
           onChange={(v) => updatePanel({ toLang2: v })}
@@ -1126,8 +1150,8 @@ function PanelTab({ setting, update }) {
         />
       </Row>
       <Row
-        label="翻译接口"
-        help="选择带“外部”标签的接口后，点击工具栏翻译按钮会直接把文本发送给外部程序，不打开翻译面板"
+        label={t("translationApi")}
+        help={t("panelApiHelp")}
       >
         <Select
           value={(panel.apiSlugs || [])[0] || apis[0]?.apiSlug}
@@ -1135,26 +1159,24 @@ function PanelTab({ setting, update }) {
           options={apis.map((api) => [
             api.apiSlug,
             `${api.apiName || api.apiType}${
-              isExternalApi(api)
-                ? translateText("（外部）", setting.uiLang)
-                : ""
+              isExternalApi(api) ? t("externalSuffix") : ""
             }`,
           ])}
         />
       </Row>
-      <Row label="极简样式">
+      <Row label={t("minimalStyle")}>
         <Toggle
           value={panel.simpleStyle}
           onChange={(v) => updatePanel({ simpleStyle: v })}
         />
       </Row>
-      <Row label="失焦自动隐藏">
+      <Row label={t("hideOnBlur")}>
         <Toggle
           value={panel.hideClickAway}
           onChange={(v) => updatePanel({ hideClickAway: v })}
         />
       </Row>
-      <Row label="跟随选区">
+      <Row label={t("followSelection")}>
         <Toggle
           value={panel.followSelection}
           onChange={(v) => updatePanel({ followSelection: v })}
@@ -1165,6 +1187,7 @@ function PanelTab({ setting, update }) {
 }
 
 function PromptRow({ prompt, isPreset, dirty, onPatch, onReset, onDelete }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   return (
@@ -1182,10 +1205,10 @@ function PromptRow({ prompt, isPreset, dirty, onPatch, onReset, onDelete }) {
         }}
       >
         <strong>{prompt.name || prompt.slug}</strong>
-        {isPreset && <span className="kiss-st-badge">预设</span>}
-        {dirty && <span className="kiss-st-badge kiss-st-badge--warn">已修改</span>}
+        {isPreset && <span className="kiss-st-badge">{t("preset")}</span>}
+        {dirty && <span className="kiss-st-badge kiss-st-badge--warn">{t("modified")}</span>}
         <span className="kiss-st-spacer" />
-        <span className="kiss-st-chev">展开/收起</span>
+        <span className="kiss-st-chev">{t("expandCollapse")}</span>
         {isPreset ? (
           dirty && (
             <button
@@ -1195,7 +1218,7 @@ function PromptRow({ prompt, isPreset, dirty, onPatch, onReset, onDelete }) {
                 onReset();
               }}
             >
-              重置
+              {t("reset")}
             </button>
           )
         ) : (
@@ -1206,7 +1229,7 @@ function PromptRow({ prompt, isPreset, dirty, onPatch, onReset, onDelete }) {
               onDelete();
             }}
           >
-            删除
+            {t("delete")}
           </button>
         )}
       </div>
@@ -1214,21 +1237,21 @@ function PromptRow({ prompt, isPreset, dirty, onPatch, onReset, onDelete }) {
       {open && (
         <div className="kiss-st-stack">
           <label>
-            名称
+            {t("name")}
             <TextInput
               value={prompt.name}
               onChange={(v) => onPatch({ name: v })}
             />
           </label>
           <label>
-            系统提示词
+            {t("systemPrompt")}
             <TextArea
               value={prompt.systemPrompt}
               onChange={(v) => onPatch({ systemPrompt: v })}
             />
           </label>
           <label>
-            用户提示词
+            {t("userPrompt")}
             <TextArea
               value={prompt.userPrompt}
               onChange={(v) => onPatch({ userPrompt: v })}
@@ -1241,6 +1264,7 @@ function PromptRow({ prompt, isPreset, dirty, onPatch, onReset, onDelete }) {
 }
 
 function PromptsSection({ setting, update }) {
+  const t = useT();
   const stored = setting.prompts || [];
   const overrides = new Map(
     stored
@@ -1276,7 +1300,9 @@ function PromptsSection({ setting, update }) {
         ...stored,
         {
           slug: `custom-${Date.now()}`,
-          name: `自定义提示词 ${customPrompts.length + 1}`,
+          name: t("customPromptName", {
+            n: customPrompts.length + 1,
+          }),
           category: "custom",
           systemPrompt: "",
           userPrompt: "",
@@ -1286,11 +1312,11 @@ function PromptsSection({ setting, update }) {
 
   return (
     <Section
-      title="提示词管理"
+      title={t("promptManagement")}
       footer={
         <div className="kiss-st-inline">
           <button className="kiss-st-btn kiss-st-btn--primary" onClick={add}>
-            + 添加自定义提示词
+            {t("addCustomPrompt")}
           </button>
         </div>
       }
@@ -1331,24 +1357,21 @@ function TranslationTab({ setting, update }) {
 }
 
 function AboutTab({ setting, update }) {
+  const t = useT();
   const meta = readScriptMeta();
   const value = { ...DEFAULT_TOOLBAR_SETTING, ...(setting.toolbarSetting || {}) };
   const patch = (changes) =>
     update({ toolbarSetting: { ...value, ...changes } });
   // The festival toggle is only meaningful on a festival day.
   const festivalInfo = useMemo(() => getFestivalInfo(), []);
-  const uiLang = String(setting?.uiLang || "auto").toLowerCase();
-  const isChineseUi =
-    uiLang === "zh" ||
-    uiLang.startsWith("zh-") ||
-    (uiLang === "auto" &&
-      String(navigator.language || "").toLowerCase().startsWith("zh"));
   const aboutTitle = festivalInfo
-    ? `${meta.name} - 今天是${festivalInfo.name}${isChineseUi ? "！" : "!"}`
+    ? `${meta.name} - ${t("todayIsFestival", {
+        festival: festivalInfo.name,
+      })}`
     : meta.name;
 
   return (
-    <Section title="关于">
+    <Section title={t("tabAbout")}>
       <div className="kiss-st-about">
         {meta.icon && (
           <img className="kiss-st-about__icon" src={meta.icon} alt="" />
@@ -1357,8 +1380,8 @@ function AboutTab({ setting, update }) {
           <strong>{aboutTitle}</strong>
         </div>
       </div>
-      <Row label="版本号">{meta.version || "—"}</Row>
-      <Row label="主页">
+      <Row label={t("version")}>{meta.version || "—"}</Row>
+      <Row label={t("homepage")}>
         {meta.homepage ? (
           <a href={meta.homepage} target="_blank" rel="noreferrer">
             {meta.homepage}
@@ -1367,11 +1390,11 @@ function AboutTab({ setting, update }) {
           "—"
         )}
       </Row>
-      <Row label="许可证">{meta.license || "—"}</Row>
+      <Row label={t("license")}>{meta.license || "—"}</Row>
       {festivalInfo && (
         <Row
-          label="禁用节日彩蛋"
-          help="仅节日期间显示，关闭后所有节日点击特效都不再显示"
+          label={t("disableFestival")}
+          help={t("disableFestivalHelp")}
         >
           <Toggle
             value={value.disableFestivalEffect === true}
@@ -1386,6 +1409,10 @@ function AboutTab({ setting, update }) {
 export default function SettingsApp({ initialPath = "/", onClose }) {
   const [tab, setTab] = useState(() => pathToTab(initialPath));
   const [setting, setSetting] = useState(null);
+  const t = useMemo(
+    () => createSettingsI18n(setting?.uiLang),
+    [setting?.uiLang]
+  );
   const themeRef = useRef(null);
   const meta = useMemo(readScriptMeta, []);
 
@@ -1407,54 +1434,51 @@ export default function SettingsApp({ initialPath = "/", onClose }) {
     });
   };
 
-  useEffect(() => {
-    if (!themeRef.current || !setting) return undefined;
-    return translateDom(themeRef.current, setting.uiLang);
-  }, [setting?.uiLang, setting, tab]);
-
   if (!setting) {
-    return <div className="kiss-st-loading">加载设置…</div>;
+    return <div className="kiss-st-loading">{t("loadingSettings")}</div>;
   }
 
   return (
-    <div className="kiss-st-app" ref={themeRef}>
-      <header className="kiss-st-header">
-        {meta.icon && (
-          <img className="kiss-st-logo" src={meta.icon} alt="" />
-        )}
-        <h1>{meta.name}</h1>
-        <button
-          className="kiss-st-close"
-          type="button"
-          title="关闭设置"
-          aria-label="关闭设置"
-          onClick={onClose}
-        >
-          ×
-        </button>
-      </header>
-      <nav className="kiss-st-tabs">
-        {TABS.map(([key, label]) => (
+    <SettingsI18nContext.Provider value={t}>
+      <div className="kiss-st-app" ref={themeRef}>
+        <header className="kiss-st-header">
+          {meta.icon && (
+            <img className="kiss-st-logo" src={meta.icon} alt="" />
+          )}
+          <h1>{meta.name}</h1>
           <button
-            key={key}
-            className={tab === key ? "active" : ""}
-            onClick={() => setTab(key)}
+            className="kiss-st-close"
+            type="button"
+            title={t("closeSettings")}
+            aria-label={t("closeSettings")}
+            onClick={onClose}
           >
-            {label}
+            ×
           </button>
-        ))}
-      </nav>
-      <main className="kiss-st-main">
-        {tab === "general" && (
-          <GeneralTab setting={setting} update={update} />
-        )}
-        {tab === "translation" && (
-          <TranslationTab setting={setting} update={update} />
-        )}
-        {tab === "about" && (
-          <AboutTab setting={setting} update={update} />
-        )}
-      </main>
-    </div>
+        </header>
+        <nav className="kiss-st-tabs">
+          {TABS.map(([key, labelKey]) => (
+            <button
+              key={key}
+              className={tab === key ? "active" : ""}
+              onClick={() => setTab(key)}
+            >
+              {t(labelKey)}
+            </button>
+          ))}
+        </nav>
+        <main className="kiss-st-main">
+          {tab === "general" && (
+            <GeneralTab setting={setting} update={update} />
+          )}
+          {tab === "translation" && (
+            <TranslationTab setting={setting} update={update} />
+          )}
+          {tab === "about" && (
+            <AboutTab setting={setting} update={update} />
+          )}
+        </main>
+      </div>
+    </SettingsI18nContext.Provider>
   );
 }
