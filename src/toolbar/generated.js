@@ -3178,7 +3178,12 @@ let selectionScrollTargets = [];
 
 function selectionOwnedByRoot(selection, root) {
     try {
-        return selection.getRangeAt(0).startContainer.getRootNode() === root;
+        const range = selection.getRangeAt(0);
+        // Ancestor shadow roots expose a shadow-including range whose start is
+        // the fragment itself; it stringifies fine but cannot be trimmed or
+        // measured. Only accept a range anchored in a real node of this root.
+        if (range.startContainer.nodeType === 11) return false;
+        return range.startContainer.getRootNode() === root;
     } catch (e) {
         return false;
     }
@@ -3215,6 +3220,27 @@ function findShadowSelection(start) {
 
 function getSelectionFromEvent(event) {
     const path = event?.composedPath?.() || [];
+
+    // Plain light-DOM selections need no shadow scan; keep the common path cheap.
+    const pathHasShadow = path.some((node) => {
+        if (!node) return false;
+        if (node.shadowRoot) return true;
+        const root = node.getRootNode?.();
+        return Boolean(root && root.host);
+    });
+    if (!pathHasShadow) {
+        return { selection: window.getSelection(), root: document };
+    }
+
+    // Prefer the innermost open shadow root that actually owns the range. The
+    // mouseup target can be an outer host, so walking only its path roots can
+    // pick an ancestor selection object instead of the real nested one.
+    const target = event?.target;
+    const targetRoot = target?.getRootNode?.();
+    const start = targetRoot?.host || target;
+    const found = findShadowSelection(start);
+    if (found) return found;
+
     const seenRoots = new Set();
     for (const node of path) {
         // Prefer the node's own shadow root before its parent root; a host node
@@ -3230,24 +3256,6 @@ function getSelectionFromEvent(event) {
             }
         }
     }
-
-    const target = event?.target;
-    const targetRoot = target?.getRootNode?.();
-    const start = targetRoot?.host || target;
-
-    // Plain light-DOM selections need no shadow scan; keep the common path cheap.
-    const pathHasShadow = path.some((node) => {
-        if (!node) return false;
-        if (node.shadowRoot) return true;
-        const root = node.getRootNode?.();
-        return Boolean(root && root.host);
-    });
-    if (!pathHasShadow) {
-        return { selection: window.getSelection(), root: document };
-    }
-
-    const found = findShadowSelection(start);
-    if (found) return found;
 
     const pageFound = findShadowSelection(document.documentElement);
     if (pageFound) return pageFound;
