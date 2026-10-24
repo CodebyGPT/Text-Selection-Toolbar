@@ -79,7 +79,9 @@ function markToolbarReady() {
             window.addEventListener('wheel', handleWheelZoom, { passive: false, capture: true });
 
             // 5. Register all event listeners
-            document.addEventListener('mouseup', handleSelectionMouseUp, false);
+            // Capture phase: shadow-DOM hosts and page widgets may stop mouseup
+            // from bubbling, which used to suppress the toolbar entirely.
+            window.addEventListener('mouseup', handleSelectionMouseUp, true);
             document.addEventListener('mouseup', handleInputPasteMouseUp, true);
             document.addEventListener('mousedown', handleGlobalMouseDown, false);
             document.addEventListener('contextmenu', handleContextMenu, true);

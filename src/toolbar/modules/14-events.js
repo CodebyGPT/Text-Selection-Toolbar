@@ -39,16 +39,79 @@ function trimRangeWhitespace(selection) {
     }
 }
 
+// Selection root and scroll-target tracking. Sites such as Bilibili render
+// comments inside open shadow roots, where window.getSelection() is empty; the
+// ShadowRoot owns its own Selection object in Chromium.
+let lastSelectionRoot = null;
+let selectionScrollTargets = [];
+
+function getSelectionRootFromEvent(event) {
+    const target = event?.composedPath?.()[0] || event?.target;
+    const root = target?.getRootNode?.();
+    return root && root.host ? root : document;
+}
+
+function getSelectionForRoot(root) {
+    if (root && root !== document && typeof root.getSelection === 'function') {
+        try {
+            const selection = root.getSelection();
+            if (selection && selection.rangeCount > 0) return selection;
+        } catch (e) {}
+    }
+    return window.getSelection();
+}
+
+function getActiveSelection() {
+    if (lastSelectionRoot && lastSelectionRoot !== document) {
+        const selection = getSelectionForRoot(lastSelectionRoot);
+        if (selection && selection.rangeCount > 0) return selection;
+    }
+    return window.getSelection();
+}
+
+function clearSelectionScrollTargets() {
+    selectionScrollTargets.forEach((target) => {
+        target.removeEventListener('scroll', handleResizeOrScroll, { passive: true });
+    });
+    selectionScrollTargets = [];
+}
+
+// Scroll events do not bubble (and may not cross shadow boundaries), so bind
+// them to the actual scrollable ancestors of the current selection.
+function bindSelectionScrollTargets(selection) {
+    clearSelectionScrollTargets();
+    if (!selection || selection.rangeCount === 0) return;
+
+    let node = selection.getRangeAt(0).commonAncestorContainer;
+    const seen = new Set();
+    while (node) {
+        const el = node.nodeType === 1 ? node : node.parentElement;
+        if (!el) break;
+        if (!seen.has(el)) {
+            seen.add(el);
+            if (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) {
+                el.addEventListener('scroll', handleResizeOrScroll, { passive: true });
+                selectionScrollTargets.push(el);
+            }
+        }
+        node = el.parentNode || el.host;
+    }
+}
+
 function handleSelectionMouseUp(e) {
     if (hostElement && e.composedPath().includes(hostElement)) return;
     if (!hostElement) initContainer();
     if (isScrolling) return;
     setTimeout(async () => {
-        const selection = window.getSelection();
+        const selectionRoot = getSelectionRootFromEvent(e);
+        const selection = getSelectionForRoot(selectionRoot);
         if (!selection || selection.rangeCount === 0) {
+            lastSelectionRoot = null;
+            clearSelectionScrollTargets();
             hideUI();
             return;
         }
+        lastSelectionRoot = selectionRoot;
 
         const target = document.activeElement;
         const isTextInput = target && (
@@ -84,6 +147,7 @@ function handleSelectionMouseUp(e) {
         };
         // Selection endpoint wins; null makes renderButton use the release point.
         const rect = getSmartSelectionState(selection);
+        bindSelectionScrollTargets(selection);
 
         initContainer();
         let cache = null;
@@ -141,7 +205,7 @@ const handleResizeOrScroll = () => {
     }
 
     if (mode === SCROLL_REPAINT_MODE.VIEWPORT) {
-        const selection = window.getSelection();
+        const selection = getActiveSelection();
         if (!selection.rangeCount) { hideUI(); return; }
         const rect = selection.getRangeAt(0).getBoundingClientRect();
         const inViewport = rect.top >= 0 && rect.left >= 0 &&
@@ -155,7 +219,7 @@ const handleResizeOrScroll = () => {
     if (scrollTimeout) clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
         isScrolling = false;
-        const selection = window.getSelection();
+        const selection = getActiveSelection();
         if (selection && selection.toString().trim().length > 0) {
             const rect = getSmartSelectionState(selection);
             if (rect) {
@@ -196,7 +260,7 @@ async function handleExternalCopy(e) {
         }
     }
     if (!text) {
-        const sel = window.getSelection();
+        const sel = getSelectionForRoot(getSelectionRootFromEvent(e));
         text = sel ? sel.toString() : '';
     }
     if (!text) return;
@@ -241,7 +305,7 @@ function handleInputPasteMouseUp(e) {
                 }
             }
         } else if (target.isContentEditable) {
-            const sel = window.getSelection();
+            const sel = getSelectionForRoot(getSelectionRootFromEvent(e));
             if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
                 selectedText = sel.toString();
                 hasSelection = true;
@@ -301,7 +365,7 @@ function handleInputPasteMouseUp(e) {
         const textArg = (mode === 'paste') ? cache.text : selectedText;
 
         const rect = (target.isContentEditable && hasSelection)
-            ? getSmartSelectionState(window.getSelection())
+            ? getSmartSelectionState(getSelectionForRoot(getSelectionRootFromEvent(e)))
             : null;
         if (!hostElement) initContainer();
         renderButton(rect, e.clientX, e.clientY, textArg, '', mode, target, false, cache, showIdCardCheck);

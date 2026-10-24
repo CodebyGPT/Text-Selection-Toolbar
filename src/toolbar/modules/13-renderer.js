@@ -975,4 +975,6 @@ function hideUI() {
         }, 200);
     });
     cachedSelection = { text: '', html: '' };
+    clearSelectionScrollTargets();
+    lastSelectionRoot = null;
 }
