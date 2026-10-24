@@ -538,6 +538,7 @@ export default function TranForm({
                     value={activeApiSlugs}
                     name="apiSlugs"
                     label={i18n("translate_service_multiple")}
+                    placeholder={i18n("choose_service", "选择接口")}
                     onChange={(e) => {
                       setHasUserChangedApiSlugs(true);
                       setApiSlugs(e.target.value);

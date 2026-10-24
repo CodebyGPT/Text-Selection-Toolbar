@@ -170,7 +170,10 @@ export default function TranslationPanelHeader({
             <Logo size={16} />
           </span>
           <span className="kt-tranbox-header__title">
-            划词翻译面板（power by KISS Translator）
+            {i18n(
+              "tranbox_title",
+              "划词翻译面板（power by KISS Translator）"
+            )}
           </span>
         </span>
       )}

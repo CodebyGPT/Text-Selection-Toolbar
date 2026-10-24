@@ -368,7 +368,7 @@ export const TextField = forwardRef(function TextField(
         options,
         value,
         disabled,
-        placeholder: placeholder || label,
+        placeholder: placeholder || "",
         onChange,
       });
     } else {

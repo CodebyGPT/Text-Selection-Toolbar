@@ -209,6 +209,14 @@ export const I18N = {
     zh: `翻译服务 (支持多选)`,
     en: `Translation service (multiple supported)`
   },
+  tranbox_title: {
+    zh: `划词翻译面板（power by KISS Translator）`,
+    en: `Selection Translation Panel (power by KISS Translator)`
+  },
+  choose_service: {
+    zh: `选择接口`,
+    en: `Choose service`
+  },
   single_word_no_trans: {
     zh: `单个单词划词不调用翻译服务`,
     en: `Do not use translation services for single word`

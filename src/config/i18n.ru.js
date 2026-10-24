@@ -140,6 +140,8 @@ export const RU_I18N = {
   num_of_newline_characters: `Количество символов переноса строки (1-1000)`,
   translate_service: `Сервис перевода`,
   translate_service_multiple: `Сервис перевода (можно несколько)`,
+  tranbox_title: `Панель перевода выделенного текста (power by KISS Translator)`,
+  choose_service: `Выберите сервис`,
   single_word_no_trans: `Не использовать сервис перевода для одиночных слов`,
   auto_fav_word: `Автоматически добавлять слова в избранное`,
   translate_timing: `Момент перевода`,
