@@ -526,7 +526,7 @@ function ApiEditor({
 
       {open && (
         <div className="kiss-st-stack">
-          {test.text && <div className="kiss-st-ok">→ {test.text}</div>}
+          {test.text && <div className="kiss-st-ok">✓ {test.text}</div>}
           {test.error && <div className="kiss-st-error">{test.error}</div>}
           <Fields>
             {!isPreset && (

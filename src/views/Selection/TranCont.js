@@ -611,7 +611,7 @@ export default function TranCont({
         InputProps={{
           ...resultHeightLock.rootProps,
           readOnly: true,
-          startAdornment: (
+          startAdornment: loading ? (
             <Box
               sx={{
                 width: 16,
@@ -620,14 +620,12 @@ export default function TranCont({
                 placeItems: "center",
               }}
             >
-              {loading && (
-                <CircularProgress
-                  size={16}
-                  aria-label={i18n("popup_translating")}
-                />
-              )}
+              <CircularProgress
+                size={16}
+                aria-label={i18n("popup_translating")}
+              />
             </Box>
-          ),
+          ) : null,
           labelAction: (
             <Stack
               onPointerDown={onActionPointerDown}

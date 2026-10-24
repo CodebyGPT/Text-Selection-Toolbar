@@ -513,7 +513,8 @@ export default function TranForm({
                     : "kt-translation-config"
                 }
                 container
-                spacing={2}
+                spacing={0}
+                sx={{ display: "grid" }}
                 columns={12}
               >
                 {/* Select multiple translation engines to compare their results. */}

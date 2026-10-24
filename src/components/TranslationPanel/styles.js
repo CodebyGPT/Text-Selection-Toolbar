@@ -80,7 +80,7 @@ export const PANEL_BASE_STYLES = String.raw`
 .kt-resize-grip:active { color: var(--kt-pri); }
 .kt-resize-grip:active svg { opacity: 1; transform: scale(.95); }
 .kt-multiselect { position: relative; width: 100%; min-width: 0; }
-.kt-multiselect__control { width: 100%; min-height: ${px(T.panelControlHeight)}; padding: 8px ${px(T.panelControlPaddingX)}; border: 1px solid var(--kt-linev); border-radius: ${px(T.panelControlRadius)}; background: var(--kt-sf1); color: var(--kt-on); cursor: pointer; font: inherit; font-size: ${px(T.fontSizeControl)}; text-align: left; }
+.kt-multiselect__control { box-sizing: border-box; width: 100%; min-height: ${px(T.panelControlHeight)}; padding: 8px ${px(T.panelControlPaddingX)}; border: 1px solid var(--kt-linev); border-radius: ${px(T.panelControlRadius)}; background: var(--kt-sf1); color: var(--kt-on); cursor: pointer; font: inherit; font-size: ${px(T.fontSizeControl)}; text-align: left; }
 .kt-multiselect__control:focus-visible { outline: 2px solid var(--kt-pri); outline-offset: 1px; }
 .kt-multiselect__menu { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 20; max-height: 240px; overflow: auto; padding: 5px; border: 1px solid var(--kt-linev); border-radius: 10px; background: var(--kt-sf0); box-shadow: var(--kt-shadow-2); }
 .kt-multiselect__item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 7px; color: var(--kt-on); cursor: pointer; font-size: 12px; }
@@ -98,6 +98,10 @@ export const PANEL_BASE_STYLES = String.raw`
 .kt-alert--info { background: var(--kt-sf2); color: var(--kt-on); }
 .kt-translation-config { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); gap: ${px(T.space8)}; padding: ${px(T.space5)}; border-radius: ${px(T.panelControlRadius)}; background: var(--kt-sf1); }
 .kt-translation-config__service, .kt-translation-config__language { min-width: 0; }
+.kt-translation-config > * > .kt-field { height: 100%; }
+.kt-translation-config .kt-field__control { flex: 1; }
+.kt-translation-config .kt-field__input,
+.kt-translation-config .kt-multiselect__control { height: 100%; }
 .kt-playground-config__grid { display: flex; flex-wrap: wrap; gap: 8px; }
 .kt-playground-config__service { flex: 1 1 220px; min-width: 0; }
 
