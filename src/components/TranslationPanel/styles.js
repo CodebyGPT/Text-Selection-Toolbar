@@ -1,20 +1,22 @@
+import { UI_TOKENS as T, px } from "../../styles/tokens";
+
 export const TRANSLATION_PANEL_STYLES = String.raw`
-.kt-translation-panel { overflow: visible; border: 1px solid var(--kt-linev); border-radius: 16px !important; background: var(--kt-sf0) !important; color: var(--kt-on); box-shadow: var(--kt-shadow-2); }
-.kt-translation-panel__body { min-width: 0; border-radius: 0 0 16px 16px; background: var(--kt-sf0); overflow-x: hidden; word-break: break-word; scrollbar-width: thin; scrollbar-color: var(--kt-onv) var(--kt-sf0); }
+.kt-translation-panel { overflow: visible; border: 1px solid var(--kt-linev); border-radius: ${px(T.panelRadius)} !important; background: var(--kt-sf0) !important; color: var(--kt-on); box-shadow: var(--kt-shadow-2); }
+.kt-translation-panel__body { min-width: 0; border-radius: 0 0 ${px(T.panelRadius)} ${px(T.panelRadius)}; background: var(--kt-sf0); overflow-x: hidden; word-break: break-word; scrollbar-width: thin; scrollbar-color: var(--kt-onv) var(--kt-sf0); }
 .kt-translation-panel__body::-webkit-scrollbar { width: 10px; height: 10px; }
 .kt-translation-panel__body::-webkit-scrollbar-track { background: var(--kt-sf0); }
 .kt-translation-panel__body::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--kt-on) 24%, transparent); border-radius: 999px; border: 2px solid var(--kt-sf0); }
 .kt-translation-panel__body::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--kt-on) 36%, transparent); }
 .kt-translation-panel--embedded { border: 0; border-radius: 0 !important; box-shadow: none; }
 .kt-translation-panel--embedded .kt-translation-panel__body { border-radius: 0; }
-.kt-tranbox-header { min-height: 56px; display: flex; align-items: center; gap: 6px; position: relative; padding: 7px 8px 7px 10px; border-bottom: 1px solid var(--kt-linev); border-radius: 16px 16px 0 0; background: var(--kt-sf0); color: var(--kt-on); }
+.kt-tranbox-header { min-height: ${px(T.panelHeaderHeight)}; display: flex; align-items: center; gap: ${px(T.space6)}; position: relative; padding: 7px 8px 7px 10px; border-bottom: 1px solid var(--kt-linev); border-radius: ${px(T.panelRadius)} ${px(T.panelRadius)} 0 0; background: var(--kt-sf0); color: var(--kt-on); }
 .kt-tranbox-header__drag { display: flex; color: var(--kt-onv); cursor: move; }
 .kt-tranbox-header__drag svg { width: 19px; height: 19px; }
 .kt-tranbox-header__brand { min-width: 0; flex: 1; display: flex; align-items: center; gap: 7px; overflow: hidden; }
 .kt-tranbox-header__logo { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 7px; background: var(--kt-sf1); }
 .kt-tranbox-header__title { min-width: 0; overflow: hidden; color: var(--kt-onv); font-size: 11.5px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .kt-tranbox-header__actions { display: flex; flex: none; align-items: center; gap: 1px; }
-.kt-tranbox-header .MuiIconButton-root { width: 34px; height: 34px; }
+.kt-tranbox-header .MuiIconButton-root { width: ${px(T.panelIconButtonSize)}; height: ${px(T.panelIconButtonSize)}; }
 .kt-tranbox-header .MuiIconButton-root svg { width: 18px; height: 18px; }
 .kt-tranbox-header--compact { flex: none; min-height: 0; padding: 8px 0; border: 0; border-radius: 0; }
 .kt-tranbox-header--compact .MuiIconButton-root { width: 40px; height: 40px; }
@@ -33,7 +35,7 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 }
 .kt-tranbox-header__menu svg { width: 18px; height: 18px; flex: none; }
 
-.kt-tranbox-content { container-type: inline-size; container-name: kt-translation-content; padding: 14px !important; background: var(--kt-sf0) !important; color: var(--kt-on) !important; }
+.kt-tranbox-content { container-type: inline-size; container-name: kt-translation-content; padding: ${px(T.panelContentPadding)} !important; background: var(--kt-sf0) !important; color: var(--kt-on) !important; }
 .kt-translation-config-row { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
 .kt-translation-config-row > .kt-translation-config { flex: 1; min-width: 0; }
 .kt-translation-config-actions { display: flex; justify-content: flex-end; }
@@ -64,7 +66,7 @@ export const PANEL_BASE_STYLES = String.raw`
 .kt-field { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .kt-field--full { width: 100%; }
 .kt-field__label { padding-inline: 2px; color: var(--kt-onv); font-size: 11px; line-height: 1.3; }
-.kt-field__input { box-sizing: border-box; width: 100%; min-height: 38px; padding: 8px 12px; border: 1px solid var(--kt-linev); border-radius: 12px; outline: none; background: var(--kt-sf1); color: var(--kt-on); font: inherit; font-size: 12.5px; }
+.kt-field__input { box-sizing: border-box; width: 100%; min-height: ${px(T.panelControlHeight)}; padding: 8px ${px(T.panelControlPaddingX)}; border: 1px solid var(--kt-linev); border-radius: ${px(T.panelControlRadius)}; outline: none; background: var(--kt-sf1); color: var(--kt-on); font: inherit; font-size: ${px(T.fontSizeControl)}; }
 .kt-field__input:focus { border-color: var(--kt-pri); box-shadow: inset 0 0 0 1px var(--kt-pri); }
 .kt-field__select { cursor: pointer; }
 .kt-field textarea.kt-field__input { display: block; min-height: 40px; max-height: 260px; padding-inline-end: 38px; resize: none; line-height: 1.5; }
@@ -76,23 +78,23 @@ export const PANEL_BASE_STYLES = String.raw`
 .kt-field:has(.kt-field__label) .kt-field__end { top: 22px; transform: none; }
 .kt-field__start + .kt-field__input { padding-inline-start: 32px; }
 .kt-multiselect { position: relative; }
-.kt-multiselect__control { width: 100%; min-height: 38px; padding: 8px 12px; border: 1px solid var(--kt-linev); border-radius: 12px; background: var(--kt-sf1); color: var(--kt-on); cursor: pointer; font: inherit; font-size: 12.5px; text-align: left; }
+.kt-multiselect__control { width: 100%; min-height: ${px(T.panelControlHeight)}; padding: 8px ${px(T.panelControlPaddingX)}; border: 1px solid var(--kt-linev); border-radius: ${px(T.panelControlRadius)}; background: var(--kt-sf1); color: var(--kt-on); cursor: pointer; font: inherit; font-size: ${px(T.fontSizeControl)}; text-align: left; }
 .kt-multiselect__control:focus-visible { outline: 2px solid var(--kt-pri); outline-offset: 1px; }
 .kt-multiselect__menu { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 20; max-height: 240px; overflow: auto; padding: 5px; border: 1px solid var(--kt-linev); border-radius: 10px; background: var(--kt-sf0); box-shadow: var(--kt-shadow-2); }
 .kt-multiselect__item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 7px; color: var(--kt-on); cursor: pointer; font-size: 12px; }
 .kt-multiselect__item:hover { background: var(--kt-pric); color: var(--kt-onpric); }
 .kt-multiselect__item input { accent-color: var(--kt-pri); }
-.kt-icon-button.MuiIconButton-root { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; }
+.kt-icon-button.MuiIconButton-root { display: inline-grid; place-items: center; width: ${px(T.panelIconButtonSize)}; height: ${px(T.panelIconButtonSize)}; padding: 0; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; }
 .kt-icon-button.MuiIconButton-root:hover { background: color-mix(in srgb, var(--kt-on) 8%, transparent); }
 .kt-icon-button.MuiIconButton-root.Mui-disabled,
 .kt-icon-button.MuiIconButton-root:disabled { opacity: .45; cursor: default; }
 .kt-icon-button svg { width: 18px; height: 18px; }
 .kt-spinner { display: inline-block; border: 2px solid color-mix(in srgb, var(--kt-pri) 30%, transparent); border-top-color: var(--kt-pri); border-radius: 50%; animation: kt-spin .7s linear infinite; }
 @keyframes kt-spin { to { transform: rotate(360deg); } }
-.kt-alert { padding: 10px 12px; border-radius: 12px; font-size: 12px; line-height: 1.5; }
+.kt-alert { padding: 10px ${px(T.panelControlPaddingX)}; border-radius: ${px(T.panelControlRadius)}; font-size: ${px(T.fontSizeBody)}; line-height: 1.5; }
 .kt-alert--error { background: var(--kt-errc); color: var(--kt-onerrc); }
 .kt-alert--info { background: var(--kt-sf2); color: var(--kt-on); }
-.kt-translation-config { display: flex; flex-wrap: wrap; gap: 8px; padding: 5px; border-radius: 12px; background: var(--kt-sf1); }
+.kt-translation-config { display: flex; flex-wrap: wrap; gap: ${px(T.space8)}; padding: ${px(T.space5)}; border-radius: ${px(T.panelControlRadius)}; background: var(--kt-sf1); }
 .kt-translation-config__service { flex: 1 1 240px; min-width: 0; }
 .kt-translation-config__language { flex: 1 1 140px; min-width: 0; }
 .kt-playground-config__grid { display: flex; flex-wrap: wrap; gap: 8px; }

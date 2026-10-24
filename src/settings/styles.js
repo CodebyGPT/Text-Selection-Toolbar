@@ -1,3 +1,5 @@
+import { UI_TOKENS as T, px } from "../styles/tokens";
+
 export const SETTINGS_APP_CSS = String.raw`
 :host .kiss-st-app {
   --st-bg: transparent;
@@ -9,8 +11,13 @@ export const SETTINGS_APP_CSS = String.raw`
   --st-accent: #8ab4f8;
   --st-accent-text: #0b1b33;
   --st-danger: #ff8a80;
-  --st-btn-height: 36px;
-  --st-btn-pad-x: 14px;
+  --st-btn-height: ${px(T.controlHeight)};
+  --st-btn-pad-x: ${px(T.controlPaddingX)};
+  --st-control-radius: ${px(T.controlRadius)};
+  --st-input-height: ${px(T.inputHeight)};
+  --st-input-pad-x: ${px(T.inputPaddingX)};
+  --st-input-pad-y: ${px(T.inputPaddingY)};
+  --st-input-min-width: ${px(T.inputMinWidth)};
   color-scheme: dark;
   min-height: 100vh;
   box-sizing: border-box;
@@ -150,11 +157,11 @@ export const SETTINGS_APP_CSS = String.raw`
 :host .kiss-st-row__control { flex: 0 0 auto; }
 :host .kiss-st-input,
 :host .kiss-st-select {
-  min-width: 220px;
-  height: 38px;
-  padding: 0 12px;
+  min-width: var(--st-input-min-width);
+  height: var(--st-input-height);
+  padding: 0 var(--st-input-pad-x);
   border: 1px solid var(--st-border);
-  border-radius: 9px;
+  border-radius: var(--st-control-radius);
   background: var(--st-input);
   color: var(--st-text);
   font: inherit;
@@ -182,7 +189,7 @@ export const SETTINGS_APP_CSS = String.raw`
   overflow: auto;
   padding: 4px;
   border: 1px solid var(--st-border);
-  border-radius: 9px;
+  border-radius: var(--st-control-radius);
   background: var(--st-panel);
   box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
 }
@@ -235,7 +242,7 @@ export const SETTINGS_APP_CSS = String.raw`
   height: var(--st-btn-height);
   padding: 0 var(--st-btn-pad-x);
   border: 1px solid var(--st-border);
-  border-radius: 9px;
+  border-radius: var(--st-control-radius);
   background: var(--st-panel);
   color: var(--st-text);
   font: inherit;
@@ -373,9 +380,9 @@ export const SETTINGS_TEXTAREA_CSS = String.raw`
   width: 100%;
   min-height: 220px;
   resize: vertical;
-  padding: 10px 12px;
+  padding: var(--st-input-pad-y) var(--st-input-pad-x);
   border: 1px solid var(--st-border);
-  border-radius: 9px;
+  border-radius: var(--st-control-radius);
   background: var(--st-input);
   color: var(--st-text);
   font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
