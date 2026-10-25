@@ -168,6 +168,12 @@ const MESSAGES = {
     "Если включено, скопируйте любой текст и в течение срока действия нажмите на поле ввода на любой вкладке — появится кнопка вставки",
   ],
   pasteTtl: ["闪电粘贴有效期 (s)", "Smart paste TTL (s)", "Срок быстрой вставки (с)"],
+  safeCopyAlarm: ["安全复制强提醒", "Strong safe-copy warning", "Усиленное предупреждение безопасного копирования"],
+  safeCopyAlarmHelp: [
+    "检测可疑的复制事件",
+    "Detect suspicious copy events",
+    "Обнаружение подозрительных событий копирования",
+  ],
   linkDragPreview: [
     "链接拖拽预览",
     "Link drag preview",

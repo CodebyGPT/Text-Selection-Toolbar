@@ -10,6 +10,7 @@ const DEFAULT_CONFIG = {
     enableHiddenLinks: true, // also collect links from selected <a href="...">
     unlockHotkey: 'ControlLeft',
     enablePaste: true,
+    enableSafeCopyAlarm: false, // full-screen warning; the toast is always on
     showPastePreview: false, // show the pending lightning-paste text
     pasteTtl: 8, // seconds, 3-30; anything else falls back to the default
     searchEngines: [], // [{ name, url }], max 8

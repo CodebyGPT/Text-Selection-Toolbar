@@ -430,8 +430,31 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         copyBtn.onclick = async (e) => {
             e.stopPropagation();
             triggerFestivalEffect(e.clientX, e.clientY, shadowRoot);
-            const contentToCopy = cachedSelection.text || text;
-            const htmlToCopy = cachedSelection.html || html;
+            let contentToCopy = cachedSelection.text || text;
+            let htmlToCopy = cachedSelection.html || html;
+            let hiddenRemoved = false;
+
+            // Only this button sanitizes. Other copy paths stay untouched and
+            // are handled by the read-only safe-copy listener.
+            const liveSelection = (cachedSelection.selection && cachedSelection.selection.rangeCount > 0)
+                ? cachedSelection.selection
+                : (typeof getActiveSelection === 'function' ? getActiveSelection() : null);
+            if (liveSelection && liveSelection.rangeCount > 0 &&
+                liveSelection.toString() === contentToCopy &&
+                typeof buildVisibleSelectionText === 'function') {
+                const visible = buildVisibleSelectionText(liveSelection, window);
+                if (visible && visible.changed) {
+                    if (!visible.text.trim()) {
+                        showToast(t('toast_copy_no_visible_text'), 2200);
+                        setTimeout(hideUI, 50);
+                        return;
+                    }
+                    contentToCopy = visible.text;
+                    htmlToCopy = '';
+                    hiddenRemoved = true;
+                }
+            }
+
             await copyToClipboard(contentToCopy, htmlToCopy);
             if (getConfig('enablePaste')) {
                 await safeSetValue('smart_paste_cache', {
@@ -440,7 +463,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                 });
                 unregisterVisibilityCleanup();
             }
-            showToast(getFestivalToastText());
+            showToast(hiddenRemoved ? t('toast_copy_visible_only') : getFestivalToastText());
             setTimeout(hideUI, 50);
         };
         container.appendChild(copyBtn);

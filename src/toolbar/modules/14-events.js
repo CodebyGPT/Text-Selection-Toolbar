@@ -235,7 +235,7 @@ function handleSelectionMouseUp(e) {
     const container = document.createElement('div');
     container.appendChild(range.cloneContents());
     const html = container.innerHTML;
-    cachedSelection = { text, html };
+    cachedSelection = { text, html, selection };
 
     // Snapshot geometry before any page handler can mutate the range.
     const rect = getSmartSelectionState(selection);

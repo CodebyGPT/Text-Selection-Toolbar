@@ -1120,6 +1120,12 @@ function ToolbarTab({ setting, update }) {
             }}
           />
         </Row>
+        <Row label={t("safeCopyAlarm")} help={t("safeCopyAlarmHelp")}>
+          <Toggle
+            value={value.enableSafeCopyAlarm === true}
+            onChange={(v) => patch({ enableSafeCopyAlarm: v })}
+          />
+        </Row>
         <Row label={t("linkDragPreview")}>
           <Toggle
             value={value.enableDragPreview}
@@ -1190,14 +1196,16 @@ function PanelTab({ setting, update }) {
   const apis = (setting.transApis || []).filter(
     (api) =>
       !api.isDisabled &&
-      !isExternalApi(api) &&
       (api.apiType !== OPT_TRANS_TRANSLATOR_API || isTranslatorAPISupported())
   );
   const storedApiSlugs = Array.isArray(panel.apiSlugs) ? panel.apiSlugs : [];
   const validStoredApiSlugs = storedApiSlugs.filter((slug) =>
     apis.some((api) => api.apiSlug === slug)
   );
-  const selectedApiSlug = validStoredApiSlugs[0] || apis[0]?.apiSlug;
+  // Keep a non-external service as the implicit default; external services
+  // such as STranslate must be chosen explicitly in this single-select.
+  const fallbackApi = apis.find((api) => !isExternalApi(api)) || apis[0];
+  const selectedApiSlug = validStoredApiSlugs[0] || fallbackApi?.apiSlug;
 
   // The old default points at TranslatorAPI, which is unavailable in browsers
   // without the built-in translation API. Persist the effective fallback so
@@ -1240,7 +1248,7 @@ function PanelTab({ setting, update }) {
           onChange={(v) => updatePanel({ apiSlugs: [v] })}
           options={apis.map((api) => [
             api.apiSlug,
-            `${api.apiName || api.apiType}`,
+            `${api.apiName || api.apiType}${isExternalApi(api) ? ` (${t("external")})` : ""}`,
           ])}
         />
       </Row>
