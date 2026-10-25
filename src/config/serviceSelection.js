@@ -14,7 +14,6 @@ import { resolveBuiltinCapabilities } from "../builtin-plugins/capabilities";
 import { validateServiceConfig } from "../providers/instances";
 
 export const SOURCE_TYPES = ["builtin", "local", "network"];
-export const CAPABILITIES = PROVIDER_CAPABILITIES;
 
 /**
  * External services do not return a translation to the panel. They receive
@@ -62,7 +61,6 @@ export const supportsApiCapability = (api, capability) =>
     { ...projectApiCapabilities(api), isDisabled: false },
     capability
   );
-export const supportsVlmApi = (api) => supportsApiCapability(api, "parseImage");
 /** Readiness is separate from support: an incomplete instance remains fully editable. */
 export function isApiConfigured(api) {
   if (!api?.provider || api.provider.implementation?.kind === "native")
@@ -78,8 +76,6 @@ export function isApiConfigured(api) {
     return false;
   }
 }
-export const supportedApiFeature = (api, capability) =>
-  getSupportedCapabilityDescriptor(projectApiCapabilities(api), capability);
 export const normalizeApiCapabilities = (api) => ({
   ...api,
   sourceType: SOURCE_TYPES.includes(api.sourceType)
@@ -112,16 +108,6 @@ export const isApiAvailableFor = (
     return false;
   }
   return true;
-};
-export const availableApiForScene = (
-  scene,
-  apis,
-  capability = "translate",
-  context = {},
-  singleKey = "apiSlug"
-) => {
-  const api = apis?.find((api) => api.apiSlug === scene?.[singleKey]);
-  return isApiAvailableFor(api, capability, context) ? api : undefined;
 };
 export const withScenePrompt = (api, scene) =>
   scene?.promptSlug ? { ...api, scenePromptSlug: scene.promptSlug } : api;

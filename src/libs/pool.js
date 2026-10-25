@@ -219,10 +219,3 @@ export const getFetchPool = (interval, limit) => {
 export const updateFetchPool = (interval, limit) => {
   fetchPool?.update(interval, limit);
 };
-
-/**
- * 清空全局请求池中的所有任务
- */
-export const clearFetchPool = () => {
-  fetchPool?.clear();
-};

@@ -133,15 +133,6 @@ export function createM3CssVariables(colors) {
   };
 }
 
-export function createM3CssVariableDeclarations(colors) {
-  return Object.entries(createM3CssVariables(colors))
-    .map(([name, value]) => `${name}: ${value};`)
-    .join("\n");
-}
-
-export const M3_FONT_FAMILY =
-  '"Google Sans Flex", "Google Sans", "Noto Sans SC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-
 export const M3_GLOBAL_CSS = String.raw`
 :host,
 .kt-m3-root {

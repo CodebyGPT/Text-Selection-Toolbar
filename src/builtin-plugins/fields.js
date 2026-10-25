@@ -77,12 +77,6 @@ export const builtinSettingFields = [
   })),
 ];
 
-export const builtinFieldBounds = Object.fromEntries(
-  builtinSettingFields
-    .filter((field) => field.type === "number")
-    .map(({ key, min, max }) => [key, { min, max }])
-);
-
 /** Validate edits only; reading/copying legacy values must not silently repair them. */
 export function validateBuiltinSettingChanges(previous = {}, next = {}) {
   const edited = builtinSettingFields.filter(

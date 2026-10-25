@@ -18,10 +18,7 @@ export const STOKEY_SETTING_BACKUP_V1_BEFORE_V2 = `${STOKEY_SETTING}_backup_v1_b
 export const STOKEY_SETTING_BACKUP_V3_BEFORE_V4 = `${STOKEY_SETTING}_backup_v3_before_v4`;
 export const STOKEY_RULES = `${APP_NAME}_rules_v${APP_VERSION[0]}`; // 当前大版本网页规则缓存键名
 export const STOKEY_SYNC = `${APP_NAME}_sync`; // 同步接口及凭证配置缓存键名
-export const STOKEY_TRANBOX = `${APP_NAME}_tranbox`; // 划词翻译框的最后状态缓存键名
-export const STOKEY_RULE_EDITOR_POSITION = `${APP_NAME}_rule_editor_position`;
-export const STOKEY_RULE_INSPECTOR_POSITION = `${APP_NAME}_rule_inspector_position`;
-export const STOKEY_SEPARATE_WINDOW = `${APP_NAME}_separate_window`; // 划词翻译独立小窗口的最后边界尺寸(坐标及宽高)缓存键名
+export const STOKEY_TRANBOX = `${APP_NAME}_tranbox`; // 划词翻译独立小窗口的最后边界尺寸(坐标及宽高)缓存键名
 export const STOKEY_RULESCACHE_PREFIX = `${APP_NAME}_rulescache_`; // 网页规则匹配缓存键名前缀
 export const STOKEY_DISABLED_SUB_RULES = `${APP_NAME}_disabled_sub_rules`; // 被用户手动禁用的订阅规则 ID 集合的缓存键名
 

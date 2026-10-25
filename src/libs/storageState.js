@@ -28,7 +28,6 @@ export const enqueueStorageWrite = (key, operation) =>
   enqueue(writeQueues, key, operation);
 export const enqueueStorageSync = (key, operation) =>
   enqueue(syncQueues, key, operation);
-export const findStorageState = (key) => states.get(key);
 
 /**
  * A page owns its confirmed base and ordered, pure edit intents. Reducers may

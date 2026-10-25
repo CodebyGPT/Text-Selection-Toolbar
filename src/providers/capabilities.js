@@ -102,13 +102,6 @@ export function validateEnabledCapabilities(instance, enabled) {
   return [...enabled];
 }
 
-export function reconcileEnabledCapabilities(previous, supported) {
-  const kept = (previous || supported).filter((name) =>
-    supported.includes(name)
-  );
-  return kept.length ? kept : [...supported];
-}
-
 export function supportsProviderCapability(
   instance,
   capability,

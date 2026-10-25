@@ -512,7 +512,6 @@ export const storage = {
 
 // --- 应用设置 (Settings) 数据存取 ---
 export const getSetting = () => getObj(STOKEY_SETTING);
-export const getSettingOld = () => getObj(STOKEY_SETTING_OLD);
 
 // The browser translation preset used to be called "BuiltinAI".
 const LEGACY_API_SLUGS = { BuiltinAI: "TranslatorAPI" };
@@ -711,131 +710,8 @@ export const putSetting = async (obj) => {
   await setSetting({ ...cur, ...obj });
 };
 
-// --- 用户翻译规则 (Rules) 数据存取 ---
-export const getRules = () => getObj(STOKEY_RULES);
-export const getRulesOld = () => getObj(STOKEY_RULES_OLD);
-export const getRulesWithDefault = async () =>
-  (await getRules()) || DEFAULT_RULES;
-export const setRules = (val) => setObj(STOKEY_RULES, val);
-
-// --- 订阅翻译规则 (Subscription Rules Cache) 数据存取 ---
-export const getSubRules = (url) => getObj(STOKEY_RULESCACHE_PREFIX + url);
-export const getSubRulesWithDefault = async () => (await getSubRules()) || [];
-export const delSubRules = (url) => del(STOKEY_RULESCACHE_PREFIX + url);
-export const setSubRules = (url, val) =>
-  setObj(STOKEY_RULESCACHE_PREFIX + url, val);
-
-/**
- * 获取指定订阅源中被用户手动禁用/屏蔽的匹配规则 (Pattern)。
- * @param {string} url 订阅规则的 URL
- * @returns {Promise<Array<string>>} 禁用的规则模式列表
- */
-export const getDisabledSubRules = async (url) => {
-  if (!url) return [];
-  const raw = await getObj(STOKEY_DISABLED_SUB_RULES);
-  if (!raw) return [];
-  if (typeof raw === "object") {
-    const list = raw[url];
-    return Array.isArray(list) ? list : [];
-  }
-  return [];
-};
-
-/**
- * 屏蔽/禁用订阅规则中的特定规则匹配模式。
- * @param {string} url 订阅规则的 URL
- * @param {Array<string>} patterns 屏蔽的规则 pattern 数组
- */
-export const setDisabledSubRules = async (url, patterns) => {
-  if (!url) return;
-  const map = (await getObj(STOKEY_DISABLED_SUB_RULES)) || {};
-  const arr = Array.isArray(patterns) ? [...new Set(patterns)] : [];
-  if (arr.length === 0) {
-    if (map[url]) delete map[url];
-  } else {
-    map[url] = arr;
-  }
-  await setObj(STOKEY_DISABLED_SUB_RULES, map);
-};
-
-/**
- * 解除指定订阅规则源的所有屏蔽配置。
- * @param {string} url 订阅规则的 URL
- */
-export const removeDisabledSubRules = async (url) => {
-  if (!url) return;
-  const raw = await getObj(STOKEY_DISABLED_SUB_RULES);
-  if (!raw || typeof raw !== "object") return;
-  if (raw[url]) {
-    delete raw[url];
-    await setObj(STOKEY_DISABLED_SUB_RULES, raw);
-  }
-};
-
 // --- 交互翻译框 (TranBox UI) 位置与大小存取 ---
 export const getTranBox = () => getObj(STOKEY_TRANBOX);
 export const putTranBox = (obj) => putObj(STOKEY_TRANBOX, obj);
 // 节流处理高频更新的 TranBox 位置写入
 export const debouncePutTranBox = debounce(putTranBox, 300);
-
-// --- 云同步元数据 (Sync Settings & Timestamps) 存取 ---
-export const getSync = () => getObj(STOKEY_SYNC);
-export const getSyncWithDefault = async () => (await getSync()) || DEFAULT_SYNC;
-export const putSync = (obj, options) =>
-  updateSyncState((current) => {
-    if (
-      options?.expectedDestinationRevision !== undefined &&
-      (current.destinationRevision || 0) !== options.expectedDestinationRevision
-    ) {
-      throw new Error("Sync destination changed during the request");
-    }
-    return {
-      ...current,
-      ...obj,
-      ...(obj.syncMeta
-        ? {
-            syncMeta: preserveNewerSyncMeta(current.syncMeta, obj.syncMeta),
-          }
-        : {}),
-    };
-  }, options);
-export const putSyncMeta = (key) => {
-  const updateAt = Date.now();
-  return updateSyncState((current) => ({
-    ...current,
-    syncMeta: {
-      ...current.syncMeta,
-      [key]: {
-        ...current.syncMeta?.[key],
-        updateAt: Math.max(
-          updateAt,
-          (current.syncMeta?.[key]?.updateAt || 0) + 1
-        ),
-      },
-    },
-  }));
-};
-// Keep the legacy name without delaying or discarding another key's metadata.
-export const debounceSyncMeta = putSyncMeta;
-
-// --- 百度云服务授权 Token 存取 ---
-export const getBdauth = () => getObj(STOKEY_BDAUTH);
-export const setBdauth = (val) => setObj(STOKEY_BDAUTH, val);
-
-/**
- * 首次加载或升级时，尝试向本地写入系统默认初始数据。
- * @param {string} uiLang 系统的默认语言设置
- */
-export const tryInitDefaultData = async (uiLang) => {
-  try {
-    await trySetObj(STOKEY_SETTING, { ...DEFAULT_SETTING, uiLang });
-    await trySetObj(STOKEY_RULES, DEFAULT_RULES);
-    await trySetObj(STOKEY_SYNC, DEFAULT_SYNC);
-    await trySetObj(
-      `${STOKEY_RULESCACHE_PREFIX}${process.env.REACT_APP_RULESURL}`,
-      BUILTIN_RULES
-    );
-  } catch (err) {
-    kissLog("init default", err);
-  }
-};

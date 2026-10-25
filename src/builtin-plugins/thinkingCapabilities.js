@@ -43,9 +43,6 @@ const normalizeOpenAIModelName = (model = "") =>
     .toLowerCase()
     .replace(/^openai\//, "");
 
-export const isGPT6Astra = (model = "") =>
-  normalizeOpenAIModelName(model) === "gpt-6-astra";
-
 const getOpenAIThinkingCapability = (model = "") => {
   const normalizedModel = normalizeOpenAIModelName(model);
 
@@ -215,11 +212,3 @@ export const normalizeApiThinkingSettings = (transApis = []) => {
   });
   return hasChanges ? normalizedApis : transApis;
 };
-
-export const isThinkingMinimumFallback = ({ capability, thinkingMode }) =>
-  Boolean(
-    capability &&
-      thinkingMode === "disabled" &&
-      capability.disable === null &&
-      capability.efforts?.length
-  );

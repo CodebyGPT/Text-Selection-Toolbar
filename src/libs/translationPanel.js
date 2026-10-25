@@ -146,7 +146,3 @@ export function showTranslationPanel(text, rect) {
   current = handle;
   handle.render();
 }
-
-export function closeTranslationPanel() {
-  current?.close();
-}

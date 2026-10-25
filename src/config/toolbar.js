@@ -52,5 +52,3 @@ export const TOOLBAR_SEARCH_ENGINES = {
   bing: { name: "Bing", url: "https://www.bing.com/search?q=%s" },
   brave: { name: "Brave", url: "https://search.brave.com/search?q=%s" },
 };
-
-export const TOOLBAR_SCROLL_REPAINT_MODES = ["always", "viewport", "hide"];

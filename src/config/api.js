@@ -48,8 +48,7 @@ export const BUILTIN_STONES = [
   "concise", // 简明风格
 ];
 export const BUILTIN_PLACEHOLDERS = ["{ }", "{{ }}", "[ ]", "[[ ]]"];
-export const BUILTIN_PLACETAGS = ["i", "a", "b", "x", "span"];
-export const PLACETAG_FORMATS = ["compact", "attribute"]; // 占位符格式：简洁格式、属性格式
+export const BUILTIN_PLACETAGS = ["i", "a", "b", "x", "span"]; // 占位符格式：简洁格式、属性格式
 
 export const defaultNobatchPrompt = `You are a professional, authentic machine translation engine.
 If the content to translate is a URL, code, or file path, do not translate it and output it as-is.`;
@@ -102,30 +101,6 @@ Input: {"targetLanguage":"zh-CN","segments":[{"id":1,"text":"A <b>React</b> comp
 Output: {"translations":[{"id":1,"text":"一个<b>React</b>组件","sourceLanguage":"en"}]}
 
 Fail-safe: On any error, return {"translations":[]}.`;
-
-
-// 专家级AI词典系统提示词
-export const defaultDictPrompt = createEnglishDictionaryPrompt({
-  targetLanguage: "Chinese",
-  translationExample: "用于 Web 和原生用户界面的库",
-  labels: {
-    entry: "词条",
-    essentials: "基础形态与音标",
-    pronunciation: "发音标注",
-    meanings: "词性与核心义项",
-    context: "语境精析",
-    contextMeaning: "当前语义锁定",
-    register: "语境色调",
-    replacements: "原句平替词",
-    deepDive: "词源深度解构与辨析",
-    etymology: "词源与记忆锚点",
-    collocations: "高频搭配",
-    synonyms: "同义词微观辨析",
-    examples: "语料库双解例句",
-    translation: "中文翻译",
-    scene: "场景标签",
-  },
-});
 
 function createEnglishDictionaryPrompt({
   targetLanguage,
@@ -187,96 +162,6 @@ Example:
    - 💡 *${labels.translation}*: [accurate, idiomatic ${targetLanguage} translation]
    - 📌 *${labels.scene}*: \`[localized scene label]\``;
 }
-
-export const defaultDictPromptEnJa = createEnglishDictionaryPrompt({
-  targetLanguage: "Japanese",
-  translationExample:
-    "Webおよびネイティブのユーザーインターフェース向けライブラリ",
-  labels: {
-    entry: "見出し語",
-    essentials: "基本情報と発音",
-    pronunciation: "発音",
-    meanings: "品詞と主要な意味",
-    context: "文脈分析",
-    contextMeaning: "文脈上の意味",
-    register: "語調と使用域",
-    replacements: "文脈に合う言い換え",
-    deepDive: "語源・用法・類義語",
-    etymology: "語源と記憶の手がかり",
-    collocations: "頻出コロケーション",
-    synonyms: "類義語の使い分け",
-    examples: "コーパス用例",
-    translation: "日本語訳",
-    scene: "使用場面",
-  },
-});
-
-export const defaultDictPromptEnKo = createEnglishDictionaryPrompt({
-  targetLanguage: "Korean",
-  translationExample: "웹 및 네이티브 사용자 인터페이스용 라이브러리",
-  labels: {
-    entry: "표제어",
-    essentials: "기본 정보와 발음",
-    pronunciation: "발음",
-    meanings: "품사와 핵심 의미",
-    context: "문맥 분석",
-    contextMeaning: "문맥상 의미",
-    register: "어조와 사용역",
-    replacements: "문맥에 맞는 대체어",
-    deepDive: "어원·용법·유의어",
-    etymology: "어원과 기억 단서",
-    collocations: "주요 연어",
-    synonyms: "유의어 뉘앙스 비교",
-    examples: "말뭉치 예문",
-    translation: "한국어 번역",
-    scene: "사용 상황",
-  },
-});
-
-export const defaultDictPromptEnVi = createEnglishDictionaryPrompt({
-  targetLanguage: "Vietnamese",
-  translationExample: "Thư viện dành cho giao diện người dùng web và native",
-  labels: {
-    entry: "Mục từ",
-    essentials: "Thông tin cơ bản và phát âm",
-    pronunciation: "Phát âm",
-    meanings: "Từ loại và nghĩa cốt lõi",
-    context: "Phân tích ngữ cảnh",
-    contextMeaning: "Nghĩa trong ngữ cảnh",
-    register: "Sắc thái và phong cách",
-    replacements: "Từ thay thế phù hợp",
-    deepDive: "Từ nguyên, cách dùng và từ đồng nghĩa",
-    etymology: "Từ nguyên và mẹo ghi nhớ",
-    collocations: "Cụm từ thường gặp",
-    synonyms: "Phân biệt từ đồng nghĩa",
-    examples: "Ví dụ ngữ liệu",
-    translation: "Bản dịch tiếng Việt",
-    scene: "Ngữ cảnh sử dụng",
-  },
-});
-
-export const defaultDictPromptEnRu = createEnglishDictionaryPrompt({
-  targetLanguage: "Russian",
-  translationExample:
-    "Библиотека для веб-интерфейсов и нативных пользовательских интерфейсов",
-  labels: {
-    entry: "Словарная статья",
-    essentials: "Основная информация и произношение",
-    pronunciation: "Произношение",
-    meanings: "Часть речи и основные значения",
-    context: "Контекстный анализ",
-    contextMeaning: "Значение в контексте",
-    register: "Тональность и регистр",
-    replacements: "Контекстные замены",
-    deepDive: "Этимология, употребление и синонимы",
-    etymology: "Этимология и подсказка для запоминания",
-    collocations: "Частотные сочетания",
-    synonyms: "Различия между синонимами",
-    examples: "Корпусные примеры",
-    translation: "Перевод на русский",
-    scene: "Сфера употребления",
-  },
-});
 
 // 专家级AI词典用户提示词
 export const defaultDictUserPrompt = `# Input Data
@@ -353,63 +238,6 @@ export const DEFAULT_API_LIST = OPT_ALL_TRANS_TYPES.map((apiType) =>
     sortOrder: DEFAULT_ENABLED_API_TYPES.has(apiType) ? 0 : 999,
   })
 );
-
-/**
- * 为单个翻译接口补齐模型列表 URL。
- *
- * 这里专门用来兼容旧版本保存的数据：旧数据里没有 `modelListUrl` 字段，
- * 读取到的值会是 `undefined`。如果用户已经显式保存为空字符串，说明用户
- * 选择不配置模型列表接口，不能再用默认值覆盖。
- *
- * @param {object} apiSetting 单个翻译接口配置
- * @returns {object} 补齐后的接口配置；如果无需修改，则返回原对象引用
- */
-export function fillDefaultApiModelListUrl(apiSetting) {
-  if (!apiSetting || typeof apiSetting !== "object") {
-    return apiSetting;
-  }
-  // 只有 undefined 才代表旧数据缺字段；空字符串或自定义 URL 都应原样保留。
-  if (apiSetting.modelListUrl !== undefined) {
-    return apiSetting;
-  }
-
-  // 按接口类型查找内置默认配置，未查到官方模型列表接口时补为空字符串。
-  const defaultApiOpt =
-    DEFAULT_API_LIST.find((item) => item.apiType === apiSetting.apiType) || {};
-  return {
-    ...apiSetting,
-    modelListUrl: defaultApiOpt.modelListUrl || "",
-  };
-}
-
-/**
- * 批量补齐翻译接口列表中的模型列表 URL。
- *
- * 该函数保持不可变更新：只有发现旧数据缺少 `modelListUrl` 时才创建新数组
- * 和新接口对象；没有任何变更时返回原数组引用，方便调用方用引用比较避免
- * 多余的设置写回和 React 重渲染。
- *
- * @param {Array<object>} transApis 翻译接口配置列表
- * @returns {Array<object>} 归一化后的接口配置列表
- */
-export function normalizeApiModelListUrls(transApis = []) {
-  if (!Array.isArray(transApis)) {
-    return transApis;
-  }
-
-  let hasChanges = false;
-  const nextApis = transApis.map((api) => {
-    const nextApi = fillDefaultApiModelListUrl(api);
-    // helper 返回新对象时，说明该 API 是需要补字段的旧数据。
-    if (nextApi !== api) {
-      hasChanges = true;
-    }
-    return nextApi;
-  });
-
-  // 无变更时保留原数组引用，避免触发不必要的持久化更新。
-  return hasChanges ? nextApis : transApis;
-}
 
 export const DEFAULT_API_TYPE = OPT_TRANS_TRANSLATOR_API;
 export const DEFAULT_API_SETTING = DEFAULT_API_LIST.find(

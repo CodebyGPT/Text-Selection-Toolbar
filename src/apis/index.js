@@ -60,23 +60,6 @@ const getTranslationLanguageMatch = ({
 };
 
 /**
- * 跨端/多终端规则与设置数据同步接口。
- * @param {string} url 同步接口的服务器 URL
- * @param {string} key 同步密钥
- * @param {Object} data 待同步的最新设置与规则数据
- * @returns {Promise<Object>} 接口返回的同步判定结果
- */
-
-/**
- * 通用轻量数据拉取函数。
- * @param {string} url 目标 URL
- * @returns {Promise<*>} 拉取的数据内容
- */
-export const apiFetch = (url) => fetchData(url);
-export const apiFetchText = (url) =>
-  fetchData(url, undefined, { expect: "text" });
-
-/**
 
 /**
  * 现代浏览器 (Chrome 127+) 内置 Gemini Nano AI 本地语言识别 API。

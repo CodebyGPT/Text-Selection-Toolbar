@@ -64,11 +64,6 @@ export function isolateShadowHost(host) {
   return host;
 }
 
-export function setShadowHostVisible(host, visible) {
-  if (!host) return;
-  host.style.setProperty("display", visible ? "block" : "none", IMPORTANT);
-}
-
 // The DOM marker also lets a newer injected runtime retire an older host.
 export function disposeShadowHost(host) {
   if (!host) return;

@@ -14,23 +14,13 @@ import { withBuiltinProvider } from "../builtin-plugins";
 export const PROMPT_PROTOCOL_LINE = "line";
 export const PROMPT_PROTOCOL_XML = "xml";
 export const PROMPT_PROTOCOL_JSON = "json";
-export const PROMPT_PROTOCOLS = [
-  PROMPT_PROTOCOL_LINE,
-  PROMPT_PROTOCOL_XML,
-  PROMPT_PROTOCOL_JSON,
-];
 
 // 定义各类预设提示词的唯一标识符 (Slug)
 export const PROMPT_SLUG_NOBATCH_TRANSLATION = "nobatch-translation";
 export const PROMPT_SLUG_NOBATCH_TRANSLATION_CONCISE =
   "nobatch-translation-concise";
 export const PROMPT_SLUG_BATCH_TRANSLATION_JSON = "batch-translation-json";
-export const PROMPT_SLUG_BATCH_TRANSLATION_XML = "batch-translation-xml";
-export const PROMPT_SLUG_BATCH_TRANSLATION_LINE = "batch-translation-line";
 export const PROMPT_SLUG_SUBTITLE_SEGMENTATION = "subtitle-segmentation";
-
-// 提示词应用模式：跟随接口内部配置，或使用全局统一配置
-export const PROMPT_MODE_FOLLOW_API = "follow_api";
 export const PROMPT_MODE_GLOBAL = "global";
 
 // 定义提示词所属的分类，用于在界面和逻辑中进行归类区分
@@ -42,7 +32,6 @@ export const PROMPT_CATEGORY_SUMMARY = "summary prompt";
 // 各类功能默认使用的提示词 Slug，当未配置时作为后备默认值
 export const DEFAULT_NOBATCH_PROMPT_SLUG =
   PROMPT_SLUG_NOBATCH_TRANSLATION_CONCISE;
-export const DEFAULT_BATCH_PROMPT_SLUG = PROMPT_SLUG_BATCH_TRANSLATION_JSON;
 export const DEFAULT_SUBTITLE_PROMPT_SLUG = PROMPT_SLUG_SUBTITLE_SEGMENTATION;
 
 // 配置数据结构的版本号（用于检测并执行数据迁移升级逻辑）
@@ -197,17 +186,6 @@ function findPromptBySlugOrDefault(userPrompts, promptSlug, defaultPromptSlug) {
     findPromptBySlug(userPrompts, promptSlug) ||
     findPromptBySlug(userPrompts, defaultPromptSlug)
   );
-}
-
-/**
- * 获取指定提示词的名称（未进行本地化翻译的原始名称）。
- *
- * @param {Array} userPrompts 用户自定义提示词列表
- * @param {string} promptSlug 提示词标识符
- * @returns {string} 提示词名称，未找到则返回空字符串
- */
-export function getPromptName(userPrompts = [], promptSlug) {
-  return findPromptBySlug(userPrompts, promptSlug)?.name || "";
 }
 
 function hasOwn(source = {}, fieldName) {
@@ -691,94 +669,6 @@ export function migrateSettingToV5(setting = {}) {
   if (getSettingVersion(previous) >= SETTINGS_VERSION_V5) return previous;
   // Document/image translation was removed, so no VLM prompt is injected.
   return { ...previous, version: SETTINGS_VERSION_V5 };
-}
-
-export function removePromptReferences(setting = {}, promptSlug) {
-  if (!promptSlug || isPresetPromptSlug(promptSlug)) {
-    return setting;
-  }
-
-  let hasApiChanges = false;
-
-  const transApis = (
-    Array.isArray(setting?.transApis) ? setting.transApis : []
-  ).map((api) => {
-    let nextApi = api;
-
-    if (hasPromptReference(api, "batchPromptSlug", promptSlug)) {
-      nextApi = {
-        ...nextApi,
-        batchPromptSlug: DEFAULT_BATCH_PROMPT_SLUG,
-      };
-      delete nextApi.systemPrompt;
-      delete nextApi.batchUserPrompt;
-      delete nextApi.batchProtocol;
-      hasApiChanges = true;
-    }
-
-    if (hasPromptReference(api, "nobatchPromptSlug", promptSlug)) {
-      nextApi = {
-        ...nextApi,
-        nobatchPromptSlug: DEFAULT_NOBATCH_PROMPT_SLUG,
-      };
-      delete nextApi.nobatchPrompt;
-      delete nextApi.nobatchUserPrompt;
-      hasApiChanges = true;
-    }
-
-    if (hasPromptReference(api, "subtitlePromptSlug", promptSlug)) {
-      nextApi = {
-        ...nextApi,
-        subtitlePromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
-      };
-      delete nextApi.subtitlePrompt;
-      hasApiChanges = true;
-    }
-
-    return nextApi;
-  });
-
-  const hasSubtitlePromptReference = hasPromptReference(
-    setting?.subtitleSetting,
-    "segPromptSlug",
-    promptSlug
-  );
-  const hasTranboxPromptReference = hasPromptReference(
-    setting?.tranboxSetting,
-    "promptSlug",
-    promptSlug
-  );
-
-  if (
-    !hasApiChanges &&
-    !hasSubtitlePromptReference &&
-    !hasTranboxPromptReference
-  ) {
-    return setting;
-  }
-
-  const nextSetting = { ...setting };
-
-  if (hasApiChanges) {
-    nextSetting.transApis = transApis;
-  }
-
-  if (hasSubtitlePromptReference) {
-    nextSetting.subtitleSetting = {
-      ...(setting?.subtitleSetting || {}),
-      segPromptMode: PROMPT_MODE_FOLLOW_API,
-      segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
-    };
-  }
-
-  if (hasTranboxPromptReference) {
-    nextSetting.tranboxSetting = {
-      ...(nextSetting.tranboxSetting || setting?.tranboxSetting || {}),
-      promptSlug: "",
-    };
-  }
-
-  return nextSetting;
 }
 
 /**

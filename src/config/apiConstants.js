@@ -2,15 +2,7 @@
 // --- 基础请求控制参数 ---
 export const DEFAULT_HTTP_TIMEOUT = 30; // 调用超时时间 (单位：秒)
 export const DEFAULT_FETCH_LIMIT = 10; // 默认最大并行请求/任务数量
-export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间 (单位：毫秒)
-export const DEFAULT_BATCH_INTERVAL = 400; // 批处理合并请求的等待延迟时间 (单位：毫秒)
-export const DEFAULT_BATCH_SIZE = 20; // 每次翻译请求最多合并发送的 DOM 段落数量
-export const DEFAULT_BATCH_LENGTH = 10000; // 每次翻译请求发送的最大字符数限制
-export const DEFAULT_BATCH_CONCURRENCY = 10; // 同时执行的聚合批次数量
-export const DEFAULT_CONTEXT_SIZE = 3; // AI 翻译时上下文历史条数上限，按完整 user/assistant 轮次向下取整保留
-
-// --- 翻译内容替换占位符 ---
-export const INPUT_PLACE_URL = "{{url}}"; // 当前网页 URL 占位符
+export const DEFAULT_FETCH_INTERVAL = 100; // 当前网页 URL 占位符
 export const INPUT_PLACE_FROM = "{{from}}"; // 源语言占位符
 export const INPUT_PLACE_TO = "{{to}}"; // 目标语言占位符
 export const INPUT_PLACE_FROM_LANG = "{{fromLang}}"; // 源语言代码占位符
@@ -20,24 +12,9 @@ export const INPUT_PLACE_TONE = "{{tone}}"; // 翻译风格/语气占位符 (例
 export const INPUT_PLACE_TITLE = "{{title}}"; // 页面标题占位符
 export const INPUT_PLACE_DESCRIPTION = "{{description}}"; // 页面描述(Description)占位符
 export const INPUT_PLACE_SUMMARY = "{{summary}}"; // 页面摘要(Summary)占位符
-export const INPUT_PLACE_CONTEXT = "{{context}}"; // 当前选中文本所在上下文占位符
-export const INPUT_PLACE_KEY = "{{key}}"; // API Key 占位符
-export const INPUT_PLACE_MODEL = "{{model}}"; // AI 模型名称占位符
+export const INPUT_PLACE_CONTEXT = "{{context}}"; // AI 模型名称占位符
 export const INPUT_PLACE_GLOSSARY = "{{glossary}}"; // 专业术语表占位符
-export const INPUT_PLACE_SEGMENTS = "{{segments}}"; // 聚合翻译文本片段占位符
-
-// --- 划词翻译词典服务商 ---
-// export const OPT_DICT_BAIDU = "Baidu";
-export const OPT_DICT_BING = "Bing"; // 必应词典
-export const OPT_DICT_YOUDAO = "Youdao"; // 有道词典
-export const OPT_DICT_ALL = [OPT_DICT_BING, OPT_DICT_YOUDAO];
-export const OPT_DICT_MAP = new Set(OPT_DICT_ALL);
-
-// --- 划词翻译输入联想建议服务商 ---
-export const OPT_SUG_BAIDU = "Baidu"; // 百度搜索建议
-export const OPT_SUG_YOUDAO = "Youdao"; // 有道输入建议
-export const OPT_SUG_ALL = [OPT_SUG_BAIDU, OPT_SUG_YOUDAO];
-export const OPT_SUG_MAP = new Set(OPT_SUG_ALL);
+export const INPUT_PLACE_SEGMENTS = "{{segments}}";
 
 // --- 翻译服务提供商标识常量（仅保留本地/自托管接口）---
 export const OPT_TRANS_TRANSLATOR_API = "TranslatorAPI"; // 浏览器内置翻译 API

@@ -125,26 +125,6 @@ function detectLatinVariant(text, latinCount) {
   return bestScore >= 2 ? best : "";
 }
 
-/**
- * 将中文简体/繁体归一为统一前缀 "zh"，用于判定时忽略简繁差异。
- * @param {string} lang 语言代码
- * @returns {string} 归一化后的语言代码
- */
-export const normalizeZhLang = (lang) => {
-  if (typeof lang !== "string" || !lang) return "";
-  return /^zh(-|$)/i.test(lang) ? "zh" : lang;
-};
-
-/**
- * 判断文本是否为纯数字内容 (允许空白与常见分隔符)。
- * @param {string} text 待检测文本
- * @returns {boolean} 是否纯数字
- */
-export const isPureNumberText = (text) => {
-  if (typeof text !== "string" || !text.trim()) return false;
-  return /^[\d\s.,，、\-/:：%]+$/.test(text.trim()) && /\d/.test(text);
-};
-
 function setCache(key, value) {
   if (detectCache.size >= DETECT_CACHE_LIMIT) {
     const oldestKey = detectCache.keys().next().value;
@@ -152,47 +132,3 @@ function setCache(key, value) {
   }
   detectCache.set(key, value);
 }
-
-/**
- * 供划词翻译拦截使用的轻量本地语言检测：
- * 先做字符集同步快判，失败后再尝试浏览器 i18n API (带超时与缓存)。
- * 任何异常/超时均返回空字符串，由调用方走默认行为，保证不误杀。
- * @param {string} text 待检测文本
- * @returns {Promise<string>} 语言代码，失败时返回 ""
- */
-export const detectLangFast = async (text) => {
-  if (typeof text !== "string" || !text.trim()) return "";
-
-  const key =
-    text.length <= MAX_DETECT_TEXT_LEN
-      ? text
-      : text.slice(0, MAX_DETECT_TEXT_LEN);
-  if (detectCache.has(key)) return detectCache.get(key);
-
-  const sample = text.slice(0, MAX_DETECT_TEXT_LEN);
-  let lang = quickDetectLang(sample);
-
-  if (!lang) {
-    try {
-      const res = await Promise.race([
-        Promise.resolve(browser?.i18n?.detectLanguage?.(sample)),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("detect timeout")), DETECT_TIMEOUT)
-        ),
-      ]);
-      const detected = res?.languages?.[0]?.language;
-      const normalizedLang = normalizeLanguageCode(detected);
-      if (
-        normalizedLang &&
-        (res?.isReliable || /^zh(?:[-_]|$)/i.test(detected))
-      ) {
-        lang = normalizedLang;
-      }
-    } catch (err) {
-      kissLog("detect lang fast", err);
-    }
-  }
-
-  setCache(key, lang || "");
-  return lang || "";
-};

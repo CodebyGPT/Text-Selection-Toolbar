@@ -41,18 +41,6 @@ export function useReleaseOnGripHidden(gripStyle, releaseHeight) {
 // 只存在于当前页面会话（不写 localStorage/sessionStorage），组件重挂载后自动恢复。
 const sessionHeightMap = new Map();
 
-// 测试专用：清空会话高度记忆（模块级 Map 会跨用例存活，测试文件用它
-// 隔离用例；生产代码不引用）。
-export function __resetSessionHeightMapForTests() {
-  sessionHeightMap.clear();
-}
-
-// 测试专用：只读暴露会话高度记忆，供断言「按 key 隔离写入口径」（如多
-// 实例键改写互不串扰）；生产代码不引用。
-export function __getSessionHeightMapForTests() {
-  return sessionHeightMap;
-}
-
 // 挂载后实测的视口钳制上限：基线元素（textarea 所属 MuiInputBase root）
 // getBoundingClientRect().top 与视口安全留白，与手柄 clampHeight 的视口
 // 分支同口径；基线元素不可测或读数非有限时返回 null（调用方跳过重钳）。

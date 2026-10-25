@@ -14,7 +14,6 @@ const MESSAGES = {
   preset: ["预设", "Preset", "Пресет"],
   custom: ["自定义", "Custom", "Свой"],
   external: ["外部", "External", "Внешний"],
-  externalSuffix: ["（外部）", " (External)", " (Внешний)"],
   expandCollapse: ["展开/收起", "Expand/Collapse", "Развернуть/Свернуть"],
   reset: ["重置", "Reset", "Сбросить"],
   delete: ["删除", "Delete", "Удалить"],

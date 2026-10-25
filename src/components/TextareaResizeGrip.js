@@ -314,19 +314,6 @@ export function resolveGripStyle(variant) {
 }
 
 /**
- * 注册表 key 序列的只读访问器：返回 Object.keys(GRIP_SVGS) 的新副本。
- * 供测试侧与 TEXTAREA_GRIP_STYLE_KEYS 做反向对账（注册表侧增/删/改名/
- * 调序失配皆可判红）；只暴露键名，不导出注册表原始数据（SVG 资产），
- * 维持本模块既有「不导出注册表原始数据」契约。每次调用返回新数组，
- * 调用方无法经返回值改动注册表。
- *
- * @returns {string[]} 注册表 key 的有序序列（插入序，含 hidden）。
- */
-export function getGripRegistryKeys() {
-  return Object.keys(GRIP_SVGS);
-}
-
-/**
  * 手柄样式 key 的规范顺序清单（与 Object.keys(GRIP_SVGS) 有序恒等，
  * 含 hidden）。单一事实源在 src/config/textareaGripStyles.js（零 React
  * 依赖，供 config/视图层测试脱离组件运行时派生对账）；此处仅转发导出
@@ -336,36 +323,6 @@ export function getGripRegistryKeys() {
  * 守护共同锁定。
  */
 export { TEXTAREA_GRIP_STYLE_KEYS } from "../config/textareaGripStyles";
-
-/**
- * 纯展示手柄图形：复用 GRIP_SVGS 注册表与 svg 壳形态（width/height/
- * viewBox/fill/aria-hidden），供下拉选项等静态场景内嵌图标。无状态、
- * 无交互、aria-hidden。未知 key 回落 "concentric-smooth"（与组件渲染
- * 回落口径一致）；hidden 渲染空 svg 占位（与手柄 hidden 语义对齐）。
- * 仅导出本组件，不导出注册表原始数据。
- *
- * @param {Object} props
- * @param {string} props.variant 手柄样式 key（见 GRIP_SVGS）。
- * @param {number} [props.size] 渲染尺寸，缺省 18（viewBox 恒为 18×18）。
- * @returns {JSX.Element}
- */
-export function GripGlyph({ variant, size = 18 }) {
-  // 查表统一经 resolveGripStyle 的自有属性判定：真值查表会被
-  // Object.prototype 键名（"constructor"/"toString"）穿透。
-  const grip = GRIP_SVGS[resolveGripStyle(variant)];
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 18 18"
-      fill={grip.fill}
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      {grip.content}
-    </svg>
-  );
-}
 
 // 视觉为两条同心圆弧的内联 SVG（18×18 viewBox，外弧半径 6px、内弧半径
 // 3px，层间恒定 3px 同心间距，stroke-width 1.8、round 端点）：弧线曲率
