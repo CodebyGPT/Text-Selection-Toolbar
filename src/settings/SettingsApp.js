@@ -923,6 +923,7 @@ function MenuManagementSection({ value, patch, hasBlockRules }) {
                 ? t("blockMenuWarning")
                 : null
             }
+            help={id === "block" ? t("menuBlockHelp") : null}
           >
             <div className="kiss-st-inline">
               {toggleKey && (
@@ -1000,7 +1001,7 @@ function ToolbarTab({ setting, update }) {
   return (
     <>
       <Section title={t("toolbarAppearance")}>
-        <Row label={t("offset")}>
+        <Row label={t("offset")} help={t("offsetHelp")}>
           <NumberInput
             value={value.offset}
             min={0}
@@ -1080,7 +1081,7 @@ function ToolbarTab({ setting, update }) {
             onChange={(v) => patch({ enableHiddenLinks: v })}
           />
         </Row>
-        <Row label={t("smartPaste")}>
+        <Row label={t("smartPaste")} help={t("smartPasteHelp")}>
           <Toggle
             value={value.enablePaste}
             onChange={(v) => patch({ enablePaste: v })}
@@ -1116,6 +1117,7 @@ function ToolbarTab({ setting, update }) {
         <Row label={t("unlockHotkey")} help={t("unlockHotkeyHelp")}>
           <TextInput
             value={value.unlockHotkey}
+            placeholder={t("unlockHotkeyPlaceholder")}
             onChange={(v) => patch({ unlockHotkey: v })}
           />
         </Row>

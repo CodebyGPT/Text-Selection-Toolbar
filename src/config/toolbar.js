@@ -12,7 +12,7 @@ export const DEFAULT_TOOLBAR_SETTING = {
   forceWhiteBlack: true,
   searchEngine: "baidu",
   searchEngines: [],
-  enableHiddenLinks: false,
+  enableHiddenLinks: true,
   unlockHotkey: "ControlLeft",
   enablePaste: true,
   showPastePreview: false,

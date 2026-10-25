@@ -418,12 +418,12 @@ export const I18N = {
     en: `Interface Default`
   },
   preset_prompt_nobatch_translation_concise: {
-    zh: `单句翻译 (Concise)`,
-    en: `Single-sentence translation (Concise)`
+    zh: `Concise`,
+    en: `Concise`
   },
   preset_prompt_nobatch_translation: {
-    zh: `单句翻译 (Legacy)`,
-    en: `Single-sentence translation (Legacy)`
+    zh: `Legacy`,
+    en: `Legacy`
   },
   preset_prompt_batch_translation_json: {
     zh: `聚合翻译（JSON）`,
