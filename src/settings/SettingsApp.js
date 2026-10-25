@@ -1515,7 +1515,7 @@ export default function SettingsApp({ initialPath = "/", onClose }) {
           {meta.icon && (
             <img className="kiss-st-logo" src={meta.icon} alt="" />
           )}
-          <h1>{meta.name}</h1>
+          <h1>{t("appTitle")}</h1>
           <button
             className="kiss-st-close"
             type="button"

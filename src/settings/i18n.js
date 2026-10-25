@@ -5,6 +5,7 @@ import { resolveUiLang } from "../config/i18n";
  * Components call `t("key")`; no post-render DOM translation is used.
  */
 const MESSAGES = {
+  appTitle: ["划词工具栏", "Text Selection Toolbar", "Панель выделения текста"],
   tabGeneral: ["通用", "General", "Общие"],
   tabTranslation: ["翻译", "Translation", "Перевод"],
   tabAbout: ["关于", "About", "О программе"],
