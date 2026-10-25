@@ -115,8 +115,8 @@ const MESSAGES = {
   displayTime: ["停留时长 (ms)", "Display time (ms)", "Время показа (мс)"],
   neverAutoHide: ["0 表示不自动消失", "0 = never auto-hide", "0 = не скрывать автоматически"],
   buttonLayout: ["按钮布局", "Button layout", "Раскладка кнопок"],
-  horizontalCapsule: ["横排胶囊", "Horizontal capsule", "Горизонтальная капсула"],
-  verticalMenu: ["竖向菜单", "Vertical menu", "Вертикальное меню"],
+  horizontalCapsule: ["横向胶囊", "Horizontal capsule", "Горизонтальная капсула"],
+  verticalMenu: ["纵向菜单", "Vertical menu", "Вертикальное меню"],
   onScroll: [
     "当页面滚动或尺寸变化时",
     "When the page scrolls or resizes",
