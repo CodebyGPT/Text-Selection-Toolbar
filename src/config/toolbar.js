@@ -23,14 +23,12 @@ export const DEFAULT_TOOLBAR_SETTING = {
   enableTranslate: true,
   translateHideThreshold: 15,
   showBlockMenu: true,
-  showEditMenu: true,
   showTranslateMenu: true,
-  menuOrder: ["translate", "edit", "block", "settings"],
+  menuOrder: ["translate", "block", "settings"],
 };
 
 export const TOOLBAR_MENU_ORDER_DEFAULT = [
   "translate",
-  "edit",
   "block",
   "settings",
 ];

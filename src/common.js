@@ -9,7 +9,6 @@ import { invokeExternalApi } from "./libs/externalTranslate";
 import {
   installToolbar,
   showToolbarToast,
-  toggleEditPageMenu,
   activateHideElementsMenu,
   clearPageBlockRulesMenu,
   waitForToolbarReady,
@@ -140,11 +139,6 @@ function registerMenus(setting) {
       label: i18n("menu_translate_panel", "翻译面板"),
       enabled: toolbarSetting.showTranslateMenu !== false,
       action: openTranslatePanel,
-    },
-    edit: {
-      label: i18n("menu_edit_page", "编辑网页"),
-      enabled: toolbarSetting.showEditMenu !== false,
-      action: toggleEditPageMenu,
     },
     block: {
       label: i18n("menu_hide_elements", "隐藏网页元素"),

@@ -366,10 +366,6 @@ function toggleUnlockMode(active) {
 
 // Keyboard listener
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isEditMode) {
-        toggleEditMode(false);
-        return;
-    }
     const hotkey = getConfig('unlockHotkey');
     if (!hotkey) return;
     if (e.code === hotkey || e.key === hotkey) {

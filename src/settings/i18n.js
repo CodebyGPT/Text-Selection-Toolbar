@@ -100,7 +100,6 @@ const MESSAGES = {
 
   menuManagement: ["菜单管理", "Menu Management", "Управление меню"],
   menuTranslate: ["翻译面板", "Translation Panel", "Панель перевода"],
-  menuEdit: ["编辑网页", "Edit Page", "Редактировать страницу"],
   menuBlock: ["隐藏网页元素", "Hide Page Elements", "Скрыть элементы страницы"],
   menuSettings: ["脚本设置", "Script Settings", "Настройки скрипта"],
   blockMenuWarning: [

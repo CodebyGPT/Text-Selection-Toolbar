@@ -419,58 +419,8 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         applyButtonLabel(btn, t('btn_paste'), title);
     };
 
-    // Mode: Edit mode
-    if (isEditMode) {
-        // 1. Delete button
-        const delBtn = document.createElement('div');
-        delBtn.className = 'sc-btn';
-        delBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
-        applyButtonLabel(delBtn, t('btn_delete'));
-        delBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
-        delBtn.onclick = (e) => {
-            e.stopPropagation();
-            document.execCommand('delete');
-            hideUI();
-        };
-        container.appendChild(delBtn);
-
-        const div1 = document.createElement('div');
-        div1.className = isCol ? 'divider divider-h' : 'divider divider-v';
-        container.appendChild(div1);
-
-        // 2. Bold button
-        const boldBtn = document.createElement('div');
-        boldBtn.className = 'sc-btn';
-        boldBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path></svg>`;
-        applyButtonLabel(boldBtn, t('btn_bold'));
-        boldBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
-        boldBtn.onclick = (e) => {
-            e.stopPropagation();
-            document.execCommand('bold');
-        };
-        container.appendChild(boldBtn);
-
-        const div2 = document.createElement('div');
-        div2.className = isCol ? 'divider divider-h' : 'divider divider-v';
-        container.appendChild(div2);
-
-        // 3. Highlight button
-        const highlightBtn = document.createElement('div');
-        highlightBtn.className = 'sc-btn';
-        highlightBtn.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 44L6 25H12V17H36V25H42V44H6Z" fill="none" stroke="#000000" stroke-width="4" stroke-linejoin="bevel"/><path d="M17 17V8L31 4V17" stroke="#000000" stroke-width="4" stroke-linecap="round" stroke-linejoin="bevel"/></svg>`;
-        applyButtonLabel(highlightBtn, t('btn_highlight'));
-        highlightBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
-        highlightBtn.onclick = (e) => {
-            e.stopPropagation();
-            if (!document.execCommand('hiliteColor', false, 'yellow')) {
-                document.execCommand('backColor', false, 'yellow');
-            }
-            hideUI();
-        };
-        container.appendChild(highlightBtn);
-    }
     // Mode A: Default mode
-    else if (mode === 'default' || mode === PASTE_MODE_THREE_BTNS) {
+    if (mode === 'default' || mode === PASTE_MODE_THREE_BTNS) {
         // 1. Copy button
         const copyBtn = document.createElement('div');
         copyBtn.className = 'sc-btn';
@@ -498,7 +448,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         const isInInput = targetInput !== null;
 
         // 2. Cut button (only show in editable fields)
-        if (isInInput && !isEditMode) {
+        if (isInInput) {
             const div = document.createElement('div');
             div.className = isCol ? 'divider divider-h' : 'divider divider-v';
             container.appendChild(div);
@@ -550,7 +500,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             container.appendChild(delBtn);
         }
         // Search button (only show outside input fields with short texts)
-        else if (!isInInput && !isEditMode && text.trim().length <= 32) {
+        else if (!isInInput && text.trim().length <= 32) {
             const div = document.createElement('div');
             div.className = isCol ? 'divider divider-h' : 'divider divider-v';
             container.appendChild(div);
@@ -607,8 +557,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         const activeEl = document.activeElement;
         const isUserEditing = activeEl && (
             (['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && !activeEl.readOnly) ||
-            activeEl.isContentEditable ||
-            document.designMode === 'on'
+            activeEl.isContentEditable
         );
         if (!isUserEditing && !targetInput && mode !== PASTE_MODE_THREE_BTNS) {
             // 1. Check email first (higher priority than links)

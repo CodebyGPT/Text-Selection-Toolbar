@@ -887,14 +887,12 @@ function SearchEngineRow({ engine, index, onChange, onRemove }) {
 
 const TOOLBAR_MENU_LABELS = {
   translate: "menuTranslate",
-  edit: "menuEdit",
   block: "menuBlock",
   settings: "menuSettings",
 };
 
 const TOOLBAR_MENU_TOGGLES = {
   translate: "showTranslateMenu",
-  edit: "showEditMenu",
   block: "showBlockMenu",
 };
 

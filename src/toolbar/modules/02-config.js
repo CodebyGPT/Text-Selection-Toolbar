@@ -21,7 +21,6 @@ const DEFAULT_CONFIG = {
     // Sensitivity for the language-match gate: 15 / 35 / 55 / 75 (%).
     translateHideThreshold: 15,
     showBlockMenu: true,   // show the "hide page elements" menu entry
-    showEditMenu: true,    // show the "edit page" menu entry
     showTranslateMenu: true,
 };
 

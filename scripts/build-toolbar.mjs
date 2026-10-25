@@ -48,7 +48,6 @@ ${body}
   return {
     showToast,
     ready: toolbarReady,
-    toggleEditModeMenu: () => toggleEditMode(!isEditMode),
     activateElementPicker,
     clearPageBlockRules,
   };

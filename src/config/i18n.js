@@ -1845,10 +1845,6 @@ export const I18N = {
     zh: `翻译面板`,
     en: `Translation Panel`
   },
-  menu_edit_page: {
-    zh: `编辑网页`,
-    en: `Edit Page`
-  },
   menu_hide_elements: {
     zh: `隐藏网页元素`,
     en: `Hide Page Elements`

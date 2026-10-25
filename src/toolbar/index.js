@@ -76,10 +76,6 @@ export function showToolbarToast(message, duration) {
   return true;
 }
 
-export function toggleEditPageMenu() {
-  return toolbarApi?.toggleEditModeMenu?.();
-}
-
 export function activateHideElementsMenu() {
   return toolbarApi?.activateElementPicker?.();
 }

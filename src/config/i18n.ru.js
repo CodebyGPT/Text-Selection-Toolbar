@@ -420,7 +420,6 @@ export const RU_I18N = {
   open_menu: `Открыть настройки перевода`,
   open_setting: `Открыть настройки скрипта`,
   menu_translate_panel: `Панель перевода`,
-  menu_edit_page: `Редактировать страницу`,
   menu_hide_elements: `Скрыть элементы страницы`,
   menu_clear_hidden_rules: `Очистить правила скрытия на этой странице`,
   menu_script_settings: `Настройки скрипта`,
