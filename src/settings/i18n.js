@@ -206,7 +206,7 @@ const MESSAGES = {
   followSelection: ["跟随选区", "Follow selection", "Следовать за выделением"],
   autoDetect: ["自动检测", "Auto detect", "Автоопределение"],
 
-  promptManagement: ["提示词管理", "Prompt management", "Управление промптами"],
+  promptManagement: ["翻译提示词", "Translation prompts", "Промпты перевода"],
   addCustomPrompt: ["+ 添加自定义提示词", "+ Add custom prompt", "+ Добавить промпт"],
   customPromptName: ["自定义提示词 {n}", "Custom prompt {n}", "Свой промпт {n}"],
   systemPrompt: ["系统提示词", "System prompt", "Системный промпт"],

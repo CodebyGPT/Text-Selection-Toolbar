@@ -42,10 +42,6 @@ export const I18N = {
     zh: `接口设置`,
     en: `Apis Setting`
   },
-  prompt_management: {
-    zh: `提示词管理`,
-    en: `Prompt Management`
-  },
   sync_setting: {
     zh: `同步设置`,
     en: `Sync Setting`

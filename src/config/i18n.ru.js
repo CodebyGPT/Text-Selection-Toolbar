@@ -99,7 +99,6 @@ export const RU_I18N = {
   basic_setting: `Основные настройки`,
   rules_setting: `Настройка правил`,
   apis_setting: `Настройка интерфейсов`,
-  prompt_management: `Управление промптами`,
   sync_setting: `Синхронизация`,
   patch_setting: `Настройка патчей`,
   patch_setting_help: `Исправляющие скрипты для отдельных сайтов, чтобы перевод отображался корректнее.`,

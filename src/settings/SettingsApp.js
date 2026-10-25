@@ -1289,17 +1289,16 @@ function PromptRow({ prompt, isPreset, dirty, onPatch, onReset, onDelete }) {
         <span className="kiss-st-spacer" />
         <span className="kiss-st-chev">{t("expandCollapse")}</span>
         {isPreset ? (
-          dirty && (
-            <button
-              className="kiss-st-btn"
-              onClick={(event) => {
-                event.stopPropagation();
-                onReset();
-              }}
-            >
-              {t("reset")}
-            </button>
-          )
+          <button
+            className="kiss-st-btn kiss-st-btn--danger"
+            disabled={!dirty}
+            onClick={(event) => {
+              event.stopPropagation();
+              onReset();
+            }}
+          >
+            {t("reset")}
+          </button>
         ) : (
           <button
             className="kiss-st-btn kiss-st-btn--danger"
