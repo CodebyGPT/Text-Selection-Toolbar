@@ -885,6 +885,18 @@ function SearchEngineRow({ engine, index, onChange, onRemove }) {
   );
 }
 
+// Keys the super-selection hotkey can listen for; codes keep left and right apart.
+const UNLOCK_HOTKEY_OPTIONS = [
+  ["ControlLeft", "hotkeyCtrlLeft"],
+  ["ControlRight", "hotkeyCtrlRight"],
+  ["AltLeft", "hotkeyAltLeft"],
+  ["AltRight", "hotkeyAltRight"],
+  ["ShiftLeft", "hotkeyShiftLeft"],
+  ["ShiftRight", "hotkeyShiftRight"],
+  ["MetaLeft", "hotkeyMetaLeft"],
+  ["MetaRight", "hotkeyMetaRight"],
+];
+
 const TOOLBAR_MENU_LABELS = {
   translate: "menuTranslate",
   block: "menuBlock",
@@ -1115,10 +1127,20 @@ function ToolbarTab({ setting, update }) {
           />
         </Row>
         <Row label={t("unlockHotkey")} help={t("unlockHotkeyHelp")}>
-          <TextInput
-            value={value.unlockHotkey}
-            placeholder={t("unlockHotkeyPlaceholder")}
+          <Select
+            value={value.unlockHotkey ?? ""}
             onChange={(v) => patch({ unlockHotkey: v })}
+            options={[
+              ...UNLOCK_HOTKEY_OPTIONS.map(([code, key]) => [code, t(key)]),
+              // Keep a hand-typed value from an older build selectable.
+              ...(value.unlockHotkey &&
+              !UNLOCK_HOTKEY_OPTIONS.some(
+                ([code]) => code === value.unlockHotkey
+              )
+                ? [[value.unlockHotkey, value.unlockHotkey]]
+                : []),
+              ["", t("hotkeyDisabled")],
+            ]}
           />
         </Row>
       </Section>
