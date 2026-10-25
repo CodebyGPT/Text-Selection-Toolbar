@@ -298,10 +298,6 @@ export const SETTINGS_APP_CSS = String.raw`
   font-size: 12px;
   color: var(--st-muted);
 }
-:host .kiss-st-badge--warn {
-  color: #e8a33d;
-  border-color: #e8a33d;
-}
 :host .kiss-st-badge {
   padding: 2px 8px;
   border-radius: 999px;

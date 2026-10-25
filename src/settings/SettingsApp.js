@@ -1266,7 +1266,7 @@ function PanelTab({ setting, update }) {
   );
 }
 
-function PromptRow({ prompt, isPreset, dirty, onPatch, onReset, onDelete }) {
+function PromptRow({ prompt, isPreset, onPatch, onReset, onDelete }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -1285,13 +1285,11 @@ function PromptRow({ prompt, isPreset, dirty, onPatch, onReset, onDelete }) {
       >
         <strong>{prompt.name || prompt.slug}</strong>
         {isPreset && <span className="kiss-st-badge">{t("preset")}</span>}
-        {dirty && <span className="kiss-st-badge kiss-st-badge--warn">{t("modified")}</span>}
         <span className="kiss-st-spacer" />
         <span className="kiss-st-chev">{t("expandCollapse")}</span>
         {isPreset ? (
           <button
             className="kiss-st-btn kiss-st-btn--danger"
-            disabled={!dirty}
             onClick={(event) => {
               event.stopPropagation();
               onReset();
@@ -1404,7 +1402,6 @@ function PromptsSection({ setting, update }) {
           <PromptRow
             key={preset.slug}
             isPreset
-            dirty={Boolean(override)}
             prompt={{ ...preset, ...(override || {}) }}
             onPatch={(changes) => upsert(preset, changes)}
             onReset={() => resetPreset(preset.slug)}

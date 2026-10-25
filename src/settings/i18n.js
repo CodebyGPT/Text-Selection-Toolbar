@@ -18,7 +18,6 @@ const MESSAGES = {
   reset: ["重置", "Reset", "Сбросить"],
   delete: ["删除", "Delete", "Удалить"],
   name: ["名称", "Name", "Название"],
-  modified: ["已修改", "Modified", "Изменено"],
 
   testLoading: ["测试中…", "Testing…", "Проверка…"],
   testApi: ["测试接口", "Test API", "Проверить API"],
