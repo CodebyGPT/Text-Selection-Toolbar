@@ -427,43 +427,31 @@ const visibleStyle = {
   assert.deepStrictEqual(messages, []);
 }
 
-// Scheme header and trailing slash are noise, not a mismatch.
-{
-  messages.length = 0;
-  const selection = makeSelection("baidu.com");
-  ctx.handleSafeCopyCheck(
-    makeEvent({ clipboard: "https://baidu.com/", selection }).event
-  );
-  assert.deepStrictEqual(messages, []);
-}
-
-// The page repointed a copied URL to another site.
+// The copy path only reports altered/hidden content. Link consistency lives
+// in the right-click check, so a rewritten URL is an "altered" warning here.
 {
   messages.length = 0;
   const selection = makeSelection("https://shop.example.com/item");
   ctx.handleSafeCopyCheck(
     makeEvent({ clipboard: "https://shop.example.com.evil.top/item", selection }).event
   );
-  assert.deepStrictEqual(messages, ["toast_copy_link"]);
+  assert.deepStrictEqual(messages, ["toast_copy_altered"]);
 }
 
-// A typo'd scheme on the copied link is still the same link.
 {
   messages.length = 0;
   const selection = makeSelection("baidu.com");
   ctx.handleSafeCopyCheck(
-    makeEvent({ clipboard: "htps://baidu.com/", selection }).event
+    makeEvent({ clipboard: "https://baidu.com/", selection }).event
   );
-  assert.deepStrictEqual(messages, []);
+  assert.deepStrictEqual(messages, ["toast_copy_altered"]);
 }
 
-// Version- and filename-looking text is not a link.
+// Version- and filename-looking labels are not links for the right-click check.
 {
   messages.length = 0;
-  const selection = makeSelection("v1.2.3");
-  ctx.handleSafeCopyCheck(
-    makeEvent({ clipboard: "v1.2.3", selection }).event
-  );
+  const anchor = makeAnchor({ href: "https://evil.example/", text: "v1.2.3" });
+  ctx.handleSafeCopyContextMenu(makeContextMenuEvent(anchor));
   assert.deepStrictEqual(messages, []);
 }
 
@@ -473,10 +461,7 @@ const visibleStyle = {
     href: "https://files.example.com/readme.txt",
     text: "readme.txt",
   });
-  const selection = makeSelection("readme.txt", [anchor]);
-  ctx.handleSafeCopyCheck(
-    makeEvent({ clipboard: "readme.txt", selection }).event
-  );
+  ctx.handleSafeCopyContextMenu(makeContextMenuEvent(anchor));
   assert.deepStrictEqual(messages, []);
 }
 
@@ -554,7 +539,8 @@ const visibleStyle = {
   assert.deepStrictEqual(messages, []);
 }
 
-// Copy-time comparison honors the full-link scope too.
+// The scope setting never changes copy-time warnings: copying a rewritten
+// URL is still an "altered" warning, not a link warning.
 {
   messages.length = 0;
   linkScope = "full";
@@ -562,7 +548,7 @@ const visibleStyle = {
   ctx.handleSafeCopyCheck(
     makeEvent({ clipboard: "https://a.example.com/y", selection }).event
   );
-  assert.deepStrictEqual(messages, ["toast_copy_link"]);
+  assert.deepStrictEqual(messages, ["toast_copy_altered"]);
   linkScope = "domain";
 }
 
@@ -589,32 +575,6 @@ const visibleStyle = {
   assert.strictEqual(
     findByClass(host.shadowRoot, "sc-guard-body").textContent,
     "LINKBODY:https://www.bank.example/login|https://login.bank.example.secure-verify.top/account"
-  );
-  alarmEnabled = false;
-}
-
-// The strong reminder for a link mismatch names the actual destination.
-{
-  messages.length = 0;
-  alarmEnabled = true;
-  const doc = makeFakeDocument();
-  const linkCtx = load(doc, { value: 1000 }, { next: 1, timers: new Map() });
-  const selection = makeSelection("https://baidu.com/");
-  linkCtx.handleSafeCopyCheck(
-    makeEvent({ clipboard: "https://evil.example/", selection }).event
-  );
-  assert.deepStrictEqual(messages, ["toast_copy_link"]);
-  const host = doc.documentElement.children.find(
-    (child) => child.id === "tm-safe-copy-alarm-host"
-  );
-  assert.ok(host);
-  assert.strictEqual(
-    findByClass(host.shadowRoot, "sc-guard-title").textContent,
-    "alarm_title_link"
-  );
-  assert.strictEqual(
-    findByClass(host.shadowRoot, "sc-guard-body").textContent,
-    "LINKBODY:https://baidu.com/|https://evil.example/"
   );
   alarmEnabled = false;
 }

@@ -5,7 +5,8 @@
 // any clipboard write: outside unlock mode the page's own copy behavior must
 // stay exactly as it was. It only reads the selection, the event's clipboard
 // data and computed styles, then shows a toast (and optionally a full-screen
-// warning).
+// warning). Link consistency is checked on right-click instead: Chromium's
+// "Copy link address" writes the clipboard without dispatching a copy event.
 //
 // ponytail: the hidden-element scan is capped so a full-page select cannot
 // jank the copy event; raise the cap if a site nests deeper than 2000 nodes.
@@ -192,18 +193,6 @@ function findSafeCopyAnchor(node) {
         element = getParentElement(element);
     }
     return null;
-}
-
-// Returns { actual } when the copied link points somewhere else than the link
-// the user sees. Only the copy event's own data is compared: a plain copy of a
-// link's visible text copies that text, not the href ("Copy link address"
-// never fires a page event; the right-click check covers that path instead).
-function findSafeCopyLinkMismatch(copiedText, clipboardText, scope) {
-    const shown = String(copiedText || '').trim();
-    const copied = String(clipboardText || '').trim();
-    if (!isSafeCopyLinkText(shown) || !isSafeCopyLinkText(copied)) return null;
-    if (!compareSafeCopyLinks(shown, copied, scope)) return null;
-    return { actual: copied };
 }
 
 function isHiddenForCopy(element, win) {
@@ -656,29 +645,13 @@ function runSafeCopyCheck(event) {
         clipboardText = '';
     }
 
-    // A scheme/trailing-slash-only difference is the same link, not a rewrite.
-    const sameLink = isSafeCopyLinkText(copied.text) && isSafeCopyLinkText(clipboardText) &&
-        normalizeSafeCopyLink(copied.text) === normalizeSafeCopyLink(clipboardText);
-    const linkMismatch = findSafeCopyLinkMismatch(
-        copied.text,
-        clipboardText,
-        getSafeCopyLinkScope()
-    );
-
     let kind = '';
-    if (linkMismatch) {
-        kind = 'link';
-    } else if (clipboardText && clipboardText !== copied.text && !sameLink) {
+    if (clipboardText && clipboardText !== copied.text) {
         kind = 'altered';
     } else if (copied.selection && selectionHasHiddenText(copied.selection, win)) {
         kind = 'hidden';
     }
     if (!kind) return;
-
-    if (kind === 'link') {
-        warnSafeCopyLinkMismatch(copied.text, linkMismatch.actual);
-        return;
-    }
 
     // The toast is always on; the strong reminder is the optional full-screen layer.
     if (typeof showToast === 'function') {

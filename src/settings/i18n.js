@@ -180,9 +180,9 @@ const MESSAGES = {
     "Область проверки совпадения ссылок",
   ],
   safeCopyLinkScopeHelp: [
-    "右键点击超链接时、以及复制时，比较显示的链接和实际链接；范围越严格越容易触发提示",
-    "Compares the displayed link with the actual one on right-click and on copy; stricter scopes warn more often",
-    "Сравнивает отображаемую ссылку с фактической при правом клике и копировании; строгие режимы предупреждают чаще",
+    "右键点击超链接时，比较链接显示的文字和它实际指向的地址；范围越严格越容易触发提示",
+    "On link right-click, compares the displayed text with the address the link actually points to; stricter scopes warn more often",
+    "При правом клике по ссылке сравнивает отображаемый текст с фактическим адресом; строгие режимы предупреждают чаще",
   ],
   safeCopyScopeDomain: ["完整域名（默认）", "Full hostname (default)", "Полное доменное имя (по умолчанию)"],
   safeCopyScopeSld: ["SLD 域名（最宽松）", "SLD domain (most lenient)", "SLD-домен (самый мягкий)"],
