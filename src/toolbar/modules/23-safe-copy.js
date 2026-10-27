@@ -224,10 +224,14 @@ function isHiddenForCopy(element, win) {
     if (!rect) return false;
     if (rect.width <= 0 || rect.height <= 0) return true;
 
-    // Classic offscreen text is absolutely/fixed positioned far outside the
-    // visible document. Absolute boxes are measured in document coordinates so
-    // a normally scrolled-out element is not mistaken for hidden text.
-    const position = style.position;
+    return isOffscreenElement(element, win, style, rect);
+}
+
+// Classic offscreen text is absolutely/fixed positioned far outside the
+// visible document. Absolute boxes are measured in document coordinates so
+// a normally scrolled-out element is not mistaken for hidden text.
+function isOffscreenElement(element, win, style, rect) {
+    const position = style && style.position;
     if (position === 'fixed') {
         const margin = 100;
         if (rect.right <= -margin || rect.bottom <= -margin ||
@@ -284,15 +288,22 @@ function selectionHasHiddenText(selection, win, limit = SAFE_COPY_SCAN_LIMIT) {
     const root = start && start.nodeType === 1 ? start : start && start.parentElement;
     if (!root) return false;
 
-    // A hidden ancestor above the range root hides the whole selection too.
-    // Skip zero-sized layout wrappers/shadow hosts; their text elements are
-    // checked by their own box below.
+    // A wholly hidden selection is a page-driven copy buffer (e.g. X's "Copy
+    // link" selects an opacity:0 span before execCommand). The user never saw
+    // it, so only warn when hidden text is mixed into visible selected text.
     const docEl = root.ownerDocument && root.ownerDocument.documentElement;
-    let ancestor = getParentElement(root);
+    let ancestor = root;
     while (ancestor) {
-        if (isAncestorHidden(ancestor, win)) return true;
+        if (isAncestorHidden(ancestor, win)) return false;
         if (ancestor === docEl) break;
         ancestor = getParentElement(ancestor);
+    }
+    try {
+        const rootStyle = win.getComputedStyle(root);
+        const rootRect = root.getBoundingClientRect();
+        if (rootRect && isOffscreenElement(root, win, rootStyle, rootRect)) return false;
+    } catch (e) {
+        // A zero-sized or detached root simply falls through to the scan.
     }
 
     const elements = [root];

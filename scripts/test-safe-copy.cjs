@@ -61,6 +61,32 @@ function makeAnchor({ href, text }) {
   };
 }
 
+function makeHiddenRootSelection(text) {
+  const root = {
+    nodeType: 1,
+    tagName: "SPAN",
+    textContent: text,
+    __style: {
+      display: "block",
+      visibility: "visible",
+      opacity: "0",
+      fontSize: "15px",
+      position: "static",
+    },
+    getBoundingClientRect: () => ({
+      width: 423, height: 21, left: 0, top: -141, right: 423, bottom: -120,
+    }),
+    querySelectorAll: () => [],
+  };
+  const range = { commonAncestorContainer: root };
+  return {
+    rangeCount: 1,
+    getRangeAt: () => range,
+    containsNode: () => false,
+    toString: () => text,
+  };
+}
+
 function makeContextMenuEvent(anchor, trusted = true) {
   return {
     isTrusted: trusted,
@@ -383,6 +409,17 @@ const visibleStyle = {
   const selection = makeSelection("hellosecret", [offscreen]);
   ctx.handleSafeCopyCheck(makeEvent({ clipboard: "", selection }).event);
   assert.deepStrictEqual(messages, ["toast_copy_hidden"]);
+}
+
+// A fully hidden selection is a page-driven copy buffer, not user content.
+// X's "Copy link" selects an opacity:0 span before execCommand; that must not
+// warn, while the visible+hidden mixes above still do.
+{
+  messages.length = 0;
+  const url = "https://x.com/daddyyuki/status/2115011025011347834?s=20";
+  const selection = makeHiddenRootSelection(url);
+  ctx.handleSafeCopyCheck(makeEvent({ clipboard: url, selection }).event);
+  assert.deepStrictEqual(messages, []);
 }
 
 // A visible element never warns, even when it is scrolled out of view.
