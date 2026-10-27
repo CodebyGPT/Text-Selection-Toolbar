@@ -1,5 +1,5 @@
-// Safe copy self-check: read-only detection of altered clipboard data and
-// hidden text, plus the optional full-screen strong reminder.
+// Safe copy self-check: read-only detection of altered clipboard data, hidden
+// text and mismatched link targets, plus the optional full-screen reminder.
 // usage: node scripts/test-safe-copy.cjs
 const assert = require("assert");
 const fs = require("fs");
@@ -16,6 +16,7 @@ const t = (key, arg) => {
   if (key === "alarm_body_altered" || key === "alarm_body_hidden") {
     return `BODY:${key}:%s`;
   }
+  if (key === "alarm_body_link") return "LINKBODY:%s|%l";
   if (key === "alarm_ack") return `ACK:${arg}`;
   return key;
 };
@@ -45,6 +46,16 @@ function makeElement({ text, style, rect }) {
     textContent: text,
     getBoundingClientRect: () => rect,
     __style: style,
+  };
+}
+
+function makeAnchor({ href, text }) {
+  return {
+    nodeType: 1,
+    tagName: "A",
+    href,
+    textContent: text,
+    getAttribute: (name) => (name === "href" ? href : null),
   };
 }
 
@@ -389,6 +400,100 @@ const visibleStyle = {
     makeEvent({ clipboard: "evil", selection: null, target: input }).event
   );
   assert.deepStrictEqual(messages, ["toast_copy_altered"]);
+}
+
+// A plain copy of a link's visible text copies that text, not the href: the
+// <a> target is not "the copied link" and must not raise a mismatch warning.
+{
+  messages.length = 0;
+  const anchor = makeAnchor({
+    href: "https://login.bank.example.secure-verify.top/account",
+    text: "https://www.bank.example/login",
+  });
+  const selection = makeSelection("https://www.bank.example/login", [anchor]);
+  ctx.handleSafeCopyCheck(
+    makeEvent({ clipboard: "https://www.bank.example/login", selection }).event
+  );
+  assert.deepStrictEqual(messages, []);
+}
+
+// Scheme header and trailing slash are noise, not a mismatch.
+{
+  messages.length = 0;
+  const selection = makeSelection("baidu.com");
+  ctx.handleSafeCopyCheck(
+    makeEvent({ clipboard: "https://baidu.com/", selection }).event
+  );
+  assert.deepStrictEqual(messages, []);
+}
+
+// The page repointed a copied URL to another site.
+{
+  messages.length = 0;
+  const selection = makeSelection("https://shop.example.com/item");
+  ctx.handleSafeCopyCheck(
+    makeEvent({ clipboard: "https://shop.example.com.evil.top/item", selection }).event
+  );
+  assert.deepStrictEqual(messages, ["toast_copy_link"]);
+}
+
+// A typo'd scheme on the copied link is still the same link.
+{
+  messages.length = 0;
+  const selection = makeSelection("baidu.com");
+  ctx.handleSafeCopyCheck(
+    makeEvent({ clipboard: "htps://baidu.com/", selection }).event
+  );
+  assert.deepStrictEqual(messages, []);
+}
+
+// Version- and filename-looking text is not a link.
+{
+  messages.length = 0;
+  const selection = makeSelection("v1.2.3");
+  ctx.handleSafeCopyCheck(
+    makeEvent({ clipboard: "v1.2.3", selection }).event
+  );
+  assert.deepStrictEqual(messages, []);
+}
+
+{
+  messages.length = 0;
+  const anchor = makeAnchor({
+    href: "https://files.example.com/readme.txt",
+    text: "readme.txt",
+  });
+  const selection = makeSelection("readme.txt", [anchor]);
+  ctx.handleSafeCopyCheck(
+    makeEvent({ clipboard: "readme.txt", selection }).event
+  );
+  assert.deepStrictEqual(messages, []);
+}
+
+// The strong reminder for a link mismatch names the actual destination.
+{
+  messages.length = 0;
+  alarmEnabled = true;
+  const doc = makeFakeDocument();
+  const linkCtx = load(doc, { value: 1000 }, { next: 1, timers: new Map() });
+  const selection = makeSelection("https://baidu.com/");
+  linkCtx.handleSafeCopyCheck(
+    makeEvent({ clipboard: "https://evil.example/", selection }).event
+  );
+  assert.deepStrictEqual(messages, ["toast_copy_link"]);
+  const host = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-alarm-host"
+  );
+  assert.ok(host);
+  assert.strictEqual(
+    findByClass(host.shadowRoot, "sc-guard-title").textContent,
+    "alarm_title_link"
+  );
+  assert.strictEqual(
+    findByClass(host.shadowRoot, "sc-guard-body").textContent,
+    "LINKBODY:https://baidu.com/|https://evil.example/"
+  );
+  alarmEnabled = false;
 }
 
 // Synthetic events dispatched by a page are ignored.

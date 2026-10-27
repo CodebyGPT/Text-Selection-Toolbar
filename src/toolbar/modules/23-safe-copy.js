@@ -101,6 +101,47 @@ function getSafeCopyText(event) {
     return { text: selection ? selection.toString() : '', selection };
 }
 
+// A bare domain or a full URL counts as a link for the link consistency check.
+// Scheme and trailing slashes are noise, so "https://baidu.com/" and
+// "baidu.com" compare equal; a typo'd scheme ("htps://...") is stripped too.
+// Bare text only counts when it ends in a common TLD, so "readme.txt" or
+// "v1.2.3" are not mistaken for links.
+const SAFE_COPY_LINK_RE = /^(?:[a-z][a-z0-9+.-]*:\/\/)?(?:[^\s/?#@]+\.)+([a-z]{2,})(?::\d+)?(?:[/?#]\S*)?$/i;
+const SAFE_COPY_LINK_SCHEME_RE = /^[a-z][a-z0-9+.-]*:\/\//i;
+const SAFE_COPY_LINK_TLDS = new Set((
+    'com cn net org edu gov io co me tv cc xyz top info biz dev app site online ' +
+    'shop store tech club live link pro vip asia ru uk de fr jp kr hk tw sg au ' +
+    'ca us br in eu nl se no fi pl it es ch at be dk cz pt gr ie il mx nz za tr ua'
+).split(' '));
+
+function isSafeCopyLinkText(text) {
+    const value = String(text || '').trim();
+    if (!value) return false;
+    const match = SAFE_COPY_LINK_RE.exec(value);
+    if (!match) return false;
+    if (SAFE_COPY_LINK_SCHEME_RE.test(value)) return true;
+    return SAFE_COPY_LINK_TLDS.has(match[1].toLowerCase());
+}
+
+function normalizeSafeCopyLink(value) {
+    let text = String(value || '').trim().toLowerCase();
+    text = text.replace(/^[a-z][a-z0-9+.-]*:\/\//, ''); // http(s) header / typos
+    text = text.replace(/\/+$/, ''); // trailing slash
+    return text;
+}
+
+// Returns { actual } when the copied link points somewhere else than the link
+// the user sees. Only the copy event's own data is compared: a plain copy of a
+// link's visible text copies that text, not the href, so the <a> target is
+// deliberately ignored here ("Copy link address" never fires a page event).
+function findSafeCopyLinkMismatch(copiedText, clipboardText) {
+    const shown = String(copiedText || '').trim();
+    const copied = String(clipboardText || '').trim();
+    if (!isSafeCopyLinkText(shown) || !isSafeCopyLinkText(copied)) return null;
+    if (normalizeSafeCopyLink(shown) === normalizeSafeCopyLink(copied)) return null;
+    return { actual: copied };
+}
+
 function isHiddenForCopy(element, win) {
     if (!element || element.nodeType !== 1) return false;
     const tag = element.tagName;
@@ -376,13 +417,18 @@ function getSafeCopyAlarmRemaining(deadline, now = Date.now()) {
     return Math.min(SAFE_COPY_ALARM_SECONDS, remaining);
 }
 
-function formatSafeCopyAlarmBody(kind, text) {
+function formatSafeCopyAlarmBody(kind, text, link) {
     const value = String(text || '');
     const shown = value.length > SAFE_COPY_ALARM_TEXT_LIMIT
         ? value.slice(0, SAFE_COPY_ALARM_TEXT_LIMIT) + '…'
         : value;
-    const key = kind === 'hidden' ? 'alarm_body_hidden' : 'alarm_body_altered';
     // Function replacement keeps "$&"-like text in the selection literal.
+    if (kind === 'link') {
+        return t('alarm_body_link')
+            .replace('%s', () => shown)
+            .replace('%l', () => String(link || ''));
+    }
+    const key = kind === 'hidden' ? 'alarm_body_hidden' : 'alarm_body_altered';
     return t(key).replace('%s', () => shown);
 }
 
@@ -451,7 +497,7 @@ function createSafeCopyAlarm(doc) {
     return { host, title, body, button, timer: null, deadline: 0 };
 }
 
-function showSafeCopyAlarm({ kind, text }) {
+function showSafeCopyAlarm({ kind, text, link }) {
     if (typeof document === 'undefined' || !document.createElement) return false;
 
     let state = safeCopyAlarm;
@@ -462,8 +508,12 @@ function showSafeCopyAlarm({ kind, text }) {
         safeCopyAlarm = state;
     }
 
-    state.title.textContent = t(kind === 'hidden' ? 'alarm_title_hidden' : 'alarm_title_altered');
-    state.body.textContent = formatSafeCopyAlarmBody(kind, text);
+    state.title.textContent = t(
+        kind === 'hidden' ? 'alarm_title_hidden'
+            : kind === 'link' ? 'alarm_title_link'
+                : 'alarm_title_altered'
+    );
+    state.body.textContent = formatSafeCopyAlarmBody(kind, text, link);
     state.deadline = Date.now() + SAFE_COPY_ALARM_SECONDS * 1000;
 
     if (state.timer) clearInterval(state.timer);
@@ -506,8 +556,15 @@ function runSafeCopyCheck(event) {
         clipboardText = '';
     }
 
+    // A scheme/trailing-slash-only difference is the same link, not a rewrite.
+    const sameLink = isSafeCopyLinkText(copied.text) && isSafeCopyLinkText(clipboardText) &&
+        normalizeSafeCopyLink(copied.text) === normalizeSafeCopyLink(clipboardText);
+    const linkMismatch = findSafeCopyLinkMismatch(copied.text, clipboardText);
+
     let kind = '';
-    if (clipboardText && clipboardText !== copied.text) {
+    if (linkMismatch) {
+        kind = 'link';
+    } else if (clipboardText && clipboardText !== copied.text && !sameLink) {
         kind = 'altered';
     } else if (copied.selection && selectionHasHiddenText(copied.selection, win)) {
         kind = 'hidden';
@@ -516,9 +573,13 @@ function runSafeCopyCheck(event) {
 
     // The toast is always on; the strong reminder is the optional full-screen layer.
     if (typeof showToast === 'function') {
-        showToast(t(kind === 'altered' ? 'toast_copy_altered' : 'toast_copy_hidden'), 2600);
+        showToast(t(
+            kind === 'hidden' ? 'toast_copy_hidden'
+                : kind === 'link' ? 'toast_copy_link'
+                    : 'toast_copy_altered'
+        ), 2600);
     }
     if (getConfig('enableSafeCopyAlarm') === true) {
-        showSafeCopyAlarm({ kind, text: copied.text });
+        showSafeCopyAlarm({ kind, text: copied.text, link: linkMismatch ? linkMismatch.actual : '' });
     }
 }
