@@ -70,10 +70,11 @@ const SAFE_COPY_ALARM_CSS = `
     font-size: 16px;
     font-weight: 800;
     cursor: pointer;
+    /* The overlay is click-through; only this button takes input. */
+    pointer-events: auto;
 }
 .sc-guard-ack:hover { filter: brightness(0.94); }
 .sc-guard-ack:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-.sc-guard-hint { margin: 22px 0 0; color: #b9bcc6; font-size: 13px; }
 `;
 
 let safeCopyAlarm = null;
@@ -495,9 +496,9 @@ function closeSafeCopyAlarm() {
     if (state.host && state.host.parentNode) state.host.parentNode.removeChild(state.host);
 }
 
-// A passive alarm is shown while a native context menu is open: it must not
-// take focus or intercept clicks, so it is click-through and has no button.
-function createSafeCopyAlarm(doc, passive) {
+// The warning must never compete with a native context menu: the backdrop is
+// click-through and never focused, only the acknowledge button takes input.
+function createSafeCopyAlarm(doc) {
     const parent = doc.documentElement || doc.body;
     if (!parent) return null;
 
@@ -509,7 +510,7 @@ function createSafeCopyAlarm(doc, passive) {
     host.style.position = 'fixed';
     host.style.inset = '0';
     host.style.zIndex = '2147483647';
-    host.style.pointerEvents = passive ? 'none' : 'auto';
+    host.style.pointerEvents = 'none';
     parent.appendChild(host);
 
     const shadow = host.attachShadow({ mode: 'open' });
@@ -523,8 +524,7 @@ function createSafeCopyAlarm(doc, passive) {
 
     const panel = doc.createElement('div');
     panel.className = 'sc-guard-panel';
-    panel.setAttribute('role', passive ? 'alert' : 'alertdialog');
-    if (!passive) panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('role', 'alert');
     panel.setAttribute('aria-labelledby', 'tm-safe-copy-alarm-title');
     panel.setAttribute('aria-describedby', 'tm-safe-copy-alarm-body');
     viewport.appendChild(panel);
@@ -544,34 +544,22 @@ function createSafeCopyAlarm(doc, passive) {
     body.id = 'tm-safe-copy-alarm-body';
     panel.appendChild(body);
 
-    let button = null;
-    if (passive) {
-        const hint = doc.createElement('p');
-        hint.className = 'sc-guard-hint';
-        hint.textContent = t('alarm_passive_hint');
-        panel.appendChild(hint);
-    } else {
-        button = doc.createElement('button');
-        button.type = 'button';
-        button.className = 'sc-guard-ack';
-        button.addEventListener('click', closeSafeCopyAlarm);
-        panel.appendChild(button);
-    }
+    const button = doc.createElement('button');
+    button.type = 'button';
+    button.className = 'sc-guard-ack';
+    button.addEventListener('click', closeSafeCopyAlarm);
+    panel.appendChild(button);
 
-    return { host, title, body, button, passive: !!passive, timer: null, deadline: 0 };
+    return { host, title, body, button, timer: null, deadline: 0 };
 }
 
-function showSafeCopyAlarm({ kind, text, link, passive }) {
+function showSafeCopyAlarm({ kind, text, link }) {
     if (typeof document === 'undefined' || !document.createElement) return false;
 
     let state = safeCopyAlarm;
-    if (state && state.passive !== !!passive) {
-        closeSafeCopyAlarm();
-        state = null;
-    }
     if (!state || !state.host.isConnected) {
         if (state) closeSafeCopyAlarm();
-        state = createSafeCopyAlarm(document, passive);
+        state = createSafeCopyAlarm(document);
         if (!state) return false;
         safeCopyAlarm = state;
     }
@@ -592,7 +580,7 @@ function showSafeCopyAlarm({ kind, text, link, passive }) {
             closeSafeCopyAlarm();
             return;
         }
-        if (state.button) state.button.textContent = t('alarm_ack', remaining);
+        state.button.textContent = t('alarm_ack', remaining);
     };
     state.timer = setInterval(tick, 1000);
     tick();
@@ -602,9 +590,7 @@ function showSafeCopyAlarm({ kind, text, link, passive }) {
 function warnSafeCopyLinkMismatch(shown, actual) {
     if (typeof showToast === 'function') showToast(t('toast_copy_link'), 2600);
     if (getConfig('enableSafeCopyAlarm') === true) {
-        // Passive: the native context menu is open right now, so the warning
-        // must inform without taking focus or swallowing the menu click.
-        showSafeCopyAlarm({ kind: 'link', text: shown, link: actual, passive: true });
+        showSafeCopyAlarm({ kind: 'link', text: shown, link: actual });
     }
 }
 
