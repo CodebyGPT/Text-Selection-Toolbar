@@ -15,6 +15,8 @@ const DEFAULT_CONFIG = {
     safeCopyLinkScope: 'domain',
     // IDN homograph guard: 'toast' (default) | 'fullscreen' | 'disabled'
     idnGuardMode: 'toast',
+    // Zero-width identifier guard: 'high' | 'medium' | 'low' (default) | 'verylow' | 'disabled'
+    zeroWidthGuardSensitivity: 'low',
     showAsciiCheckMenu: false, // userscript menu entry, off by default
     showPastePreview: false, // show the pending lightning-paste text
     pasteTtl: 8, // seconds, 3-30; anything else falls back to the default

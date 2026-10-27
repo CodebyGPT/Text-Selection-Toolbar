@@ -1157,6 +1157,19 @@ function ToolbarTab({ setting, update }) {
             ]}
           />
         </Row>
+        <Row label={t("zeroWidthGuard")} help={t("zeroWidthGuardHelp")}>
+          <Select
+            value={value.zeroWidthGuardSensitivity ?? "low"}
+            onChange={(v) => patch({ zeroWidthGuardSensitivity: v })}
+            options={[
+              ["high", t("zeroWidthHigh")],
+              ["medium", t("zeroWidthMedium")],
+              ["low", t("zeroWidthLow")],
+              ["verylow", t("zeroWidthVeryLow")],
+              ["disabled", t("zeroWidthDisabled")],
+            ]}
+          />
+        </Row>
         <Row label={t("linkDragPreview")}>
           <Toggle
             value={value.enableDragPreview}

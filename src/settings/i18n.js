@@ -207,6 +207,37 @@ const MESSAGES = {
   idnGuardToast: ["Toast 通知提醒", "Toast notification", "Уведомление через toast"],
   idnGuardFullscreen: ["全屏强提醒", "Full-screen warning", "Полноэкранное предупреждение"],
   idnGuardDisabled: ["禁用", "Disabled", "Отключено"],
+  zeroWidthGuard: [
+    "零宽标识符防护敏感度",
+    "Zero-width identifier sensitivity",
+    "Чувствительность защиты от идентификаторов нулевой ширины",
+  ],
+  zeroWidthGuardHelp: [
+    "检查实际复制到剪贴板的文本中是否含肉眼不可见的零宽字符（如 U+200B、U+200C、U+200D、U+FEFF 等）；达到阈值时与其它安全复制警告叠加提示",
+    "Checks the text actually copied to the clipboard for invisible zero-width characters (U+200B, U+200C, U+200D, U+FEFF, …); when the threshold is reached it stacks with other safe-copy warnings",
+    "Проверяет фактически скопированный текст на невидимые символы нулевой ширины (U+200B, U+200C, U+200D, U+FEFF и др.); при достижении порога предупреждение объединяется с другими предупреждениями безопасного копирования",
+  ],
+  zeroWidthHigh: [
+    "高敏感（连续零宽字符数≥3或零宽字符总数量≥5）",
+    "High (run ≥ 3 or total ≥ 5)",
+    "Высокая (серия ≥ 3 или всего ≥ 5)",
+  ],
+  zeroWidthMedium: [
+    "中敏感（连续零宽字符数≥6或零宽字符总数量≥8）",
+    "Medium (run ≥ 6 or total ≥ 8)",
+    "Средняя (серия ≥ 6 или всего ≥ 8)",
+  ],
+  zeroWidthLow: [
+    "低敏感（连续零宽字符数≥10或零宽字符总数量≥12）",
+    "Low (run ≥ 10 or total ≥ 12)",
+    "Низкая (серия ≥ 10 или всего ≥ 12)",
+  ],
+  zeroWidthVeryLow: [
+    "极低敏感（连续零宽字符数≥16）",
+    "Very low (run ≥ 16)",
+    "Очень низкая (серия ≥ 16)",
+  ],
+  zeroWidthDisabled: ["禁用", "Disabled", "Отключено"],
   linkDragPreview: [
     "链接拖拽预览",
     "Link drag preview",

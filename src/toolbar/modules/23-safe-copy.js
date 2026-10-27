@@ -507,6 +507,7 @@ function formatSafeCopyAlarmBody(kind, text, link) {
 function getSecurityNoticeTitle(notice) {
     if (notice.kind === 'link') return t('alarm_title_link');
     if (notice.kind === 'idn') return t('alarm_title_idn_' + notice.idn);
+    if (notice.kind === 'zeroWidth') return t('alarm_title_zero_width');
     return t(notice.kind === 'hidden' ? 'alarm_title_hidden' : 'alarm_title_altered');
 }
 
@@ -515,12 +516,22 @@ function formatSecurityNoticeBody(notice) {
     if (notice.kind === 'idn' && typeof formatIdnAlarmBody === 'function') {
         return formatIdnAlarmBody(notice.idn, notice.selected);
     }
+    if (notice.kind === 'zeroWidth') {
+        return t('alarm_body_zero_width')
+            .replace('%s', () => String(notice.total || 0))
+            .replace('%r', () => String(notice.run || 0));
+    }
     return formatSafeCopyAlarmBody(notice.kind, notice.text, notice.link);
 }
 
 function getSecurityNoticeToastText(notice) {
     if (notice.kind === 'link') return t('toast_copy_link');
     if (notice.kind === 'idn' && typeof getIdnToastText === 'function') return getIdnToastText(notice);
+    if (notice.kind === 'zeroWidth') {
+        return t('toast_copy_zero_width').replace('%s', () => String(notice.total || 0));
+    }
+    if (notice.kind === 'hidden') return t('toast_copy_hidden');
+    if (notice.kind === 'altered') return t('toast_copy_altered');
     return '';
 }
 
@@ -789,19 +800,24 @@ function runSafeCopyCheck(event) {
         clipboardText = '';
     }
 
-    let kind = '';
+    const notices = [];
     if (clipboardText && clipboardText !== copied.text) {
-        kind = 'altered';
+        notices.push({ kind: 'altered', text: copied.text });
     } else if (copied.selection && selectionHasHiddenText(copied.selection, win)) {
-        kind = 'hidden';
+        notices.push({ kind: 'hidden', text: copied.text });
     }
-    if (!kind) return;
 
-    // The toast is always on; the strong reminder is the optional full-screen layer.
-    if (typeof showToast === 'function') {
-        showToast(t(kind === 'hidden' ? 'toast_copy_hidden' : 'toast_copy_altered'), 2600);
+    // The clipboard is what actually leaves the page, so it is the source of
+    // truth for zero-width tracking IDs (including page-injected ones). Fall
+    // back to the selection when the event exposes no clipboard text.
+    if (typeof scanZeroWidthIdentifier === 'function') {
+        const finding = scanZeroWidthIdentifier(clipboardText || copied.text);
+        if (finding) {
+            notices.push({ kind: 'zeroWidth', total: finding.total, run: finding.run });
+        }
     }
-    if (getConfig('enableSafeCopyAlarm') === true) {
-        showSafeCopyAlarm({ kind, text: copied.text });
-    }
+    if (!notices.length) return;
+
+    // Toasts are always on; the strong reminder is the optional full-screen layer.
+    showSecurityWarnings(notices);
 }
