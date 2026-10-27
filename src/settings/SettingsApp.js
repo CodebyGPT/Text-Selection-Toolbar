@@ -1126,6 +1126,18 @@ function ToolbarTab({ setting, update }) {
             onChange={(v) => patch({ enableSafeCopyAlarm: v })}
           />
         </Row>
+        <Row label={t("safeCopyLinkScope")} help={t("safeCopyLinkScopeHelp")}>
+          <Select
+            value={value.safeCopyLinkScope ?? "domain"}
+            onChange={(v) => patch({ safeCopyLinkScope: v })}
+            options={[
+              ["domain", t("safeCopyScopeDomain")],
+              ["sld", t("safeCopyScopeSld")],
+              ["full", t("safeCopyScopeFull")],
+              ["off", t("safeCopyScopeOff")],
+            ]}
+          />
+        </Row>
         <Row label={t("linkDragPreview")}>
           <Toggle
             value={value.enableDragPreview}

@@ -16,6 +16,7 @@ export const DEFAULT_TOOLBAR_SETTING = {
   unlockHotkey: "ControlLeft",
   enablePaste: true,
   enableSafeCopyAlarm: false,
+  safeCopyLinkScope: "domain",
   showPastePreview: false,
   pasteTtl: PASTE_TTL_DEFAULT,
   enableDragPreview: false,

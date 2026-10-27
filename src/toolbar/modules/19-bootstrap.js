@@ -95,6 +95,9 @@ function markToolbarReady() {
             // page's own document/body copy handlers; it never prevents or
             // rewrites anything, so the page's copy behavior is untouched.
             window.addEventListener('copy', handleSafeCopyCheck, false);
+            // "Copy link address" never reaches the page, so check the link at
+            // the right-click itself. Capture phase beats page handlers.
+            window.addEventListener('contextmenu', handleSafeCopyContextMenu, true);
 
             // Copy button for <pre><code> blocks follows the hover target.
             document.addEventListener('mouseover', handleCodeCopyHover, true);

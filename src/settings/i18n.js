@@ -170,10 +170,24 @@ const MESSAGES = {
   pasteTtl: ["闪电粘贴有效期 (s)", "Smart paste TTL (s)", "Срок быстрой вставки (с)"],
   safeCopyAlarm: ["安全复制强提醒", "Strong safe-copy warning", "Усиленное предупреждение безопасного копирования"],
   safeCopyAlarmHelp: [
-    "检测可疑的复制事件",
-    "Detect suspicious copy events",
-    "Обнаружение подозрительных событий копирования",
+    "开启后，可疑的复制或链接不一致会额外弹出全屏强提醒（toast 提示始终开启）",
+    "Also show the full-screen warning for suspicious copies or mismatched links (the toast is always on)",
+    "Дополнительно показывать полноэкранное предупреждение при подозрительном копировании или несовпадении ссылок (toast включён всегда)",
   ],
+  safeCopyLinkScope: [
+    "链接一致性检测范围",
+    "Link consistency check scope",
+    "Область проверки совпадения ссылок",
+  ],
+  safeCopyLinkScopeHelp: [
+    "右键点击超链接时、以及复制时，比较显示的链接和实际链接；范围越严格越容易触发提示",
+    "Compares the displayed link with the actual one on right-click and on copy; stricter scopes warn more often",
+    "Сравнивает отображаемую ссылку с фактической при правом клике и копировании; строгие режимы предупреждают чаще",
+  ],
+  safeCopyScopeDomain: ["完整域名（默认）", "Full hostname (default)", "Полное доменное имя (по умолчанию)"],
+  safeCopyScopeSld: ["SLD 域名（最宽松）", "SLD domain (most lenient)", "SLD-домен (самый мягкий)"],
+  safeCopyScopeFull: ["完整链接（最严格）", "Full link (strictest)", "Полная ссылка (самый строгий)"],
+  safeCopyScopeOff: ["禁用", "Disabled", "Отключено"],
   linkDragPreview: [
     "链接拖拽预览",
     "Link drag preview",

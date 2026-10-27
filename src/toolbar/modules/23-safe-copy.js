@@ -130,15 +130,79 @@ function normalizeSafeCopyLink(value) {
     return text;
 }
 
+// Pull the first link-like token out of arbitrary text (link labels may wrap
+// the URL in extra words).
+function findSafeCopyLink(text) {
+    const value = String(text || '').trim();
+    if (!value) return '';
+    if (isSafeCopyLinkText(value)) return value;
+    const tokens = value.split(/\s+/);
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i].replace(/^[("'<\[{]+|[)"'>\]}.,;!?]+$/g, '');
+        if (isSafeCopyLinkText(token)) return token;
+    }
+    return '';
+}
+
+// The settings allow comparing only the hostname (default), only the SLD+TLD,
+// the whole URL, or turning the link check off.
+function getSafeCopyLinkScope() {
+    const value = typeof getConfig === 'function' ? getConfig('safeCopyLinkScope') : '';
+    return value === 'sld' || value === 'full' || value === 'off' ? value : 'domain';
+}
+
+function getSafeCopyLinkHost(normalized) {
+    // "www." is presentation noise, not a different site.
+    return normalized.split(/[/?#]/)[0].replace(/:\d+$/, '').replace(/^www\./, '');
+}
+
+function getSafeCopyLinkKey(value, scope) {
+    const normalized = normalizeSafeCopyLink(value);
+    if (scope === 'full') return normalized;
+    const host = getSafeCopyLinkHost(normalized);
+    if (scope !== 'sld') return host;
+    // ponytail: last two labels, no Public Suffix List. Handles co.uk-style
+    // suffixes when the caller opts into SLD scope; swap in a PSL if needed.
+    const labels = host.split('.').filter(Boolean);
+    return labels.length > 2 ? labels.slice(-2).join('.') : host;
+}
+
+function compareSafeCopyLinks(shown, target, scope) {
+    if (scope === 'off') return false;
+    return getSafeCopyLinkKey(shown, scope) !== getSafeCopyLinkKey(target, scope);
+}
+
+function getSafeCopyAnchorHref(anchor) {
+    try {
+        const href = anchor.href ? String(anchor.href)
+            : anchor.getAttribute ? String(anchor.getAttribute('href') || '')
+                : '';
+        if (!href) return '';
+        // Non-navigational schemes are not links the user can be phished with.
+        if (/^(?:javascript|mailto|tel|data|blob):/i.test(href) || href.charAt(0) === '#') return '';
+        return href;
+    } catch (e) {}
+    return '';
+}
+
+function findSafeCopyAnchor(node) {
+    let element = node && node.nodeType === 1 ? node : getParentElement(node);
+    while (element) {
+        if (element.tagName === 'A') return element;
+        element = getParentElement(element);
+    }
+    return null;
+}
+
 // Returns { actual } when the copied link points somewhere else than the link
 // the user sees. Only the copy event's own data is compared: a plain copy of a
-// link's visible text copies that text, not the href, so the <a> target is
-// deliberately ignored here ("Copy link address" never fires a page event).
-function findSafeCopyLinkMismatch(copiedText, clipboardText) {
+// link's visible text copies that text, not the href ("Copy link address"
+// never fires a page event; the right-click check covers that path instead).
+function findSafeCopyLinkMismatch(copiedText, clipboardText, scope) {
     const shown = String(copiedText || '').trim();
     const copied = String(clipboardText || '').trim();
     if (!isSafeCopyLinkText(shown) || !isSafeCopyLinkText(copied)) return null;
-    if (normalizeSafeCopyLink(shown) === normalizeSafeCopyLink(copied)) return null;
+    if (!compareSafeCopyLinks(shown, copied, scope)) return null;
     return { actual: copied };
 }
 
@@ -531,6 +595,42 @@ function showSafeCopyAlarm({ kind, text, link }) {
     return true;
 }
 
+function warnSafeCopyLinkMismatch(shown, actual) {
+    if (typeof showToast === 'function') showToast(t('toast_copy_link'), 2600);
+    if (getConfig('enableSafeCopyAlarm') === true) {
+        showSafeCopyAlarm({ kind: 'link', text: shown, link: actual });
+    }
+}
+
+// Chromium writes "Copy link address" straight to the system clipboard without
+// a page event, so the last moment a page can look at the link is the
+// right-click itself.
+function handleSafeCopyContextMenu(event) {
+    try {
+        runSafeCopyContextMenuCheck(event);
+    } catch (e) {
+        // A read-only detector must never break the page's context menu.
+    }
+}
+
+function runSafeCopyContextMenuCheck(event) {
+    if (!event || event.isTrusted === false) return;
+
+    const scope = getSafeCopyLinkScope();
+    if (scope === 'off') return;
+
+    const anchor = findSafeCopyAnchor(getSafeCopyTarget(event));
+    if (!anchor) return;
+
+    const shown = findSafeCopyLink(anchor.textContent);
+    if (!shown) return;
+    const href = getSafeCopyAnchorHref(anchor);
+    if (!href) return;
+    if (!compareSafeCopyLinks(shown, href, scope)) return;
+
+    warnSafeCopyLinkMismatch(shown, href);
+}
+
 function handleSafeCopyCheck(event) {
     try {
         runSafeCopyCheck(event);
@@ -559,7 +659,11 @@ function runSafeCopyCheck(event) {
     // A scheme/trailing-slash-only difference is the same link, not a rewrite.
     const sameLink = isSafeCopyLinkText(copied.text) && isSafeCopyLinkText(clipboardText) &&
         normalizeSafeCopyLink(copied.text) === normalizeSafeCopyLink(clipboardText);
-    const linkMismatch = findSafeCopyLinkMismatch(copied.text, clipboardText);
+    const linkMismatch = findSafeCopyLinkMismatch(
+        copied.text,
+        clipboardText,
+        getSafeCopyLinkScope()
+    );
 
     let kind = '';
     if (linkMismatch) {
@@ -571,15 +675,16 @@ function runSafeCopyCheck(event) {
     }
     if (!kind) return;
 
+    if (kind === 'link') {
+        warnSafeCopyLinkMismatch(copied.text, linkMismatch.actual);
+        return;
+    }
+
     // The toast is always on; the strong reminder is the optional full-screen layer.
     if (typeof showToast === 'function') {
-        showToast(t(
-            kind === 'hidden' ? 'toast_copy_hidden'
-                : kind === 'link' ? 'toast_copy_link'
-                    : 'toast_copy_altered'
-        ), 2600);
+        showToast(t(kind === 'hidden' ? 'toast_copy_hidden' : 'toast_copy_altered'), 2600);
     }
     if (getConfig('enableSafeCopyAlarm') === true) {
-        showSafeCopyAlarm({ kind, text: copied.text, link: linkMismatch ? linkMismatch.actual : '' });
+        showSafeCopyAlarm({ kind, text: copied.text });
     }
 }

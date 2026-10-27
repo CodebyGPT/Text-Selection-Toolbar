@@ -21,7 +21,9 @@ const t = (key, arg) => {
   return key;
 };
 let alarmEnabled = false;
-const getConfig = () => alarmEnabled;
+let linkScope = "domain";
+const getConfig = (key) =>
+  key === "safeCopyLinkScope" ? linkScope : alarmEnabled;
 
 function makeSelection(text, elements = []) {
   const root = {
@@ -56,6 +58,14 @@ function makeAnchor({ href, text }) {
     href,
     textContent: text,
     getAttribute: (name) => (name === "href" ? href : null),
+  };
+}
+
+function makeContextMenuEvent(anchor, trusted = true) {
+  return {
+    isTrusted: trusted,
+    target: anchor,
+    composedPath: () => [anchor],
   };
 }
 
@@ -229,7 +239,7 @@ function load(documentStub, nowRef, timerRef) {
     "setInterval",
     "clearInterval",
     "Date",
-    `${src}\nreturn { handleSafeCopyCheck, getSafeCopyAlarmRemaining, formatSafeCopyAlarmBody, buildVisibleSelectionText };`
+    `${src}\nreturn { handleSafeCopyCheck, handleSafeCopyContextMenu, getSafeCopyAlarmRemaining, formatSafeCopyAlarmBody, buildVisibleSelectionText };`
   )(
     windowStub,
     documentStub,
@@ -468,6 +478,119 @@ const visibleStyle = {
     makeEvent({ clipboard: "readme.txt", selection }).event
   );
   assert.deepStrictEqual(messages, []);
+}
+
+// Right-clicking a link whose visible text is another URL warns before the
+// browser copies anything (default scope: full hostname).
+{
+  messages.length = 0;
+  linkScope = "domain";
+  const anchor = makeAnchor({
+    href: "https://login.bank.example.secure-verify.top/account",
+    text: "https://www.bank.example/login",
+  });
+  ctx.handleSafeCopyContextMenu(makeContextMenuEvent(anchor));
+  assert.deepStrictEqual(messages, ["toast_copy_link"]);
+}
+
+// Same hostname, different path stays quiet at the default scope.
+{
+  messages.length = 0;
+  linkScope = "domain";
+  const anchor = makeAnchor({
+    href: "https://shop.example.com/other",
+    text: "shop.example.com/item",
+  });
+  ctx.handleSafeCopyContextMenu(makeContextMenuEvent(anchor));
+  assert.deepStrictEqual(messages, []);
+}
+
+// The full-link scope also compares the path.
+{
+  messages.length = 0;
+  linkScope = "full";
+  const anchor = makeAnchor({
+    href: "https://shop.example.com/other",
+    text: "shop.example.com/item",
+  });
+  ctx.handleSafeCopyContextMenu(makeContextMenuEvent(anchor));
+  assert.deepStrictEqual(messages, ["toast_copy_link"]);
+  linkScope = "domain";
+}
+
+// SLD scope ignores subdomains.
+{
+  messages.length = 0;
+  linkScope = "sld";
+  const anchor = makeAnchor({
+    href: "https://login.example.com/x",
+    text: "https://www.example.com/login",
+  });
+  ctx.handleSafeCopyContextMenu(makeContextMenuEvent(anchor));
+  assert.deepStrictEqual(messages, []);
+  linkScope = "domain";
+}
+
+// Disabled scope, non-URL labels and synthetic events stay quiet.
+{
+  messages.length = 0;
+  linkScope = "off";
+  const anchor = makeAnchor({
+    href: "https://evil.example/",
+    text: "https://www.bank.example/login",
+  });
+  ctx.handleSafeCopyContextMenu(makeContextMenuEvent(anchor));
+  assert.deepStrictEqual(messages, []);
+  linkScope = "domain";
+
+  messages.length = 0;
+  const plain = makeAnchor({ href: "https://evil.example/", text: "Click here" });
+  ctx.handleSafeCopyContextMenu(makeContextMenuEvent(plain));
+  assert.deepStrictEqual(messages, []);
+
+  messages.length = 0;
+  const fake = makeAnchor({ href: "https://evil.example/", text: "bank.com" });
+  ctx.handleSafeCopyContextMenu(makeContextMenuEvent(fake, false));
+  assert.deepStrictEqual(messages, []);
+}
+
+// Copy-time comparison honors the full-link scope too.
+{
+  messages.length = 0;
+  linkScope = "full";
+  const selection = makeSelection("https://a.example.com/x");
+  ctx.handleSafeCopyCheck(
+    makeEvent({ clipboard: "https://a.example.com/y", selection }).event
+  );
+  assert.deepStrictEqual(messages, ["toast_copy_link"]);
+  linkScope = "domain";
+}
+
+// The right-click reminder names the real destination.
+{
+  messages.length = 0;
+  alarmEnabled = true;
+  const doc = makeFakeDocument();
+  const alarmCtx = load(doc, { value: 1000 }, { next: 1, timers: new Map() });
+  const anchor = makeAnchor({
+    href: "https://login.bank.example.secure-verify.top/account",
+    text: "https://www.bank.example/login",
+  });
+  alarmCtx.handleSafeCopyContextMenu(makeContextMenuEvent(anchor));
+  assert.deepStrictEqual(messages, ["toast_copy_link"]);
+  const host = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-alarm-host"
+  );
+  assert.ok(host);
+  assert.strictEqual(
+    findByClass(host.shadowRoot, "sc-guard-title").textContent,
+    "alarm_title_link"
+  );
+  assert.strictEqual(
+    findByClass(host.shadowRoot, "sc-guard-body").textContent,
+    "LINKBODY:https://www.bank.example/login|https://login.bank.example.secure-verify.top/account"
+  );
+  alarmEnabled = false;
 }
 
 // The strong reminder for a link mismatch names the actual destination.
