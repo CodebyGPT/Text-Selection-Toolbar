@@ -463,7 +463,16 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                 });
                 unregisterVisibilityCleanup();
             }
-            showToast(hiddenRemoved ? t('toast_copy_visible_only') : getFestivalToastText());
+            const copiedToast = hiddenRemoved ? t('toast_copy_visible_only') : getFestivalToastText();
+            const zeroWidth = typeof getZeroWidthNotice === 'function'
+                ? getZeroWidthNotice(contentToCopy)
+                : null;
+            if (zeroWidth) {
+                // Read-only warning: the copied text itself is left untouched.
+                showSecurityWarnings([zeroWidth], null, copiedToast);
+            } else {
+                showToast(copiedToast);
+            }
             setTimeout(hideUI, 50);
         };
         container.appendChild(copyBtn);

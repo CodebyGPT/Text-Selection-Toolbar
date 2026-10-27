@@ -52,3 +52,10 @@ function scanZeroWidthIdentifier(text) {
     }
     return null;
 }
+
+function getZeroWidthNotice(text) {
+    const finding = scanZeroWidthIdentifier(text);
+    return finding
+        ? { kind: 'zeroWidth', total: finding.total, run: finding.run }
+        : null;
+}

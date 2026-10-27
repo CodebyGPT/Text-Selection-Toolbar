@@ -164,7 +164,7 @@ function load(doc) {
     "setInterval",
     "clearInterval",
     "Date",
-    `${safeSrc}\n${zeroSrc}\nreturn { scanZeroWidthIdentifier, handleSafeCopyCheck };`
+    `${safeSrc}\n${zeroSrc}\nreturn { scanZeroWidthIdentifier, getZeroWidthNotice, showSecurityWarnings, handleSafeCopyCheck };`
   )(
     windowStub,
     doc,
@@ -217,6 +217,25 @@ sensitivity = "high";
 assert.deepStrictEqual(hit("\u200B\u200C\u200D"), { total: 3, run: 3 });
 assert.deepStrictEqual(hit("\uFEFF\u2060\u180E"), { total: 3, run: 3 });
 assert.strictEqual(hit("hello world"), null);
+assert.deepStrictEqual(ctx.getZeroWidthNotice("\u200B\u200C\u200D"), {
+  kind: "zeroWidth",
+  total: 3,
+  run: 3,
+});
+assert.strictEqual(ctx.getZeroWidthNotice("hello world"), null);
+
+// The toolbar copy button adds its normal confirmation after the warning.
+{
+  messages.length = 0;
+  ctx.showSecurityWarnings(
+    [{ kind: "zeroWidth", total: 3, run: 3 }],
+    null,
+    "toast_copied"
+  );
+  assert.deepStrictEqual(messages, [
+    "toast_copy_zero_width\ntoast_copied",
+  ]);
+}
 
 // --- Clipboard rewrite + zero-width identifiers stack together -----------
 {

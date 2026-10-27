@@ -537,8 +537,9 @@ function getSecurityNoticeToastText(notice) {
 
 // Copy/right-click warnings share one pipeline so two detections can surface
 // together: toasts are merged into one multi-line toast, while full-screen
-// notices are rendered as stacked panels in a single overlay.
-function showSecurityWarnings(notices, pointer) {
+// notices are rendered as stacked panels in a single overlay. Callers may add
+// one informational line (e.g. "Copied visible text only") after the warning.
+function showSecurityWarnings(notices, pointer, extraToastText) {
     if (!notices || !notices.length) return;
     const active = notices.filter((notice) =>
         notice.kind !== 'idn' ||
@@ -550,6 +551,7 @@ function showSecurityWarnings(notices, pointer) {
         .filter((notice) => notice.kind !== 'idn' || getIdnGuardMode() === 'toast')
         .map(getSecurityNoticeToastText)
         .filter(Boolean);
+    if (extraToastText) toastTexts.push(extraToastText);
     if (toastTexts.length && typeof showToast === 'function') {
         showToast(toastTexts.join('\n'), 2600);
     }
@@ -810,11 +812,9 @@ function runSafeCopyCheck(event) {
     // The clipboard is what actually leaves the page, so it is the source of
     // truth for zero-width tracking IDs (including page-injected ones). Fall
     // back to the selection when the event exposes no clipboard text.
-    if (typeof scanZeroWidthIdentifier === 'function') {
-        const finding = scanZeroWidthIdentifier(clipboardText || copied.text);
-        if (finding) {
-            notices.push({ kind: 'zeroWidth', total: finding.total, run: finding.run });
-        }
+    if (typeof getZeroWidthNotice === 'function') {
+        const notice = getZeroWidthNotice(clipboardText || copied.text);
+        if (notice) notices.push(notice);
     }
     if (!notices.length) return;
 
