@@ -106,6 +106,16 @@ const MESSAGES = {
     "С помощью этого инструмента можно скрыть собственные панели сайта, появляющиеся при выделении текста",
   ],
   menuSettings: ["脚本设置", "Script Settings", "Настройки скрипта"],
+  menuAscii: [
+    "检查选中文本是否含非 ASCII 字符",
+    "Check Selected Text for Non-ASCII Characters",
+    "Проверить выделенный текст на символы не-ASCII",
+  ],
+  menuAsciiHelp: [
+    "点击后检查当前标签页选中的文本；没有选区时会弹窗让你手动粘贴。默认关闭",
+    "Checks the text selected on the current tab; when nothing is selected it asks you to paste text. Off by default",
+    "Проверяет выделенный текст на текущей вкладке; если выделения нет, предложит вставить текст. По умолчанию выключено",
+  ],
   blockMenuWarning: [
     "关闭后不再注册菜单项，已保存的隐藏规则仍然生效",
     "Hiding this only unregisters the menu item; saved rules still apply.",
@@ -188,6 +198,15 @@ const MESSAGES = {
   safeCopyScopeSld: ["SLD 域名（最宽松）", "SLD domain (most lenient)", "SLD-домен (самый мягкий)"],
   safeCopyScopeFull: ["完整链接（最严格）", "Full link (strictest)", "Полная ссылка (самый строгий)"],
   safeCopyScopeOff: ["禁用", "Disabled", "Отключено"],
+  idnGuard: ["IDN同形攻击防护", "IDN homograph protection", "Защита от IDN-гомоглифов"],
+  idnGuardHelp: [
+    "网页加载、刷新或跳转时，以及右键点击超链接时，检查域名是否含非 ASCII 字符或使用 xn-- ASCII 兼容格式；右键只检查被点击的链接，不干扰普通文本复制与右键",
+    "On page load, refresh, navigation and link right-click, checks whether the domain uses non-ASCII characters or the xn-- ASCII-compatible form; right-click only checks the clicked link and never interferes with normal text copying or right-clicking",
+    "При загрузке, обновлении, переходе и правом клике по ссылке проверяет домен на символы не-ASCII или ASCII-совместимый вид xn--; правый клик проверяет только нажатую ссылку и не мешает обычному копированию",
+  ],
+  idnGuardToast: ["Toast 通知提醒", "Toast notification", "Уведомление через toast"],
+  idnGuardFullscreen: ["全屏强提醒", "Full-screen warning", "Полноэкранное предупреждение"],
+  idnGuardDisabled: ["禁用", "Disabled", "Отключено"],
   linkDragPreview: [
     "链接拖拽预览",
     "Link drag preview",

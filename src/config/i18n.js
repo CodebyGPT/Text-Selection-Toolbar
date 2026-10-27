@@ -197,6 +197,26 @@ export const I18N = {
     zh: `脚本设置`,
     en: `Script Settings`
   },
+  menu_check_ascii: {
+    zh: `检查选中文本是否含非 ASCII 字符`,
+    en: `Check Selected Text for Non-ASCII Characters`
+  },
+  menu_check_ascii_prompt: {
+    zh: `当前没有选中文本，请粘贴要检查的文本：`,
+    en: `No text is selected. Paste the text to check:`
+  },
+  menu_check_ascii_has: {
+    zh: `检测结果：选中的文本含非 ASCII 字符。`,
+    en: `Result: the selected text contains non-ASCII characters.`
+  },
+  menu_check_ascii_none: {
+    zh: `检测结果：选中的文本不含非 ASCII 字符。`,
+    en: `Result: the selected text contains no non-ASCII characters.`
+  },
+  menu_check_ascii_empty: {
+    zh: `没有可检查的文本。`,
+    en: `No text to check.`
+  },
   field_resize_height: {
     zh: `拖动调整高度`,
     en: `Drag to adjust height`

@@ -121,6 +121,43 @@ function openTranslatePanel() {
 }
 
 /**
+ * Check the current tab's selected text for non-ASCII characters. When there
+ * is no usable selection, ask the user to paste text into a native prompt.
+ * Results are reported through native browser dialogs.
+ */
+function checkSelectedTextAscii(i18n) {
+  let text = "";
+  try {
+    text = String(globalThis.getSelection?.() || "");
+  } catch (err) {
+    text = "";
+  }
+
+  if (!text.trim()) {
+    let input = null;
+    try {
+      input = globalThis.prompt
+        ? globalThis.prompt(i18n("menu_check_ascii_prompt"), "")
+        : null;
+    } catch (err) {
+      input = null;
+    }
+    if (input === null) return; // user cancelled
+    text = input;
+  }
+
+  if (!text.trim()) {
+    globalThis.alert?.(i18n("menu_check_ascii_empty"));
+    return;
+  }
+
+  const hasNonAscii = /[^\x00-\x7F]/.test(text);
+  globalThis.alert?.(
+    i18n(hasNonAscii ? "menu_check_ascii_has" : "menu_check_ascii_none")
+  );
+}
+
+/**
  * Register the userscript-manager menu entries in the order chosen in
  * Settings → General → Menu Management. Disabled entries are not registered.
  */
@@ -144,6 +181,11 @@ function registerMenus(setting) {
       label: i18n("menu_hide_elements", "隐藏网页元素"),
       enabled: toolbarSetting.showBlockMenu !== false,
       action: activateHideElementsMenu,
+    },
+    ascii: {
+      label: i18n("menu_check_ascii", "检查选中文本是否含非 ASCII 字符"),
+      enabled: toolbarSetting.showAsciiCheckMenu === true,
+      action: () => checkSelectedTextAscii(i18n),
     },
     clear: {
       label: i18n("menu_clear_hidden_rules", "清空该网页的隐藏规则"),

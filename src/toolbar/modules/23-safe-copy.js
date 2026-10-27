@@ -44,6 +44,12 @@ const SAFE_COPY_ALARM_CSS = `
 .sc-guard-panel * { box-sizing: border-box; }
 .sc-guard-icon { display: flex; justify-content: center; margin: 0 auto 14px; }
 .sc-guard-icon svg { width: 120px; height: 120px; display: block; filter: drop-shadow(0 8px 24px rgba(248, 231, 28, 0.25)); }
+.sc-guard-notices { display: flex; flex-direction: column; }
+.sc-guard-notice + .sc-guard-notice {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
 .sc-guard-title { margin: 0 0 14px; color: #fff; font-size: 26px; line-height: 1.3; font-weight: 800; }
 .sc-guard-body {
     margin: 0;
@@ -498,6 +504,53 @@ function formatSafeCopyAlarmBody(kind, text, link) {
     return t(key).replace('%s', () => shown);
 }
 
+function getSecurityNoticeTitle(notice) {
+    if (notice.kind === 'link') return t('alarm_title_link');
+    if (notice.kind === 'idn') return t('alarm_title_idn_' + notice.idn);
+    return t(notice.kind === 'hidden' ? 'alarm_title_hidden' : 'alarm_title_altered');
+}
+
+function formatSecurityNoticeBody(notice) {
+    if (notice.kind === 'link') return formatSafeCopyAlarmBody('link', notice.text, notice.link);
+    if (notice.kind === 'idn' && typeof formatIdnAlarmBody === 'function') {
+        return formatIdnAlarmBody(notice.idn, notice.selected);
+    }
+    return formatSafeCopyAlarmBody(notice.kind, notice.text, notice.link);
+}
+
+function getSecurityNoticeToastText(notice) {
+    if (notice.kind === 'link') return t('toast_copy_link');
+    if (notice.kind === 'idn' && typeof getIdnToastText === 'function') return getIdnToastText(notice);
+    return '';
+}
+
+// Copy/right-click warnings share one pipeline so two detections can surface
+// together: toasts are merged into one multi-line toast, while full-screen
+// notices are rendered as stacked panels in a single overlay.
+function showSecurityWarnings(notices, pointer) {
+    if (!notices || !notices.length) return;
+    const active = notices.filter((notice) =>
+        notice.kind !== 'idn' ||
+        (typeof getIdnGuardMode === 'function' && getIdnGuardMode() !== 'disabled')
+    );
+    if (!active.length) return;
+
+    const toastTexts = active
+        .filter((notice) => notice.kind !== 'idn' || getIdnGuardMode() === 'toast')
+        .map(getSecurityNoticeToastText)
+        .filter(Boolean);
+    if (toastTexts.length && typeof showToast === 'function') {
+        showToast(toastTexts.join('\n'), 2600);
+    }
+
+    const alarmNotices = active.filter((notice) => {
+        if (notice.kind === 'link') return getConfig('enableSafeCopyAlarm') === true;
+        if (notice.kind === 'idn') return getIdnGuardMode() === 'fullscreen';
+        return getConfig('enableSafeCopyAlarm') === true;
+    });
+    if (alarmNotices.length) showSafeCopyAlarm({ notices: alarmNotices, pointer });
+}
+
 function closeSafeCopyAlarm() {
     const state = safeCopyAlarm;
     if (!state) return;
@@ -520,7 +573,9 @@ function createSafeCopyAlarm(doc) {
     host.style.display = 'block';
     host.style.position = 'fixed';
     host.style.inset = '0';
-    host.style.zIndex = '2147483647';
+    // One below the toolbar host (2147483647) so a toast stays visible on top
+    // of the full-screen warning instead of being dimmed by its backdrop.
+    host.style.zIndex = '2147483646';
     host.style.pointerEvents = 'none';
     parent.appendChild(host);
 
@@ -537,7 +592,6 @@ function createSafeCopyAlarm(doc) {
     panel.className = 'sc-guard-panel';
     panel.setAttribute('role', 'alert');
     panel.setAttribute('aria-labelledby', 'tm-safe-copy-alarm-title');
-    panel.setAttribute('aria-describedby', 'tm-safe-copy-alarm-body');
     viewport.appendChild(panel);
 
     const icon = doc.createElement('div');
@@ -545,15 +599,9 @@ function createSafeCopyAlarm(doc) {
     icon.innerHTML = SAFE_COPY_ALARM_ICON;
     panel.appendChild(icon);
 
-    const title = doc.createElement('h2');
-    title.className = 'sc-guard-title';
-    title.id = 'tm-safe-copy-alarm-title';
-    panel.appendChild(title);
-
-    const body = doc.createElement('p');
-    body.className = 'sc-guard-body';
-    body.id = 'tm-safe-copy-alarm-body';
-    panel.appendChild(body);
+    const noticesEl = doc.createElement('div');
+    noticesEl.className = 'sc-guard-notices';
+    panel.appendChild(noticesEl);
 
     const button = doc.createElement('button');
     button.type = 'button';
@@ -561,7 +609,35 @@ function createSafeCopyAlarm(doc) {
     button.addEventListener('click', closeSafeCopyAlarm);
     panel.appendChild(button);
 
-    return { host, title, body, button, timer: null, deadline: 0 };
+    return { host, doc, noticesEl, button, timer: null, deadline: 0 };
+}
+
+// Each warning is a title + body pair inside the shared panel; the panel and
+// acknowledge button stay single, so stacked warnings still fit one overlay.
+function renderSafeCopyAlarmNotices(state, notices) {
+    const list = state.noticesEl;
+    if (!list) return;
+    Array.from(list.children || []).forEach((child) => list.removeChild(child));
+
+    notices.forEach((notice, index) => {
+        const item = state.doc.createElement('div');
+        item.className = 'sc-guard-notice';
+
+        const title = state.doc.createElement('h2');
+        title.className = 'sc-guard-title';
+        if (index === 0) {
+            title.id = 'tm-safe-copy-alarm-title';
+        }
+        title.textContent = getSecurityNoticeTitle(notice);
+
+        const body = state.doc.createElement('p');
+        body.className = 'sc-guard-body';
+        body.textContent = formatSecurityNoticeBody(notice);
+
+        item.appendChild(title);
+        item.appendChild(body);
+        list.appendChild(item);
+    });
 }
 
 // The acknowledge button is the only clickable part of the overlay. When the
@@ -592,7 +668,7 @@ function avoidSafeCopyAlarmPointer(button, pointer) {
     button.style.transform = `translate(${Math.round(dx)}px, 0)`;
 }
 
-function showSafeCopyAlarm({ kind, text, link, pointer }) {
+function showSafeCopyAlarm({ kind, text, link, notices, pointer }) {
     if (typeof document === 'undefined' || !document.createElement) return false;
 
     let state = safeCopyAlarm;
@@ -603,12 +679,10 @@ function showSafeCopyAlarm({ kind, text, link, pointer }) {
         safeCopyAlarm = state;
     }
 
-    state.title.textContent = t(
-        kind === 'hidden' ? 'alarm_title_hidden'
-            : kind === 'link' ? 'alarm_title_link'
-                : 'alarm_title_altered'
-    );
-    state.body.textContent = formatSafeCopyAlarmBody(kind, text, link);
+    const list = Array.isArray(notices) && notices.length
+        ? notices
+        : [{ kind, text, link }];
+    renderSafeCopyAlarmNotices(state, list);
     state.deadline = Date.now() + SAFE_COPY_ALARM_SECONDS * 1000;
 
     if (state.timer) clearInterval(state.timer);
@@ -625,13 +699,6 @@ function showSafeCopyAlarm({ kind, text, link, pointer }) {
     tick();
     avoidSafeCopyAlarmPointer(state.button, pointer);
     return true;
-}
-
-function warnSafeCopyLinkMismatch(shown, actual, pointer) {
-    if (typeof showToast === 'function') showToast(t('toast_copy_link'), 2600);
-    if (getConfig('enableSafeCopyAlarm') === true) {
-        showSafeCopyAlarm({ kind: 'link', text: shown, link: actual, pointer });
-    }
 }
 
 function findSafeCopyLinkProblem(anchor, scope) {
@@ -658,13 +725,22 @@ function handleSafeCopyContextMenu(event) {
 function runSafeCopyContextMenuCheck(event) {
     if (!event || event.isTrusted === false) return;
 
-    const problem = findSafeCopyLinkProblem(
-        findSafeCopyAnchor(getSafeCopyTarget(event)),
-        getSafeCopyLinkScope()
-    );
-    if (!problem) return;
+    const anchor = findSafeCopyAnchor(getSafeCopyTarget(event));
+    if (!anchor) return;
 
-    warnSafeCopyLinkMismatch(problem.shown, problem.href, {
+    // Both detections feed the same warning pipeline so a single right-click
+    // can surface link mismatch and IDN homograph notices together.
+    const notices = [];
+    const problem = findSafeCopyLinkProblem(anchor, getSafeCopyLinkScope());
+    if (problem) {
+        notices.push({ kind: 'link', text: problem.shown, link: problem.href });
+    }
+    if (typeof getIdnWarningsForAnchor === 'function') {
+        notices.push(...getIdnWarningsForAnchor(anchor, true));
+    }
+    if (!notices.length) return;
+
+    showSecurityWarnings(notices, {
         x: event.clientX,
         y: event.clientY,
     });

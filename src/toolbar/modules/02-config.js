@@ -13,6 +13,9 @@ const DEFAULT_CONFIG = {
     enableSafeCopyAlarm: false, // full-screen warning; the toast is always on
     // Link check scope: 'domain' (hostname, default) | 'sld' (SLD+TLD) | 'full' | 'off'
     safeCopyLinkScope: 'domain',
+    // IDN homograph guard: 'toast' (default) | 'fullscreen' | 'disabled'
+    idnGuardMode: 'toast',
+    showAsciiCheckMenu: false, // userscript menu entry, off by default
     showPastePreview: false, // show the pending lightning-paste text
     pasteTtl: 8, // seconds, 3-30; anything else falls back to the default
     searchEngines: [], // [{ name, url }], max 8

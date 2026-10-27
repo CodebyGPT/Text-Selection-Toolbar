@@ -17,6 +17,8 @@ export const DEFAULT_TOOLBAR_SETTING = {
   enablePaste: true,
   enableSafeCopyAlarm: false,
   safeCopyLinkScope: "domain",
+  idnGuardMode: "toast", // IDN homograph guard: "toast" | "fullscreen" | "disabled"
+  showAsciiCheckMenu: false, // userscript menu "check selected text for non-ASCII"
   showPastePreview: false,
   pasteTtl: PASTE_TTL_DEFAULT,
   enableDragPreview: false,
@@ -26,12 +28,13 @@ export const DEFAULT_TOOLBAR_SETTING = {
   translateHideThreshold: 15,
   showBlockMenu: true,
   showTranslateMenu: true,
-  menuOrder: ["translate", "block", "settings"],
+  menuOrder: ["translate", "block", "ascii", "settings"],
 };
 
 export const TOOLBAR_MENU_ORDER_DEFAULT = [
   "translate",
   "block",
+  "ascii",
   "settings",
 ];
 

@@ -56,6 +56,9 @@ function markToolbarReady() {
             await initDefaultSearchEngine();
             markToolbarReady();
 
+            // IDN homograph guard: check now and on browser navigation events.
+            initIdnGuard();
+
             // 2. Apply blocking rules (userscript menu commands are registered
             //    by the host from the user-defined menu order).
             applySavedBlockingRules();

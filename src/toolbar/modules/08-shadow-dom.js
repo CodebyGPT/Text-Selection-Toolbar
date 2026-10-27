@@ -214,6 +214,10 @@ function getStyles() {
             opacity: 0;
             transition: opacity 0.3s;
             z-index: 10000;
+            white-space: pre-line;
+            text-align: center;
+            max-width: min(90vw, 560px);
+            box-sizing: border-box;
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;

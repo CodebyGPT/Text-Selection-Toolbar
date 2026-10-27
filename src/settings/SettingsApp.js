@@ -900,12 +900,14 @@ const UNLOCK_HOTKEY_OPTIONS = [
 const TOOLBAR_MENU_LABELS = {
   translate: "menuTranslate",
   block: "menuBlock",
+  ascii: "menuAscii",
   settings: "menuSettings",
 };
 
 const TOOLBAR_MENU_TOGGLES = {
   translate: "showTranslateMenu",
   block: "showBlockMenu",
+  ascii: "showAsciiCheckMenu",
 };
 
 function MenuManagementSection({ value, patch, hasBlockRules }) {
@@ -935,7 +937,13 @@ function MenuManagementSection({ value, patch, hasBlockRules }) {
                 ? t("blockMenuWarning")
                 : null
             }
-            help={id === "block" ? t("menuBlockHelp") : null}
+            help={
+              id === "block"
+                ? t("menuBlockHelp")
+                : id === "ascii"
+                  ? t("menuAsciiHelp")
+                  : null
+            }
           >
             <div className="kiss-st-inline">
               {toggleKey && (
@@ -1135,6 +1143,17 @@ function ToolbarTab({ setting, update }) {
               ["sld", t("safeCopyScopeSld")],
               ["full", t("safeCopyScopeFull")],
               ["off", t("safeCopyScopeOff")],
+            ]}
+          />
+        </Row>
+        <Row label={t("idnGuard")} help={t("idnGuardHelp")}>
+          <Select
+            value={value.idnGuardMode ?? "toast"}
+            onChange={(v) => patch({ idnGuardMode: v })}
+            options={[
+              ["toast", t("idnGuardToast")],
+              ["fullscreen", t("idnGuardFullscreen")],
+              ["disabled", t("idnGuardDisabled")],
             ]}
           />
         </Row>
