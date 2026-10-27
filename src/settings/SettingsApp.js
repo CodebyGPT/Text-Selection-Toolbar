@@ -180,12 +180,15 @@ function Select({ value, onChange, options, disabled }) {
   );
 }
 
-function Toggle({ value, onChange }) {
+function Toggle({ value, onChange, disabled }) {
   return (
-    <label className="kiss-st-switch">
+    <label
+      className={`kiss-st-switch${disabled ? " kiss-st-switch--disabled" : ""}`}
+    >
       <input
         type="checkbox"
         checked={Boolean(value)}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
       />
       <span />
@@ -1064,43 +1067,29 @@ function ToolbarTab({ setting, update }) {
             onChange={(v) => patch({ forceWhiteBlack: v })}
           />
         </Row>
-        <Row label={t("showPendingPaste")}>
-          <Toggle
-            value={value.showPastePreview}
-            onChange={(v) => patch({ showPastePreview: v })}
+      </Section>
+
+      <Section title={t("superSelection")}>
+        <Row label={t("unlockHotkey")} help={t("unlockHotkeyHelp")}>
+          <Select
+            value={value.unlockHotkey ?? ""}
+            onChange={(v) => patch({ unlockHotkey: v })}
+            options={[
+              ...UNLOCK_HOTKEY_OPTIONS.map(([code, key]) => [code, t(key)]),
+              // Keep a hand-typed value from an older build selectable.
+              ...(value.unlockHotkey &&
+              !UNLOCK_HOTKEY_OPTIONS.some(
+                ([code]) => code === value.unlockHotkey
+              )
+                ? [[value.unlockHotkey, value.unlockHotkey]]
+                : []),
+              ["", t("hotkeyDisabled")],
+            ]}
           />
         </Row>
       </Section>
 
-      <Section title={t("featureSwitches")}>
-        <Row label={t("showTranslateButton")}>
-          <Toggle
-            value={value.enableTranslate !== false}
-            onChange={(v) => patch({ enableTranslate: v })}
-          />
-        </Row>
-        <Row
-          label={t("translateHideThreshold")}
-          help={t("translateHideThresholdHelp")}
-        >
-          <Select
-            value={value.translateHideThreshold ?? 15}
-            disabled={value.enableTranslate === false}
-            onChange={(v) => patch({ translateHideThreshold: Number(v) })}
-            options={[
-              [15, "15%"],
-              [35, "35%"],
-              [55, "55%"],
-              [75, "75%"],
-            ]}
-          />
-        </Row>
-        <Row label={t("detectHiddenLinks")}>
-          <Toggle
-            value={value.enableHiddenLinks}
-            onChange={(v) => patch({ enableHiddenLinks: v })}
-          />
-        </Row>
+      <Section title={t("smartPaste")}>
         <Row label={t("smartPaste")} help={t("smartPasteHelp")}>
           <Toggle
             value={value.enablePaste}
@@ -1128,6 +1117,50 @@ function ToolbarTab({ setting, update }) {
             }}
           />
         </Row>
+        <Row label={t("showPendingPaste")}>
+          <Toggle
+            value={value.showPastePreview}
+            disabled={value.enablePaste === false}
+            onChange={(v) => patch({ showPastePreview: v })}
+          />
+        </Row>
+      </Section>
+
+      <Section title={t("selectionTranslation")}>
+        <Row label={t("showTranslateButton")}>
+          <Toggle
+            value={value.enableTranslate !== false}
+            onChange={(v) => patch({ enableTranslate: v })}
+          />
+        </Row>
+        <Row
+          label={t("translateHideThreshold")}
+          help={t("translateHideThresholdHelp")}
+        >
+          <Select
+            value={value.translateHideThreshold ?? 15}
+            disabled={value.enableTranslate === false}
+            onChange={(v) => patch({ translateHideThreshold: Number(v) })}
+            options={[
+              [15, "15%"],
+              [35, "35%"],
+              [55, "55%"],
+              [75, "75%"],
+            ]}
+          />
+        </Row>
+      </Section>
+
+      <Section title={t("linkExtraction")}>
+        <Row label={t("detectHiddenLinks")}>
+          <Toggle
+            value={value.enableHiddenLinks}
+            onChange={(v) => patch({ enableHiddenLinks: v })}
+          />
+        </Row>
+      </Section>
+
+      <Section title={t("safeCopySection")}>
         <Row label={t("safeCopyAlarm")} help={t("safeCopyAlarmHelp")}>
           <Toggle
             value={value.enableSafeCopyAlarm === true}
@@ -1170,27 +1203,13 @@ function ToolbarTab({ setting, update }) {
             ]}
           />
         </Row>
+      </Section>
+
+      <Section title={t("dragPreview")}>
         <Row label={t("linkDragPreview")}>
           <Toggle
             value={value.enableDragPreview}
             onChange={(v) => patch({ enableDragPreview: v })}
-          />
-        </Row>
-        <Row label={t("unlockHotkey")} help={t("unlockHotkeyHelp")}>
-          <Select
-            value={value.unlockHotkey ?? ""}
-            onChange={(v) => patch({ unlockHotkey: v })}
-            options={[
-              ...UNLOCK_HOTKEY_OPTIONS.map(([code, key]) => [code, t(key)]),
-              // Keep a hand-typed value from an older build selectable.
-              ...(value.unlockHotkey &&
-              !UNLOCK_HOTKEY_OPTIONS.some(
-                ([code]) => code === value.unlockHotkey
-              )
-                ? [[value.unlockHotkey, value.unlockHotkey]]
-                : []),
-              ["", t("hotkeyDisabled")],
-            ]}
           />
         </Row>
       </Section>

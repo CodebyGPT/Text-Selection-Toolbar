@@ -238,6 +238,7 @@ export const SETTINGS_APP_CSS = String.raw`
 }
 :host .kiss-st-switch input:checked + span { background: var(--st-accent); }
 :host .kiss-st-switch input:checked + span::after { transform: translateX(20px); }
+:host .kiss-st-switch--disabled { opacity: .45; cursor: not-allowed; }
 :host .kiss-st-btn {
   height: var(--st-btn-height);
   padding: 0 var(--st-btn-pad-x);

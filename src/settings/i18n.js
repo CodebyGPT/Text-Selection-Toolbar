@@ -157,8 +157,12 @@ const MESSAGES = {
     "Всегда скрывать панель",
   ],
   forceLightButtons: ["强制浅色按钮", "Force light toolbar", "Светлая панель принудительно"],
-  showPendingPaste: ["显示待粘贴的文本", "Show pending paste text", "Показывать текст для вставки"],
-  featureSwitches: ["功能开关", "Feature switches", "Переключатели функций"],
+  showPendingPaste: ["显示待粘贴文本", "Show pending paste text", "Показывать текст для вставки"],
+  superSelection: ["超级取词", "Super selection", "Супервыделение"],
+  selectionTranslation: ["划词翻译", "Selection translation", "Перевод выделенного"],
+  linkExtraction: ["链接提取", "Link extraction", "Извлечение ссылок"],
+  safeCopySection: ["安全复制", "Safe copy", "Безопасное копирование"],
+  dragPreview: ["拖拽预览", "Drag preview", "Предпросмотр перетаскивания"],
   showTranslateButton: ["显示翻译按钮", "Show translate button", "Показывать кнопку перевода"],
   translateHideThreshold: [
     "翻译按钮自动隐藏阈值",
@@ -239,9 +243,9 @@ const MESSAGES = {
   ],
   zeroWidthDisabled: ["禁用", "Disabled", "Отключено"],
   linkDragPreview: [
-    "链接拖拽预览",
-    "Link drag preview",
-    "Предпросмотр ссылки при перетаскивании",
+    "拖拽链接以预览",
+    "Drag a link to preview",
+    "Перетащите ссылку для предпросмотра",
   ],
   unlockHotkey: ["超级取词热键", "Super-selection hotkey", "Горячая клавиша супервыделения"],
   unlockHotkeyHelp: [
