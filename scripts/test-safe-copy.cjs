@@ -65,7 +65,17 @@ function makeContextMenuEvent(anchor, trusted = true) {
   return {
     isTrusted: trusted,
     target: anchor,
+    clientX: 0,
+    clientY: 0,
     composedPath: () => [anchor],
+  };
+}
+
+function makeAlarmButton(rect) {
+  return {
+    style: {},
+    textContent: "",
+    getBoundingClientRect: () => rect,
   };
 }
 
@@ -239,7 +249,7 @@ function load(documentStub, nowRef, timerRef) {
     "setInterval",
     "clearInterval",
     "Date",
-    `${src}\nreturn { handleSafeCopyCheck, handleSafeCopyContextMenu, getSafeCopyAlarmRemaining, formatSafeCopyAlarmBody, buildVisibleSelectionText };`
+    `${src}\nreturn { handleSafeCopyCheck, handleSafeCopyContextMenu, getSafeCopyAlarmRemaining, formatSafeCopyAlarmBody, buildVisibleSelectionText, avoidSafeCopyAlarmPointer };`
   )(
     windowStub,
     documentStub,
@@ -597,6 +607,26 @@ const visibleStyle = {
   for (const tick of passiveTimers.timers.values()) tick();
   assert.strictEqual(host2.isConnected, false);
   alarmEnabled = false;
+}
+
+// The acknowledge button dodges a right-click that would land on it, by the
+// smallest horizontal shift that clears the pointer. Copy alarms never dodge.
+{
+  const rect = { left: 400, top: 500, right: 560, bottom: 552, width: 160, height: 52 };
+  const button = makeAlarmButton(rect);
+  ctx.avoidSafeCopyAlarmPointer(button, { x: 430, y: 530 });
+  assert.strictEqual(button.style.transform, "translate(46px, 0)");
+
+  ctx.avoidSafeCopyAlarmPointer(button, { x: 540, y: 530 });
+  assert.strictEqual(button.style.transform, "translate(-36px, 0)");
+
+  // Pointer outside the button: no shift.
+  ctx.avoidSafeCopyAlarmPointer(button, { x: 430, y: 200 });
+  assert.strictEqual(button.style.transform, "");
+
+  // No pointer (copy-event alarm): no shift.
+  ctx.avoidSafeCopyAlarmPointer(button, null);
+  assert.strictEqual(button.style.transform, "");
 }
 
 // Synthetic events dispatched by a page are ignored.

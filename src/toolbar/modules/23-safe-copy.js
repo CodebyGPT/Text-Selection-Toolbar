@@ -553,7 +553,35 @@ function createSafeCopyAlarm(doc) {
     return { host, title, body, button, timer: null, deadline: 0 };
 }
 
-function showSafeCopyAlarm({ kind, text, link }) {
+// The acknowledge button is the only clickable part of the overlay. When the
+// right-click point falls on it, the button would become the mouseup target
+// and disturb the native menu, so shift it sideways by the shortest distance
+// that clears the pointer. Horizontal only: the panel clips vertical overflow.
+function avoidSafeCopyAlarmPointer(button, pointer) {
+    if (!button || !button.style) return;
+    button.style.transform = '';
+    if (!pointer || !button.getBoundingClientRect) return;
+
+    let rect;
+    try {
+        rect = button.getBoundingClientRect();
+    } catch (e) {
+        return;
+    }
+    const x = Number(pointer.x);
+    const y = Number(pointer.y);
+    if (!rect || !(rect.width > 0) || !(rect.height > 0)) return;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) return;
+
+    const margin = 16;
+    const left = x - rect.right - margin;
+    const right = x - rect.left + margin;
+    const dx = Math.abs(left) <= Math.abs(right) ? left : right;
+    button.style.transform = `translate(${Math.round(dx)}px, 0)`;
+}
+
+function showSafeCopyAlarm({ kind, text, link, pointer }) {
     if (typeof document === 'undefined' || !document.createElement) return false;
 
     let state = safeCopyAlarm;
@@ -584,13 +612,14 @@ function showSafeCopyAlarm({ kind, text, link }) {
     };
     state.timer = setInterval(tick, 1000);
     tick();
+    avoidSafeCopyAlarmPointer(state.button, pointer);
     return true;
 }
 
-function warnSafeCopyLinkMismatch(shown, actual) {
+function warnSafeCopyLinkMismatch(shown, actual, pointer) {
     if (typeof showToast === 'function') showToast(t('toast_copy_link'), 2600);
     if (getConfig('enableSafeCopyAlarm') === true) {
-        showSafeCopyAlarm({ kind: 'link', text: shown, link: actual });
+        showSafeCopyAlarm({ kind: 'link', text: shown, link: actual, pointer });
     }
 }
 
@@ -620,7 +649,7 @@ function runSafeCopyContextMenuCheck(event) {
     if (!href) return;
     if (!compareSafeCopyLinks(shown, href, scope)) return;
 
-    warnSafeCopyLinkMismatch(shown, href);
+    warnSafeCopyLinkMismatch(shown, href, { x: event.clientX, y: event.clientY });
 }
 
 function handleSafeCopyCheck(event) {
