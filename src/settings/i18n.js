@@ -170,9 +170,9 @@ const MESSAGES = {
   pasteTtl: ["闪电粘贴有效期 (s)", "Smart paste TTL (s)", "Срок быстрой вставки (с)"],
   safeCopyAlarm: ["安全复制强提醒", "Strong safe-copy warning", "Усиленное предупреждение безопасного копирования"],
   safeCopyAlarmHelp: [
-    "开启后，可疑的复制或链接不一致会额外弹出全屏强提醒（toast 提示始终开启）",
-    "Also show the full-screen warning for suspicious copies or mismatched links (the toast is always on)",
-    "Дополнительно показывать полноэкранное предупреждение при подозрительном копировании или несовпадении ссылок (toast включён всегда)",
+    "开启后，可疑的复制或链接不一致会额外弹出全屏强提醒（toast 始终开启；右键触发的提醒只做告知，不拦截操作）",
+    "Also show the full-screen warning for suspicious copies or mismatched links (the toast is always on; right-click warnings never block input)",
+    "Дополнительно показывать полноэкранное предупреждение при подозрительном копировании или несовпадении ссылок (toast включён всегда; предупреждение по правому клику не блокирует ввод)",
   ],
   safeCopyLinkScope: [
     "链接一致性检测范围",

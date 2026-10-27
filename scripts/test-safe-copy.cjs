@@ -552,12 +552,15 @@ const visibleStyle = {
   linkScope = "domain";
 }
 
-// The right-click reminder names the real destination.
+// The right-click reminder names the real destination, but stays passive:
+// click-through, no focusable button, so the native context menu keeps working.
 {
   messages.length = 0;
   alarmEnabled = true;
   const doc = makeFakeDocument();
-  const alarmCtx = load(doc, { value: 1000 }, { next: 1, timers: new Map() });
+  const passiveNow = { value: 1000 };
+  const passiveTimers = { next: 1, timers: new Map() };
+  const alarmCtx = load(doc, passiveNow, passiveTimers);
   const anchor = makeAnchor({
     href: "https://login.bank.example.secure-verify.top/account",
     text: "https://www.bank.example/login",
@@ -568,6 +571,7 @@ const visibleStyle = {
     (child) => child.id === "tm-safe-copy-alarm-host"
   );
   assert.ok(host);
+  assert.strictEqual(host.style.pointerEvents, "none");
   assert.strictEqual(
     findByClass(host.shadowRoot, "sc-guard-title").textContent,
     "alarm_title_link"
@@ -576,6 +580,16 @@ const visibleStyle = {
     findByClass(host.shadowRoot, "sc-guard-body").textContent,
     "LINKBODY:https://www.bank.example/login|https://login.bank.example.secure-verify.top/account"
   );
+  assert.strictEqual(findByClass(host.shadowRoot, "sc-guard-ack"), null);
+  assert.strictEqual(
+    findByClass(host.shadowRoot, "sc-guard-hint").textContent,
+    "alarm_passive_hint"
+  );
+
+  // The passive warning still auto-closes.
+  passiveNow.value += 15000;
+  for (const tick of passiveTimers.timers.values()) tick();
+  assert.strictEqual(host.isConnected, false);
   alarmEnabled = false;
 }
 
