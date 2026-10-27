@@ -623,6 +623,16 @@ function warnSafeCopyLinkMismatch(shown, actual, pointer) {
     }
 }
 
+function findSafeCopyLinkProblem(anchor, scope) {
+    if (!anchor || scope === 'off') return null;
+    const shown = findSafeCopyLink(anchor.textContent);
+    if (!shown) return null;
+    const href = getSafeCopyAnchorHref(anchor);
+    if (!href) return null;
+    if (!compareSafeCopyLinks(shown, href, scope)) return null;
+    return { shown, href };
+}
+
 // Chromium writes "Copy link address" straight to the system clipboard without
 // a page event, so the last moment a page can look at the link is the
 // right-click itself.
@@ -637,19 +647,34 @@ function handleSafeCopyContextMenu(event) {
 function runSafeCopyContextMenuCheck(event) {
     if (!event || event.isTrusted === false) return;
 
-    const scope = getSafeCopyLinkScope();
-    if (scope === 'off') return;
+    const problem = findSafeCopyLinkProblem(
+        findSafeCopyAnchor(getSafeCopyTarget(event)),
+        getSafeCopyLinkScope()
+    );
+    if (!problem) return;
 
-    const anchor = findSafeCopyAnchor(getSafeCopyTarget(event));
-    if (!anchor) return;
+    warnSafeCopyLinkMismatch(problem.shown, problem.href, {
+        x: event.clientX,
+        y: event.clientY,
+    });
+}
 
-    const shown = findSafeCopyLink(anchor.textContent);
-    if (!shown) return;
-    const href = getSafeCopyAnchorHref(anchor);
-    if (!href) return;
-    if (!compareSafeCopyLinks(shown, href, scope)) return;
+// Dragging a link hands its URL to the drop target. A full-screen layer would
+// break the drag, so this path is toast-only even when the alarm is enabled.
+function handleSafeCopyDragStart(event) {
+    try {
+        if (!event || event.isTrusted === false) return;
 
-    warnSafeCopyLinkMismatch(shown, href, { x: event.clientX, y: event.clientY });
+        const problem = findSafeCopyLinkProblem(
+            findSafeCopyAnchor(getSafeCopyTarget(event)),
+            getSafeCopyLinkScope()
+        );
+        if (!problem) return;
+
+        if (typeof showToast === 'function') showToast(t('toast_copy_link'), 2600);
+    } catch (e) {
+        // A read-only detector must never break the page's drag.
+    }
 }
 
 function handleSafeCopyCheck(event) {

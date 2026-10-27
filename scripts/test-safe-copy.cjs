@@ -249,7 +249,7 @@ function load(documentStub, nowRef, timerRef) {
     "setInterval",
     "clearInterval",
     "Date",
-    `${src}\nreturn { handleSafeCopyCheck, handleSafeCopyContextMenu, getSafeCopyAlarmRemaining, formatSafeCopyAlarmBody, buildVisibleSelectionText, avoidSafeCopyAlarmPointer };`
+    `${src}\nreturn { handleSafeCopyCheck, handleSafeCopyContextMenu, handleSafeCopyDragStart, getSafeCopyAlarmRemaining, formatSafeCopyAlarmBody, buildVisibleSelectionText, avoidSafeCopyAlarmPointer };`
   )(
     windowStub,
     documentStub,
@@ -627,6 +627,43 @@ const visibleStyle = {
   // No pointer (copy-event alarm): no shift.
   ctx.avoidSafeCopyAlarmPointer(button, null);
   assert.strictEqual(button.style.transform, "");
+}
+
+// Dragging a link with mismatched text warns with a toast only: the alarm is
+// enabled, but a full-screen layer must never interrupt the drag.
+{
+  messages.length = 0;
+  alarmEnabled = true;
+  const doc = makeFakeDocument();
+  const dragCtx = load(doc, { value: 1000 }, { next: 1, timers: new Map() });
+  const anchor = makeAnchor({
+    href: "https://login.bank.example.secure-verify.top/account",
+    text: "https://www.bank.example/login",
+  });
+  dragCtx.handleSafeCopyDragStart(makeContextMenuEvent(anchor));
+  assert.deepStrictEqual(messages, ["toast_copy_link"]);
+  assert.strictEqual(
+    doc.documentElement.children.some(
+      (child) => child.id === "tm-safe-copy-alarm-host"
+    ),
+    false
+  );
+
+  // Matching link and disabled scope stay quiet.
+  messages.length = 0;
+  dragCtx.handleSafeCopyDragStart(
+    makeContextMenuEvent(
+      makeAnchor({ href: "https://baidu.com/", text: "baidu.com" })
+    )
+  );
+  assert.deepStrictEqual(messages, []);
+
+  messages.length = 0;
+  linkScope = "off";
+  dragCtx.handleSafeCopyDragStart(makeContextMenuEvent(anchor));
+  assert.deepStrictEqual(messages, []);
+  linkScope = "domain";
+  alarmEnabled = false;
 }
 
 // Synthetic events dispatched by a page are ignored.

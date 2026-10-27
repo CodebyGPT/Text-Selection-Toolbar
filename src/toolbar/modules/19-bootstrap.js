@@ -98,6 +98,8 @@ function markToolbarReady() {
             // "Copy link address" never reaches the page, so check the link at
             // the right-click itself. Capture phase beats page handlers.
             window.addEventListener('contextmenu', handleSafeCopyContextMenu, true);
+            // Dragging a link copies its URL too; that path is toast-only.
+            window.addEventListener('dragstart', handleSafeCopyDragStart, true);
 
             // Copy button for <pre><code> blocks follows the hover target.
             document.addEventListener('mouseover', handleCodeCopyHover, true);
