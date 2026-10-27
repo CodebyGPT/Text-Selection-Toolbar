@@ -4,6 +4,10 @@ const DEFAULT_CONFIG = {
     language: 'auto', // 'auto' (default) | 'zh-CN' | 'en' | 'ru'
     offset: 12, // px
     timeout: 2400, // ms, 0 = stays indefinitely
+    // Cursor-distance fade: '' disables it. Keep the 20-600 range and 1.5
+    // default ratio in sync with src/config/toolbar.js and module 26.
+    fadeAwayDistance: '',
+    fadeAwayRatio: '1.5',
     buttonStyle: 'row', // 'row' (capsule) | 'col' (rounded rect)
     forceWhiteBlack: true, // true = force white bg/black text
     searchEngine: 'baidu', // legacy single-engine setting, migrated into searchEngines

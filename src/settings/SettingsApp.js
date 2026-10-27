@@ -37,6 +37,10 @@ import {
   PASTE_TTL_DEFAULT,
   PASTE_TTL_MIN,
   PASTE_TTL_MAX,
+  FADE_AWAY_DISTANCE_DEFAULT,
+  FADE_AWAY_DISTANCE_MIN,
+  FADE_AWAY_DISTANCE_MAX,
+  FADE_AWAY_RATIO_DEFAULT,
 } from "../config/toolbar";
 import { setSettingsLanguage, t } from "./i18n";
 
@@ -117,6 +121,7 @@ function TextInput({
   list,
   onFocus,
   onClick,
+  onBlur,
 }) {
   return (
     <input
@@ -127,6 +132,7 @@ function TextInput({
       list={list}
       onFocus={onFocus}
       onClick={onClick}
+      onBlur={onBlur}
       onChange={(event) => onChange(event.target.value)}
     />
   );
@@ -825,6 +831,23 @@ function legacySearchEngine(value) {
   return { ...TOOLBAR_SEARCH_ENGINES.baidu };
 }
 
+// Empty disables the fade. Anything else must be a whole number in range;
+// malformed or out-of-range input falls back to the default distance.
+function normalizeFadeAwayDistance(raw) {
+  const text = String(raw ?? "").trim();
+  if (!text) return "";
+  if (!/^\d+$/.test(text)) return FADE_AWAY_DISTANCE_DEFAULT;
+  const distance = Number(text);
+  if (
+    !Number.isInteger(distance) ||
+    distance < FADE_AWAY_DISTANCE_MIN ||
+    distance > FADE_AWAY_DISTANCE_MAX
+  ) {
+    return FADE_AWAY_DISTANCE_DEFAULT;
+  }
+  return distance;
+}
+
 function SearchEngineRow({ engine, index, onChange, onRemove }) {
   const [open, setOpen] = useState(false);
   const presets = Object.entries(TOOLBAR_SEARCH_ENGINES);
@@ -1039,6 +1062,34 @@ function ToolbarTab({ setting, update }) {
             max={60000}
             onChange={(v) => patch({ timeout: v })}
           />
+        </Row>
+        <Row label={t("cursorFadeAway")} help={t("cursorFadeAwayHelp")}>
+          <div className="kiss-st-inline">
+            <TextInput
+              value={value.fadeAwayDistance ?? ""}
+              placeholder={t("fadeAwayDistancePlaceholder")}
+              onChange={(v) => patch({ fadeAwayDistance: v })}
+              onBlur={(event) =>
+                patch({
+                  fadeAwayDistance: normalizeFadeAwayDistance(event.target.value),
+                })
+              }
+            />
+            <Select
+              value={value.fadeAwayRatio ?? FADE_AWAY_RATIO_DEFAULT}
+              disabled={!value.fadeAwayDistance}
+              onChange={(v) => patch({ fadeAwayRatio: v })}
+              options={[
+                ["1", t("fadeRatio100")],
+                ["1.25", t("fadeRatio125")],
+                ["1.5", t("fadeRatio150")],
+                ["1.75", t("fadeRatio175")],
+                ["2", t("fadeRatio200")],
+                ["2.5", t("fadeRatio250")],
+                ["3", t("fadeRatio300")],
+              ]}
+            />
+          </div>
         </Row>
         <Row label={t("buttonLayout")}>
           <Select

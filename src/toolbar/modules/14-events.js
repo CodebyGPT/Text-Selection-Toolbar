@@ -1,5 +1,12 @@
 // Module 14: Event Handlers
 
+// Last real pointer position, shared with the toolbar render path so the fade
+// state is applied immediately when the toolbar appears. Updated by mousemove
+// only; there is no polling.
+let lastPointerX = 0;
+let lastPointerY = 0;
+let pointerKnown = false;
+
 // Trim whitespace at both ends of a normal page selection before the toolbar
 // is shown. Returns false when the selection contains only whitespace.
 function trimRangeWhitespace(selection) {
@@ -194,6 +201,12 @@ function handleSelectionMouseUp(e) {
     if (!hostElement) initContainer();
     if (isScrolling) return;
 
+    if (typeof e.clientX === 'number' && typeof e.clientY === 'number') {
+        lastPointerX = e.clientX;
+        lastPointerY = e.clientY;
+        pointerKnown = true;
+    }
+
     // Resolve the selection while the event path is still alive. Deferring this
     // to the setTimeout below loses composedPath(), and some sites also clear
     // the selection on mouseup before the timer runs.
@@ -265,6 +278,54 @@ function handleGlobalMouseDown(e) {
             btn.classList.remove('visible');
         });
     }
+}
+
+// Distance-based fade for the primary selection toolbar. Secondary link/search
+// menus are excluded: they can be much taller than the main bar, so measuring
+// from their centre would fade while the pointer is still on an item.
+function applyToolbarFade(x, y) {
+    if (!shadowRoot || typeof shadowRoot.querySelectorAll !== 'function') return;
+    const containers = shadowRoot.querySelectorAll('.sc-container.visible:not(.sc-link-menu)');
+    if (!containers.length) return;
+
+    const options = typeof getFadeAwayOptions === 'function' ? getFadeAwayOptions() : null;
+    if (!options) {
+        containers.forEach((container) => {
+            if (container.style.opacity) container.style.opacity = '';
+        });
+        return;
+    }
+
+    for (const container of containers) {
+        let rect;
+        try {
+            rect = container.getBoundingClientRect();
+        } catch (e) {
+            rect = null;
+        }
+        if (!rect || !(rect.width > 0) || !(rect.height > 0)) continue;
+
+        const distance = Math.hypot(
+            x - (rect.left + rect.width / 2),
+            y - (rect.top + rect.height / 2)
+        );
+        if (distance > options.fade) {
+            container.style.opacity = '0';
+            hideUI();
+            return;
+        }
+        container.style.opacity = String(
+            getFadeAwayOpacity(distance, options.distance, options.fade)
+        );
+    }
+}
+
+function handleToolbarMouseMove(e) {
+    if (!e || typeof e.clientX !== 'number' || typeof e.clientY !== 'number') return;
+    lastPointerX = e.clientX;
+    lastPointerY = e.clientY;
+    pointerKnown = true;
+    applyToolbarFade(lastPointerX, lastPointerY);
 }
 
 // Scroll and resize handler

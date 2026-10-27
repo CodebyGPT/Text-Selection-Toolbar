@@ -939,6 +939,11 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         container.style.top = `${targetY}px`;
         container.classList.add('visible');
 
+        // Apply the cursor-distance fade using the last real mouse position.
+        if (pointerKnown && typeof applyToolbarFade === 'function') {
+            applyToolbarFade(lastPointerX, lastPointerY);
+        }
+
         const timeout = getConfig('timeout');
         if (timeout > 0) {
             if (uiTimer) clearTimeout(uiTimer);

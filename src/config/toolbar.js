@@ -4,10 +4,19 @@ export const PASTE_TTL_DEFAULT = 8;
 export const PASTE_TTL_MIN = 3;
 export const PASTE_TTL_MAX = 30;
 
+// Cursor-distance fade: empty distance disables it. Keep in sync with
+// src/toolbar/modules/26-fade-away.js.
+export const FADE_AWAY_DISTANCE_DEFAULT = 200;
+export const FADE_AWAY_DISTANCE_MIN = 20;
+export const FADE_AWAY_DISTANCE_MAX = 600;
+export const FADE_AWAY_RATIO_DEFAULT = "1.5";
+
 export const DEFAULT_TOOLBAR_SETTING = {
   language: "auto",
   offset: 12,
   timeout: 2400,
+  fadeAwayDistance: "", // px; empty disables the cursor-distance fade
+  fadeAwayRatio: FADE_AWAY_RATIO_DEFAULT, // fade distance = ratio * full-visible distance
   buttonStyle: "row",
   forceWhiteBlack: true,
   searchEngine: "baidu",

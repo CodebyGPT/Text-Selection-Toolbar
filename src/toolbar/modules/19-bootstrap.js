@@ -85,6 +85,8 @@ function markToolbarReady() {
             // Capture phase: shadow-DOM hosts and page widgets may stop mouseup
             // from bubbling, which used to suppress the toolbar entirely.
             window.addEventListener('mouseup', handleSelectionMouseUp, true);
+            // Cursor-distance fade is mouse-driven; no polling.
+            window.addEventListener('mousemove', handleToolbarMouseMove, { passive: true, capture: true });
             document.addEventListener('mouseup', handleInputPasteMouseUp, true);
             document.addEventListener('mousedown', handleGlobalMouseDown, false);
             document.addEventListener('contextmenu', handleContextMenu, true);
