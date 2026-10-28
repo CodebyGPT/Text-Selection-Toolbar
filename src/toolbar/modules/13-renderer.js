@@ -717,9 +717,12 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             }
         }
 
-        // Check if "correct" button should be shown
+        // Check if "correct" button should be shown.
+        // Hidden until the correction feature is rebuilt from scratch; the
+        // implementation below stays intact for that future rework.
+        const SHOW_TEXT_CORRECTION_BUTTON = false;
         const isChineseEnv = isChineseUI();
-        if (isChineseEnv && targetInput) {
+        if (SHOW_TEXT_CORRECTION_BUTTON && isChineseEnv && targetInput) {
             const isInputType = targetInput.tagName === 'INPUT';
             if (smartCorrectText(text, isInputType) !== null) {
                 const div = document.createElement('div');
