@@ -1,5 +1,47 @@
 // Module 14: Event Handlers
 
+// --- Shadow-DOM aware target resolution ------------------------------------
+// An event that crosses a shadow boundary is retargeted to the host on the way
+// out, so a listener on document sees `e.target === <my-widget>` instead of the
+// <input>/contenteditable the user actually clicked. composedPath()[0] keeps
+// the real inner node at any nesting depth, which is what paste/cut/delete need.
+function eventTargetDeep(e) {
+    if (!e) return null;
+    const path = typeof e.composedPath === 'function' ? e.composedPath() : null;
+    return (path && path[0]) || e.target || null;
+}
+
+// document.activeElement is retargeted the same way: it stops at the outer
+// host. Descend the open shadow roots to find the element that owns focus.
+function activeElementDeep() {
+    let el = document.activeElement;
+    while (el && el.shadowRoot && el.shadowRoot.activeElement) {
+        el = el.shadowRoot.activeElement;
+    }
+    return el;
+}
+
+// Editable state is inherited and may live on an ancestor across shadow
+// boundaries, so walk the composed tree and return the editing host itself.
+// Returns null when the node is not in an editable area.
+function editableTargetOf(node) {
+    let el = node && node.nodeType === 1 ? node : node?.parentElement;
+    while (el) {
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            return el.disabled || el.readOnly ? null : el;
+        }
+        if (el.isContentEditable) {
+            // Climb to the element that carries contenteditable: paste events
+            // and value comparisons are anchored there, not on a child span.
+            let host = el;
+            while (host.parentElement?.isContentEditable) host = host.parentElement;
+            return host;
+        }
+        el = el.parentElement || el.host;
+    }
+    return null;
+}
+
 // Last real pointer position, shared with the toolbar render path so the fade
 // state is applied immediately when the toolbar appears. Updated by mousemove
 // only; there is no polling.
@@ -219,11 +261,9 @@ function handleSelectionMouseUp(e) {
     }
     lastSelectionRoot = selectionRoot;
 
-    const target = document.activeElement;
-    const isTextInput = target && (
-        (['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.disabled && !target.readOnly)
-    );
-    const isEditable = isTextInput || Boolean(target && target.isContentEditable);
+    const editable = editableTargetOf(activeElementDeep());
+    const isTextInput = Boolean(editable && (editable.tagName === 'INPUT' || editable.tagName === 'TEXTAREA'));
+    const isEditable = Boolean(editable);
 
     // Page selections trim edge whitespace; editable selections keep it.
     if (!isEditable && !trimRangeWhitespace(selection)) {
@@ -266,7 +306,7 @@ function handleSelectionMouseUp(e) {
         const cacheValid = cache && cache.text && (Date.now() - cache.timestamp < getPasteTtlMs()) && !(isChineseEnv && cache.type === 'pan_code');
         const isInput = isEditable;
         const mode = (cacheValid && isInput) ? PASTE_MODE_THREE_BTNS : 'default';
-        renderButton(rect, releaseX, releaseY, text, html || '', mode, isInput ? target : null, isInput, cache);
+        renderButton(rect, releaseX, releaseY, text, html || '', mode, isInput ? editable : null, isInput, cache);
     }, 10);
 }
 
@@ -407,7 +447,7 @@ async function handleExternalCopy(e) {
     if (!getConfig('enablePaste')) return;
 
     let text = '';
-    const target = e.target;
+    const target = eventTargetDeep(e);
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
         const start = target.selectionStart;
         const end = target.selectionEnd;
@@ -431,9 +471,16 @@ async function handleExternalCopy(e) {
 
 // Input paste mouseup handler
 function handleInputPasteMouseUp(e) {
-    const target = e.target;
-    const isInput = (['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.disabled && !target.readOnly) || target.isContentEditable;
-    if (!isInput) return;
+    // Resolve the real clicked node: at document level e.target is the shadow
+    // host, which is neither an <input> nor contenteditable, so lightning paste
+    // never fired for editors rendered inside a shadow root.
+    const target = editableTargetOf(eventTargetDeep(e));
+    if (!target) return;
+    // composedPath() is already empty once this event has finished dispatching,
+    // so resolve the selection now instead of inside the timer below.
+    const selectionAtMouseUp = target.isContentEditable
+        ? getSelectionFromEvent(e).selection
+        : null;
     setTimeout(async () => {
         let selectedText = '';
         let hasSelection = false;
@@ -461,7 +508,7 @@ function handleInputPasteMouseUp(e) {
                 }
             }
         } else if (target.isContentEditable) {
-            const sel = getSelectionFromEvent(e).selection;
+            const sel = selectionAtMouseUp;
             if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
                 selectedText = sel.toString();
                 hasSelection = true;
@@ -477,7 +524,7 @@ function handleInputPasteMouseUp(e) {
 
         // The ID card action is appended to the normal input toolbar when the
         // selection looks like a mainland ID number (Chinese UI only).
-        const showIdCardCheck = isInput && isChineseUI() && isIdCardCandidate(selectedText);
+        const showIdCardCheck = isChineseUI() && isIdCardCandidate(selectedText);
         if (showIdCardCheck) rememberIdCardDragGuard(target, selectedText);
 
         if (whitespaceSelection) {
@@ -521,7 +568,7 @@ function handleInputPasteMouseUp(e) {
         const textArg = (mode === 'paste') ? cache.text : selectedText;
 
         const rect = (target.isContentEditable && hasSelection)
-            ? getSmartSelectionState(getSelectionFromEvent(e).selection)
+            ? getSmartSelectionState(selectionAtMouseUp)
             : null;
         if (!hostElement) initContainer();
         renderButton(rect, e.clientX, e.clientY, textArg, '', mode, target, false, cache, showIdCardCheck);

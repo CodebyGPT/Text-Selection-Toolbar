@@ -493,7 +493,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             cutBtn.onclick = async (e) => {
                 e.stopPropagation();
                 triggerFestivalEffect(e.clientX, e.clientY, shadowRoot);
-                const target = targetInput || document.activeElement;
+                const target = targetInput || activeElementDeep();
                 const contentToCopy = cachedSelection.text || text;
                 const htmlToCopy = cachedSelection.html || html;
                 const snapshot = captureSelectionSnapshot(target);
@@ -525,7 +525,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             delBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
             delBtn.onclick = (e) => {
                 e.stopPropagation();
-                const target = targetInput || document.activeElement;
+                const target = targetInput || activeElementDeep();
                 deleteSelectedText(target, captureSelectionSnapshot(target));
                 hideUI();
             };
@@ -606,7 +606,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         }
 
         // @ button / chain button logic
-        const activeEl = document.activeElement;
+        const activeEl = activeElementDeep();
         const isUserEditing = activeEl && (
             (['INPUT', 'TEXTAREA'].includes(activeEl.tagName) && !activeEl.readOnly) ||
             activeEl.isContentEditable
@@ -757,9 +757,9 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                 const cache = await safeGetValue('smart_paste_cache', null);
                 if (cache && (cache.text || cache.type === 'clipboard')) {
                     if (cache.type === 'clipboard') {
-                        await performClipboardPaste(document.activeElement, cache);
+                        await performClipboardPaste(activeElementDeep(), cache);
                     } else {
-                        performPaste(document.activeElement, cache.text, {
+                        performPaste(activeElementDeep(), cache.text, {
                             panCode: cache.type === 'pan_code'
                         });
                         // Reset timestamp after paste to allow repeated use on same page
@@ -784,7 +784,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         delBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
         delBtn.onclick = (e) => {
             e.stopPropagation();
-            const target = targetInput || document.activeElement;
+            const target = targetInput || activeElementDeep();
             const start = target.selectionStart;
             const end = target.selectionEnd;
             if (typeof start !== 'number' || typeof end !== 'number' || start === end) {
@@ -820,7 +820,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             pasteBtn.onclick = async (e) => {
                 e.stopPropagation();
                 if (pasteCache.type === 'clipboard') {
-                    await performClipboardPaste(targetInput || document.activeElement, pasteCache);
+                    await performClipboardPaste(targetInput || activeElementDeep(), pasteCache);
                 } else {
                     performPaste(targetInput, pasteCache.text, {
                         panCode: pasteCache.type === 'pan_code'
@@ -850,12 +850,12 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
         pasteBtn.onclick = async (e) => {
             e.stopPropagation();
             if (pasteCache && pasteCache.type === 'clipboard') {
-                await performClipboardPaste(targetInput || document.activeElement, pasteCache);
+                await performClipboardPaste(targetInput || activeElementDeep(), pasteCache);
                 hideUI();
                 return;
             }
             if (isPanCode) {
-                performPaste(targetInput || document.activeElement, pasteCache.text, { panCode: true });
+                performPaste(targetInput || activeElementDeep(), pasteCache.text, { panCode: true });
                 await safeSetValue('smart_paste_cache', { text: '', timestamp: 0 });
                 unregisterVisibilityCleanup();
                 hideUI();

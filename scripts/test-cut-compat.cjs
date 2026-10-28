@@ -68,6 +68,7 @@ const { deleteSelectedText, performPaste } = new Function(
   "showToast",
   "t",
   "getConfig",
+  "getSelectionForRoot",
   `${src}\nreturn { deleteSelectedText, performPaste };`
 )(
   windowStub,
@@ -79,7 +80,11 @@ const { deleteSelectedText, performPaste } = new Function(
   FakeDataTransfer,
   showToast,
   t,
-  () => false
+  () => false,
+  (root) =>
+    root && typeof root.getSelection === "function"
+      ? root.getSelection()
+      : windowStub.getSelection()
 );
 
 // Native input: value is replaced and DOM events are dispatched for frameworks.

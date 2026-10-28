@@ -271,7 +271,7 @@ function performPaste(target, text, options = {}) {
     // Strategy 3: Direct assignment + dispatch events (Vue/React compat)
     try {
         if (target.isContentEditable) {
-            const sel = window.getSelection();
+            const sel = getSelectionForRoot(target.getRootNode?.());
             if (sel.rangeCount > 0) {
                 const range = sel.getRangeAt(0);
                 range.deleteContents();
@@ -321,7 +321,7 @@ function captureSelectionSnapshot(target) {
             ? { start, end }
             : null;
     }
-    const selection = window.getSelection();
+    const selection = getSelectionForRoot(target.getRootNode?.());
     return selection && selection.rangeCount > 0
         ? selection.getRangeAt(0).cloneRange()
         : null;
@@ -397,7 +397,7 @@ function deleteSelectedText(target, snapshot = null) {
 
     if (!target.isContentEditable) return false;
 
-    const selection = window.getSelection();
+    const selection = getSelectionForRoot(target.getRootNode?.());
     if (snapshot && snapshot instanceof Range && selection) {
         selection.removeAllRanges();
         selection.addRange(snapshot);
@@ -413,7 +413,7 @@ function deleteSelectedText(target, snapshot = null) {
 
     if (target.textContent !== textBefore) return true;
 
-    const liveSelection = window.getSelection();
+    const liveSelection = getSelectionForRoot(target.getRootNode?.());
     if (!liveSelection || liveSelection.rangeCount === 0 || liveSelection.isCollapsed) {
         return false;
     }
