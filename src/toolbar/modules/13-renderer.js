@@ -585,6 +585,26 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
             container.appendChild(translateBtn);
         }
 
+        // Share card: capture the current selection, then offer clipboard/txt/image.
+        // Page selections only: typing-area selections never get a share button.
+        if (getConfig('enableShareButton') === true && !isInInput) {
+            const shareDiv = document.createElement('div');
+            shareDiv.className = isCol ? 'divider divider-h' : 'divider divider-v';
+            container.appendChild(shareDiv);
+
+            const shareBtn = document.createElement('div');
+            shareBtn.className = 'sc-btn';
+            shareBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="10.51" x2="15.42" y2="6.49"></line><line x1="8.59" y1="13.49" x2="15.42" y2="17.51"></line></svg>`;
+            applyButtonLabel(shareBtn, t('btn_share'));
+            shareBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+            shareBtn.onclick = (e) => {
+                e.stopPropagation();
+                const card = buildShareCard(cachedSelection.text || text);
+                showShareMenu(card, container.getBoundingClientRect());
+            };
+            container.appendChild(shareBtn);
+        }
+
         // @ button / chain button logic
         const activeEl = document.activeElement;
         const isUserEditing = activeEl && (

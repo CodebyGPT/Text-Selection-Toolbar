@@ -1202,6 +1202,60 @@ function ToolbarTab({ setting, update }) {
         </Row>
       </Section>
 
+      <Section title={t("selectionShare")}>
+        <Row label={t("showShareButton")}>
+          <Toggle
+            value={value.enableShareButton === true}
+            onChange={(v) => patch({ enableShareButton: v })}
+          />
+        </Row>
+        <Row label={t("shareIncludeUrl")}>
+          <Toggle
+            value={value.shareIncludeUrl !== false}
+            disabled={value.enableShareButton !== true}
+            onChange={(v) => patch({ shareIncludeUrl: v })}
+          />
+        </Row>
+        <Row label={t("shareIncludeFavicon")} help={t("shareIncludeFaviconHelp")}>
+          <Toggle
+            value={value.shareIncludeFavicon !== false}
+            disabled={value.enableShareButton !== true}
+            onChange={(v) => patch({ shareIncludeFavicon: v })}
+          />
+        </Row>
+        <Row label={t("shareIncludeTitle")}>
+          <Toggle
+            value={value.shareIncludeTitle !== false}
+            disabled={value.enableShareButton !== true}
+            onChange={(v) => patch({ shareIncludeTitle: v })}
+          />
+        </Row>
+        <Row label={t("shareIncludeTime")}>
+          <Toggle
+            value={value.shareIncludeTime !== false}
+            disabled={value.enableShareButton !== true}
+            onChange={(v) => patch({ shareIncludeTime: v })}
+          />
+        </Row>
+        <Row
+          label={t("shareIncludeContext")}
+          help={t("shareIncludeContextHelp")}
+        >
+          <Toggle
+            value={value.shareIncludeContext !== false}
+            disabled={value.enableShareButton !== true}
+            onChange={(v) => patch({ shareIncludeContext: v })}
+          />
+        </Row>
+        <Row label={t("shareIncludeAuthor")}>
+          <Toggle
+            value={value.shareIncludeAuthor === true}
+            disabled={value.enableShareButton !== true}
+            onChange={(v) => patch({ shareIncludeAuthor: v })}
+          />
+        </Row>
+      </Section>
+
       <Section title={t("linkExtraction")}>
         <Row label={t("detectHiddenLinks")}>
           <Toggle
