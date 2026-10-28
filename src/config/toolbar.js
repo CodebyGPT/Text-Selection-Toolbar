@@ -19,6 +19,7 @@ export const DEFAULT_TOOLBAR_SETTING = {
   fadeAwayRatio: FADE_AWAY_RATIO_DEFAULT, // fade distance = ratio * full-visible distance
   buttonStyle: "row",
   forceWhiteBlack: true,
+  trimSelectionWhitespace: true, // page selections drop edge whitespace
   searchEngine: "baidu",
   searchEngines: [],
   enableHiddenLinks: true,

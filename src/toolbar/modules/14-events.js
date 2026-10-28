@@ -78,14 +78,48 @@ function trimRangeWhitespace(selection) {
         while (last >= first && /\s/.test(chars[last].char)) last--;
         if (first > last) return false;
 
-        range.setStart(chars[first].node, chars[first].offset);
-        range.setEnd(chars[last].node, chars[last].offset + 1);
-        selection.removeAllRanges();
-        selection.addRange(range);
+        const startNode = chars[first].node;
+        const startOffset = chars[first].offset;
+        const endNode = chars[last].node;
+        const endOffset = chars[last].offset + 1;
+
+        // Nothing selected beyond whitespace: leave the selection untouched so
+        // its drag direction and the page's selection state stay as they are.
+        if (startNode === range.startContainer && startOffset === range.startOffset &&
+            endNode === range.endContainer && endOffset === range.endOffset) {
+            return true;
+        }
+
+        // Pitfall: Chrome resets the selection to forward as soon as script
+        // code sets the range's boundaries - even to identical values - so the
+        // old setStart/setEnd + removeAllRanges()+addRange() rewrite silently
+        // killed backward drags and moved the toolbar to the wrong end. Read
+        // the drag direction first, leave the selection untouched when nothing
+        // is trimmed, and apply the trimmed boundaries with setBaseAndExtent,
+        // which sets the anchor/focus order (i.e. the direction) explicitly.
+        const backward = isSelectionBackward(selection);
+        selection.setBaseAndExtent(
+            backward ? endNode : startNode,
+            backward ? endOffset : startOffset,
+            backward ? startNode : endNode,
+            backward ? startOffset : endOffset
+        );
         return true;
     } catch (e) {
         return false;
     }
+}
+
+// The selection records which end of the drag was fixed (anchor) and which one
+// moved (focus). selection.direction exposes that directly; compare the two
+// ends only for engines that do not implement it.
+function isSelectionBackward(selection) {
+    if (selection.direction) return selection.direction === 'backward';
+    if (selection.anchorNode === selection.focusNode) {
+        return selection.anchorOffset > selection.focusOffset;
+    }
+    return Boolean(selection.anchorNode.compareDocumentPosition(selection.focusNode) &
+        Node.DOCUMENT_POSITION_PRECEDING);
 }
 
 // Selection root and scroll-target tracking. Sites such as Bilibili render
@@ -265,8 +299,10 @@ function handleSelectionMouseUp(e) {
     const isTextInput = Boolean(editable && (editable.tagName === 'INPUT' || editable.tagName === 'TEXTAREA'));
     const isEditable = Boolean(editable);
 
-    // Page selections trim edge whitespace; editable selections keep it.
-    if (!isEditable && !trimRangeWhitespace(selection)) {
+    // Page selections trim edge whitespace unless the option is off; editable
+    // selections always keep it.
+    const trimWhitespace = !isEditable && getConfig('trimSelectionWhitespace') !== false;
+    if (trimWhitespace && !trimRangeWhitespace(selection)) {
         hideUI();
         return;
     }

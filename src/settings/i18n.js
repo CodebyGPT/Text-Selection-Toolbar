@@ -125,6 +125,12 @@ const MESSAGES = {
   moveDown: ["下移", "Move down", "Вниз"],
 
   toolbarAppearance: ["工具栏外观", "Toolbar appearance", "Внешний вид панели"],
+  selectionAdjust: ["调整选区", "Selection adjustment", "Настройка выделения"],
+  trimSelectionWhitespace: [
+    "网页划词时自动排除首尾的所有空白符",
+    "Automatically trim leading and trailing whitespace when selecting on a page",
+    "Автоматически удалять пробелы в начале и конце выделения на странице",
+  ],
   offset: ["弹出时的偏移值 (px)", "Offset when shown (px)", "Смещение при появлении (px)"],
   offsetHelp: [
     "让工具栏与选区保持适当距离，避免遮挡选取的文本",
@@ -327,12 +333,7 @@ const MESSAGES = {
   openHomepage: ["打开主页", "Open homepage", "Открыть домашнюю страницу"],
   license: ["许可证", "License", "Лицензия"],
   disableFestival: ["禁用节日彩蛋", "Disable festival effects", "Отключить праздничные эффекты"],
-  disableFestivalHelp: [
-    "仅节日期间显示，关闭后所有节日点击特效都不再显示",
-    "Only shown on festival days; turning it off disables every festival click effect.",
-    "Показывается только в праздники; отключает все праздничные эффекты.",
-  ],
-  todayIsFestival: ["今天是{festival}！", "Today is {festival}!", "Сегодня {festival}!"],
+  todayIsFestival: ["今天是{festival}！{emoji}", "Today is {festival}! {emoji}", "Сегодня {festival}! {emoji}"],
 };
 
 const LANG_INDEX = { zh: 0, en: 1, ru: 2 };

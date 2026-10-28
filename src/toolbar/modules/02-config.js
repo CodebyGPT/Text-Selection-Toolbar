@@ -10,6 +10,7 @@ const DEFAULT_CONFIG = {
     fadeAwayRatio: '1.5',
     buttonStyle: 'row', // 'row' (capsule) | 'col' (rounded rect)
     forceWhiteBlack: true, // true = force white bg/black text
+    trimSelectionWhitespace: true, // page selections drop edge whitespace
     searchEngine: 'baidu', // legacy single-engine setting, migrated into searchEngines
     enableHiddenLinks: true, // also collect links from selected <a href="...">
     unlockHotkey: 'ControlLeft',

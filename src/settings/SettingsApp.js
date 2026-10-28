@@ -1120,6 +1120,15 @@ function ToolbarTab({ setting, update }) {
         </Row>
       </Section>
 
+      <Section title={t("selectionAdjust")}>
+        <Row label={t("trimSelectionWhitespace")}>
+          <Toggle
+            value={value.trimSelectionWhitespace !== false}
+            onChange={(v) => patch({ trimSelectionWhitespace: v })}
+          />
+        </Row>
+      </Section>
+
       <Section title={t("superSelection")}>
         <Row label={t("unlockHotkey")} help={t("unlockHotkeyHelp")}>
           <Select
@@ -1616,6 +1625,7 @@ function AboutTab({ setting, update }) {
   const aboutTitle = festivalInfo
     ? `${meta.name} - ${t("todayIsFestival", {
         festival: festivalInfo.name,
+        emoji: festivalInfo.emojis[0],
       })}`
     : meta.name;
 
@@ -1641,10 +1651,7 @@ function AboutTab({ setting, update }) {
       </Row>
       <Row label={t("license")}>{meta.license || "—"}</Row>
       {festivalInfo && (
-        <Row
-          label={t("disableFestival")}
-          help={t("disableFestivalHelp")}
-        >
+        <Row label={t("disableFestival")}>
           <Toggle
             value={value.disableFestivalEffect === true}
             onChange={(v) => patch({ disableFestivalEffect: v })}

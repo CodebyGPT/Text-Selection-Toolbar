@@ -1,6 +1,6 @@
 // Module 17: Festival Emoji Effects
 
-const FESTIVAL_GRAVITY = 0.22;
+const FESTIVAL_GRAVITY = 0.38;
 
 // Emoji particles burst upward, then fall under one shared gravity model. Each
 // particle owns its speed, direction, size and fade time; it disappears after
@@ -10,12 +10,12 @@ function triggerFestivalEffect(x, y, shadowRoot) {
     const festival = getFestivalInfo();
     if (!festival || !festival.emojis.length) return;
 
-    const particleCount = 24 + Math.floor(Math.random() * 16);
+    const particleCount = 12 + Math.floor(Math.random() * 8);
     const fragment = document.createDocumentFragment();
 
     for (let i = 0; i < particleCount; i++) {
         const p = document.createElement('div');
-        const size = 16 + Math.random() * 16;
+        const size = 13 + Math.random() * 19;
         const emoji = festival.emojis[Math.floor(Math.random() * festival.emojis.length)];
 
         p.textContent = emoji;
@@ -31,10 +31,11 @@ function triggerFestivalEffect(x, y, shadowRoot) {
             will-change: transform, opacity;
         `;
 
-        const vx = (Math.random() - 0.5) * 2 * (2 + Math.random() * 3);
-        let vy = -(4 + Math.random() * 5);
-        const lifetime = 900 + Math.random() * 1400;
-        const fadeStart = lifetime * (0.45 + Math.random() * 0.2);
+        const vx = (Math.random() - 0.5) * 2 * (2 + Math.random() * 4);
+        // Upward speed can be zero: those particles are born already falling.
+        let vy = -Math.random() * 10;
+        const lifetime = 300 + Math.random() * 500;
+        const fadeStart = lifetime * (0.2 + Math.random() * 0.2);
         const start = performance.now();
         let last = start;
         let posX = 0;
@@ -66,12 +67,4 @@ function triggerFestivalEffect(x, y, shadowRoot) {
     }
 
     shadowRoot.appendChild(fragment);
-}
-
-// Get toast copy text
-function getFestivalToastText() {
-    const festival = getFestivalInfo();
-    if (!festival) return t('toast_copied');
-    const emoji = festival.emojis[0];
-    return `${emoji}${t('toast_copied')}${emoji}`;
 }

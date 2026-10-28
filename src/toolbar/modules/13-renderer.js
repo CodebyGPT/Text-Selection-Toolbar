@@ -463,7 +463,7 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
                 });
                 unregisterVisibilityCleanup();
             }
-            const copiedToast = hiddenRemoved ? t('toast_copy_visible_only') : getFestivalToastText();
+            const copiedToast = hiddenRemoved ? t('toast_copy_visible_only') : t('toast_copied');
             const zeroWidth = typeof getZeroWidthNotice === 'function'
                 ? getZeroWidthNotice(contentToCopy)
                 : null;
