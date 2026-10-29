@@ -427,7 +427,7 @@ function handleSelectionMouseUp(e) {
     const editable = editableTargetOf(activeElementDeep());
     if (editable) {
         cacheContentEditableSelection(editable, selection);
-        handleInputPasteMouseUp(e);
+        handleInputPasteMouseUp(e, editable);
         return;
     }
 
@@ -617,11 +617,12 @@ async function handleExternalCopy(e) {
 
 // Input paste mouseup handler. This is the only render path for editable
 // targets (the page handler delegates here), so a press cannot paint twice.
-function handleInputPasteMouseUp(e) {
-    // Resolve the real clicked node: at document level e.target is the shadow
-    // host, which is neither an <input> nor contenteditable, so lightning paste
-    // never fired for editors rendered inside a shadow root.
-    const target = editableTargetOf(eventTargetDeep(e));
+function handleInputPasteMouseUp(e, focusedTarget) {
+    // A drag that starts inside a text control often ends outside it: the
+    // pointer is released over a page element, while the control keeps focus
+    // and its selection. The page handler already resolved the focused editing
+    // host, so trust that instead of re-deriving a target from the release.
+    const target = focusedTarget || editableTargetOf(eventTargetDeep(e));
     if (!target) return;
     // composedPath() is already empty once this event has finished dispatching,
     // so resolve the selection now instead of inside the timer below.
@@ -712,16 +713,24 @@ function handleInputPasteMouseUp(e) {
         // Text controls have no DOM Range, but their selection focus is the
         // release point. A zero-size endpoint rect routes them through the same
         // endpoint placement as page selections instead of the click fallback,
-        // which pins the bar's left edge to the right of the pointer.
-        const endpointRect = {
-            left: e.clientX,
-            right: e.clientX,
-            top: e.clientY,
-            bottom: e.clientY,
-            width: 0,
-            height: 0,
-            isBackward: target.selectionDirection === 'backward'
-        };
+        // which pins the bar's left edge to the right of the pointer. When the
+        // release landed outside the control, clamp the point to its box: the
+        // caret is at the nearest text position, not out on unrelated content.
+        let endpointRect = null;
+        if (!target.isContentEditable) {
+            const box = target.getBoundingClientRect();
+            const anchorX = Math.min(Math.max(e.clientX, box.left), box.right);
+            const anchorY = Math.min(Math.max(e.clientY, box.top), box.bottom);
+            endpointRect = {
+                left: anchorX,
+                right: anchorX,
+                top: anchorY,
+                bottom: anchorY,
+                width: 0,
+                height: 0,
+                isBackward: target.selectionDirection === 'backward'
+            };
+        }
 
         // A selection always gets a toolbar; a pending paste only upgrades it
         // to the three-button mode. Only a click *without* a selection depends

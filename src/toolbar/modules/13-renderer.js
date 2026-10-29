@@ -984,8 +984,13 @@ function placeToolbar(container, rect, mouseX, mouseY) {
 
 function hideUI() {
     // A hidden bar must never be resurrected by a render that was still queued
-    // when the user dismissed it.
+    // when the user dismissed it, and its old auto-hide timer must not fire
+    // later and cancel the next bar's render.
     cancelScheduledToolbar();
+    if (uiTimer) {
+        clearTimeout(uiTimer);
+        uiTimer = null;
+    }
     const containers = shadowRoot ? shadowRoot.querySelectorAll('.sc-container') : [];
     containers.forEach((btn) => {
         btn.classList.remove('visible');

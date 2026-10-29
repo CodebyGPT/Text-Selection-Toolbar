@@ -174,6 +174,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     selectionEnd: 4,
     selectionDirection: "forward",
     parentElement: null,
+    getBoundingClientRect: () => ({ left: 0, top: 0, right: 200, bottom: 30, width: 200, height: 30 }),
   };
   doc.activeElement = textarea;
   press();
@@ -206,6 +207,25 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const backwardCall = calls[3];
   assert.strictEqual(backwardCall[0].left, 30, "the bar anchors at the backward endpoint");
   assert.strictEqual(backwardCall[0].isBackward, true, "the direction is preserved");
+
+  // A drag in a text control released outside it: the control keeps focus and
+  // its selection, so the bar must still appear, anchored inside the control
+  // instead of at the release point on unrelated content.
+  const outside = { nodeType: 1, tagName: "DIV" };
+  textarea.selectionDirection = "forward";
+  press();
+  api.armSelectionGesture({ target: textarea });
+  api.handleSelectionMouseUp({
+    clientX: 400,
+    clientY: 100,
+    composedPath: () => [outside],
+  });
+  await wait(60);
+  assert.strictEqual(calls.length, 5, "a release outside the focused textarea still opens a bar");
+  const outsideCall = calls[4];
+  assert.strictEqual(outsideCall[6], textarea, "the focused textarea remains the target");
+  assert.strictEqual(outsideCall[0].right, 200, "x is clamped to the control box");
+  assert.strictEqual(outsideCall[0].bottom, 30, "y is clamped to the control box");
 
   console.log("toolbar once-per-selection check passed");
 })().catch((error) => {
