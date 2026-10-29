@@ -993,9 +993,12 @@ function hideUI() {
     }
     const containers = shadowRoot ? shadowRoot.querySelectorAll('.sc-container') : [];
     containers.forEach((btn) => {
-        // Release any in-flight fade follow first: the hide transition must
-        // start from the last painted opacity, not from a value still easing.
-        if (typeof stopToolbarFade === 'function') stopToolbarFade(btn);
+        // Settle any in-flight fade first, then flush it into style: a hide
+        // transition starts from the computed opacity of the previous style
+        // change, so a brighten completed here would otherwise still fade from
+        // the dimmer value painted on the last frame.
+        const settled = typeof stopToolbarFade === 'function' ? stopToolbarFade(btn) : false;
+        if (settled) void getComputedStyle(btn).opacity;
         btn.classList.remove('visible');
         setTimeout(() => {
             if (btn && btn.parentNode) btn.remove();

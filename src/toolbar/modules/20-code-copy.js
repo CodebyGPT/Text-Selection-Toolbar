@@ -92,7 +92,9 @@ function hideCodeCopyButton() {
     if (codeCopyButton) {
         // The button is reused, so drop the last fade value: otherwise the next
         // show-in animates to a stale (possibly invisible) opacity.
-        if (typeof stopToolbarFade === 'function') stopToolbarFade(codeCopyButton);
+        if (typeof stopToolbarFade === 'function' && stopToolbarFade(codeCopyButton)) {
+            void getComputedStyle(codeCopyButton).opacity;
+        }
         codeCopyButton.style.removeProperty('--sc-fade');
         codeCopyButton.classList.remove('visible');
     }

@@ -480,11 +480,9 @@ function handleSelectionMouseUp(e) {
 // from their centre would fade while the pointer is still on an item.
 //
 // The wobble-free path: --sc-fade is driven towards the distance target by a
-// follow (module 26) that snaps on the way in and eases on the way out instead
-// of being written raw. One rAF per container, cancelled as soon as the value
-// is within FADE_SETTLE_EPSILON of its target, so a parked pointer costs nothing.
-// Rise-snaps matter beyond looks: a click must dismiss from full opacity, or
-// the 200ms hide fade starts dim and reads as a stall.
+// short exponential follow (module 26) instead of being written raw. One rAF
+// per container, cancelled as soon as the value is within FADE_SETTLE_EPSILON
+// of its target, so a parked pointer costs nothing.
 const FADE_SETTLE_EPSILON = 0.002;
 const fadeRuns = new WeakMap();
 
@@ -492,13 +490,22 @@ function writeFadeValue(container, value) {
     container.style.setProperty('--sc-fade', value.toFixed(3));
 }
 
-// Drop the follow state; used when the bar is dismissed so the CSS hide
-// transition starts from whatever opacity was last painted.
+// Drop the follow state when the bar is dismissed. A brighten that is still in
+// flight is completed first: the hide transition starts from the painted
+// opacity, and a half-lit bar would hide with a barely visible fade. Returns
+// true when a value was written, so the caller can flush it into style before
+// removing .visible and keep the transition's start at the settled opacity.
 function stopToolbarFade(container) {
     const run = fadeRuns.get(container);
-    if (!run) return;
+    if (!run) return false;
     if (run.raf) cancelAnimationFrame(run.raf);
+    const rising = run.target > run.value;
+    if (rising) {
+        run.value = run.target;
+        writeFadeValue(container, run.value);
+    }
     fadeRuns.delete(container);
+    return rising;
 }
 
 function followToolbarFade(container, target) {
@@ -509,18 +516,6 @@ function followToolbarFade(container, target) {
         fadeRuns.set(container, run);
     }
     run.target = target;
-
-    // Instant attack, no frame of dimness: a pointer arriving on the bar must
-    // see full opacity, and a click then hides from 1.
-    if (target >= run.value) {
-        if (run.raf) {
-            cancelAnimationFrame(run.raf);
-            run.raf = 0;
-        }
-        run.value = target;
-        writeFadeValue(container, target);
-        return;
-    }
 
     if (Math.abs(run.value - target) < FADE_SETTLE_EPSILON) {
         if (run.raf) {
