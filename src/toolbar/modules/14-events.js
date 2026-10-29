@@ -478,6 +478,62 @@ function handleSelectionMouseUp(e) {
 // Distance-based fade for the primary selection toolbar. Secondary link/search
 // menus are excluded: they can be much taller than the main bar, so measuring
 // from their centre would fade while the pointer is still on an item.
+//
+// The wobble-free path: --sc-fade is driven towards the distance target by a
+// short exponential follow (module 26) instead of being written raw. One rAF
+// per container, cancelled as soon as the value is within FADE_SETTLE_EPSILON
+// of its target, so a parked pointer costs nothing.
+const FADE_SETTLE_EPSILON = 0.002;
+const fadeRuns = new WeakMap();
+
+function writeFadeValue(container, value) {
+    container.style.setProperty('--sc-fade', value.toFixed(3));
+}
+
+// Drop the follow state; used when the bar is dismissed so the CSS hide
+// transition starts from whatever opacity was last painted.
+function stopToolbarFade(container) {
+    const run = fadeRuns.get(container);
+    if (!run) return;
+    if (run.raf) cancelAnimationFrame(run.raf);
+    fadeRuns.delete(container);
+}
+
+function followToolbarFade(container, target) {
+    let run = fadeRuns.get(container);
+    if (!run) {
+        // A fresh bar starts at its target: no ease-in from an unrelated value.
+        run = { value: target, target, last: 0, raf: 0 };
+        fadeRuns.set(container, run);
+    }
+    run.target = target;
+
+    if (Math.abs(run.value - target) < FADE_SETTLE_EPSILON) {
+        if (run.raf) {
+            cancelAnimationFrame(run.raf);
+            run.raf = 0;
+        }
+        run.value = target;
+        writeFadeValue(container, target);
+        return;
+    }
+    if (run.raf) return;
+
+    run.last = performance.now();
+    const step = (now) => {
+        run.value = easeFadeToward(run.value, run.target, now - run.last);
+        run.last = now;
+        if (Math.abs(run.value - run.target) < FADE_SETTLE_EPSILON) {
+            run.value = run.target;
+            run.raf = 0;
+        } else {
+            run.raf = requestAnimationFrame(step);
+        }
+        writeFadeValue(container, run.value);
+    };
+    run.raf = requestAnimationFrame(step);
+}
+
 function applyToolbarFade(x, y) {
     if (!shadowRoot || typeof shadowRoot.querySelectorAll !== 'function') return;
     const containers = shadowRoot.querySelectorAll('.sc-container.visible:not(.sc-link-menu)');
@@ -486,6 +542,7 @@ function applyToolbarFade(x, y) {
     const options = typeof getFadeAwayOptions === 'function' ? getFadeAwayOptions() : null;
     if (!options) {
         containers.forEach((container) => {
+            stopToolbarFade(container);
             if (container.style.getPropertyValue('--sc-fade')) {
                 container.style.removeProperty('--sc-fade');
             }
@@ -507,13 +564,17 @@ function applyToolbarFade(x, y) {
             y - (rect.top + rect.height / 2)
         );
         if (distance > options.fade) {
-            container.style.setProperty('--sc-fade', '0');
+            // Damping means the painted opacity lags a little behind the curve,
+            // so hand the last value to the CSS hide transition instead of
+            // snapping to 0 first: beyond the radius the bar fades out, it does
+            // not blink out mid-opacity.
+            stopToolbarFade(container);
             hideUI();
             return;
         }
-        container.style.setProperty(
-            '--sc-fade',
-            String(getFadeAwayOpacity(distance, options.distance, options.fade))
+        followToolbarFade(
+            container,
+            getFadeAwayOpacity(distance, options.distance, options.fade)
         );
     }
 }

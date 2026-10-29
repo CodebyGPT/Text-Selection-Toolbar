@@ -993,6 +993,9 @@ function hideUI() {
     }
     const containers = shadowRoot ? shadowRoot.querySelectorAll('.sc-container') : [];
     containers.forEach((btn) => {
+        // Release any in-flight fade follow first: the hide transition must
+        // start from the last painted opacity, not from a value still easing.
+        if (typeof stopToolbarFade === 'function') stopToolbarFade(btn);
         btn.classList.remove('visible');
         setTimeout(() => {
             if (btn && btn.parentNode) btn.remove();

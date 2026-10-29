@@ -19,7 +19,7 @@ const getConfig = (key) => {
 
 const ctx = new Function(
   "getConfig",
-  `${src}\nreturn { getFadeAwayOptions, getFadeAwayOpacity };`
+  `${src}\nreturn { getFadeAwayOptions, getFadeAwayOpacity, easeFadeToward };`
 )(getConfig);
 
 // Empty or invalid stored values disable the feature.
@@ -51,6 +51,20 @@ assert.strictEqual(ctx.getFadeAwayOpacity(21, 20, 20), 0);
 assert.strictEqual(ctx.getFadeAwayOpacity(20, 20, 20), 1);
 // Non-finite input never fades the toolbar.
 assert.strictEqual(ctx.getFadeAwayOpacity(NaN, 100, 150), 1);
+
+// Damping: each frame lands between the current value and the target, two
+// short frames equal one long frame, and repeated frames converge without
+// overshooting. A non-positive delta leaves the value untouched.
+assert.strictEqual(ctx.easeFadeToward(0.2, 1, 0), 0.2);
+assert.strictEqual(ctx.easeFadeToward(0.2, 1, NaN), 0.2);
+const oneBigStep = ctx.easeFadeToward(0, 1, 16);
+const twoSmallSteps = ctx.easeFadeToward(ctx.easeFadeToward(0, 1, 8), 1, 8);
+assert.ok(Math.abs(oneBigStep - twoSmallSteps) < 1e-9, "frame-rate independent");
+assert.ok(oneBigStep > 0 && oneBigStep < 1, "moves without overshooting");
+let damped = 0;
+for (let i = 0; i < 60; i += 1) damped = ctx.easeFadeToward(damped, 1, 16);
+assert.ok(damped > 0.9999, "converges on the target");
+assert.ok(ctx.easeFadeToward(0.9, 0.2, 16) < 0.9, "fades down as well as up");
 
 // Wiring: the fade must travel on --sc-fade, never on inline opacity. Inline
 // opacity outranks `.sc-container` and would kill the CSS hide transition

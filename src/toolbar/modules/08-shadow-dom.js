@@ -72,11 +72,11 @@ function getStyles() {
             overflow: hidden;
             white-space: nowrap;
         }
-        /* Visible: opacity comes straight from --sc-fade so the fade follows the
-           pointer, while transform/box-shadow keep the durations the glass
-           .sc-container rule below declares. Hiding drops .visible, which hands
-           opacity back to the 0.2s base transition so it always fades out from
-           wherever the pointer fade left it. */
+        /* Visible: opacity comes straight from --sc-fade, which the JS follow in
+           module 14 smooths frame by frame; transform/box-shadow keep the
+           durations the glass .sc-container rule below declares. Hiding drops
+           .visible, which hands opacity back to the 0.2s base transition so it
+           always fades out from wherever the pointer fade left it. */
         .sc-container.visible {
             opacity: var(--sc-fade, 1);
             transform: scale(1);
