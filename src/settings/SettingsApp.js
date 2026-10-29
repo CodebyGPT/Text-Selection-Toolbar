@@ -1673,6 +1673,7 @@ function AboutTab({ setting, update }) {
 export default function SettingsApp({ initialPath = "/", onClose }) {
   const [tab, setTab] = useState(() => pathToTab(initialPath));
   const [setting, setSetting] = useState(null);
+  const [settingsChanged, setSettingsChanged] = useState(false);
   // Keep the module-level translator in sync before rendering descendants.
   setSettingsLanguage(setting?.uiLang || "auto");
   const themeRef = useRef(null);
@@ -1689,6 +1690,7 @@ export default function SettingsApp({ initialPath = "/", onClose }) {
   }, []);
 
   const update = (patch) => {
+    setSettingsChanged(true);
     setSetting((previous) => {
       const next = { ...previous, ...patch };
       persist(next);
@@ -1707,6 +1709,11 @@ export default function SettingsApp({ initialPath = "/", onClose }) {
             <img className="kiss-st-logo" src={meta.icon} alt="" />
           )}
           <h1>{t("appTitle")}</h1>
+          {settingsChanged && (
+            <span className="kiss-st-reload-hint">
+              {t("settingsApplyAfterReload")}
+            </span>
+          )}
           <button
             className="kiss-st-close"
             type="button"

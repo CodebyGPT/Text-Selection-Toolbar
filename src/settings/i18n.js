@@ -11,6 +11,11 @@ const MESSAGES = {
   tabAbout: ["关于", "About", "О программе"],
   loadingSettings: ["加载设置…", "Loading settings…", "Загрузка настроек…"],
   closeSettings: ["关闭设置", "Close settings", "Закрыть настройки"],
+  settingsApplyAfterReload: [
+    "新的设置在标签页重新加载后生效",
+    "New settings take effect after the tab reloads",
+    "Новые настройки вступят в силу после перезагрузки вкладки",
+  ],
 
   preset: ["预设", "Preset", "Пресет"],
   custom: ["自定义", "Custom", "Свой"],

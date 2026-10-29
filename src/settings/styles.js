@@ -84,6 +84,15 @@ export const SETTINGS_APP_CSS = String.raw`
 :host .kiss-st-close:hover {
   background: var(--st-input);
 }
+:host .kiss-st-reload-hint {
+  margin-left: auto;
+  color: var(--st-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+:host .kiss-st-reload-hint + .kiss-st-close {
+  margin-left: 12px;
+}
 :host .kiss-st-tabs {
   display: flex;
   gap: 6px;
