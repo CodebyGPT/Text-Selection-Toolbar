@@ -407,6 +407,12 @@ function handleSelectionMouseUp(e) {
     if (!hostElement) initContainer();
     if (isScrolling) return;
 
+    // The release consumes the arm, and it must snapshot it here, synchronously.
+    // A selection event that fires after this release - a button's click handler
+    // selecting a paragraph, a scripted range - must not arm the render this
+    // release already queued for the selection it saw.
+    const releasedArmed = consumeSelectionArm();
+
     if (typeof e.clientX === 'number' && typeof e.clientY === 'number') {
         lastPointerX = e.clientX;
         lastPointerY = e.clientY;
@@ -427,7 +433,7 @@ function handleSelectionMouseUp(e) {
     const editable = editableTargetOf(activeElementDeep());
     if (editable) {
         cacheContentEditableSelection(editable, selection);
-        handleInputPasteMouseUp(e, editable);
+        handleInputPasteMouseUp(e, editable, releasedArmed);
         return;
     }
 
@@ -464,10 +470,10 @@ function handleSelectionMouseUp(e) {
     const releaseX = e.clientX;
     const releaseY = e.clientY;
     scheduleToolbarRender(10, (cancelled) => {
-        // Only a release that closes a selection-producing press may open the
-        // bar. A click that leaves an older selection untouched fires no
-        // selection event, so it cannot bring a dismissed toolbar back.
-        if (cancelled() || !consumeSelectionArm()) return;
+        // Only a release that closed a selection-producing press may open the
+        // bar. `releasedArmed` is the press's own state, snapshotted before any
+        // post-release selection event could change it.
+        if (cancelled() || !releasedArmed) return;
         // Remember the captured range, not the live selection: the page may
         // clear its selection at any time and the bar must still follow it.
         rememberToolbarAnchor(range, rect);
@@ -726,7 +732,7 @@ function handleExternalCopyFinal(e) {
 
 // Input paste mouseup handler. This is the only render path for editable
 // targets (the page handler delegates here), so a press cannot paint twice.
-function handleInputPasteMouseUp(e, focusedTarget) {
+function handleInputPasteMouseUp(e, focusedTarget, releasedArmed) {
     // A drag that starts inside a text control often ends outside it: the
     // pointer is released over a page element, while the control keeps focus
     // and its selection. The page handler already resolved the focused editing
@@ -809,8 +815,9 @@ function handleInputPasteMouseUp(e, focusedTarget) {
 
         // A selection toolbar needs a selection made by this press. A click
         // that leaves an old selection untouched must not bring the bar back;
-        // the collapsed-click paste offers below stay available.
-        if (hasSelection && !consumeSelectionArm()) return;
+        // the collapsed-click paste offers below stay available. The arm was
+        // snapshotted at release, so a later selection event cannot revive it.
+        if (hasSelection && !releasedArmed) return;
 
         // Editable selections have a real range: follow it on scroll. A
         // collapsed click (paste offer) has no anchor and keeps its position.

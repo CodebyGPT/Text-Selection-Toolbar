@@ -137,6 +137,16 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   assert.strictEqual(calls.length, 1, "selection state alone never opens a toolbar");
   assert.ok(hideCalls >= 4, "dismissed presses hide the old bar");
 
+  // A selection event that fires *after* the release belongs to whatever the
+  // page does next (a "select this paragraph" button selects in its click
+  // handler, i.e. after the button's mouseup). It must not arm the render this
+  // release already queued for the previous selection.
+  press();
+  release();
+  api.armSelectionGesture();
+  await wait(40);
+  assert.strictEqual(calls.length, 1, "a post-release selection opens nothing");
+
   // Editable selections follow the same rule, while the collapsed-click paste
   // offer (no selection) stays a per-press feature.
   const editor = {
