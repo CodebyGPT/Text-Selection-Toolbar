@@ -129,6 +129,26 @@ function consumeSelectionArm() {
     return armed;
 }
 
+// Opt-in (clickSelectionShowsToolbar): a press that did not create a selection
+// can still be a deliberate click on a selection the page itself made. The
+// browser only collapses its own selections, so such a selection can survive
+// the click; the first click on it should open the bar like a drag would. Two
+// guards keep that from resurrecting stale bars: the selection must still be
+// exactly the one the release saw, and the release must have landed on it.
+function clickKeptSelection(selection, text, x, y) {
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return false;
+    if (selection.toString() !== text) return false;
+    let bounds;
+    try {
+        bounds = selection.getRangeAt(0).getBoundingClientRect();
+    } catch (e) {
+        return false;
+    }
+    return Boolean(bounds && bounds.width > 0 && bounds.height > 0 &&
+        x >= bounds.left && x <= bounds.right &&
+        y >= bounds.top && y <= bounds.bottom);
+}
+
 function handleSelectionPressStart(e) {
     if (e.button !== 0) return;
     // Every press starts unarmed: only a selection event during this press can
@@ -472,8 +492,14 @@ function handleSelectionMouseUp(e) {
     scheduleToolbarRender(10, (cancelled) => {
         // Only a release that closed a selection-producing press may open the
         // bar. `releasedArmed` is the press's own state, snapshotted before any
-        // post-release selection event could change it.
-        if (cancelled() || !releasedArmed) return;
+        // post-release selection event could change it. The opt-in exception:
+        // a deliberate click on a selection the page made, when the browser
+        // left that selection in place (see clickKeptSelection).
+        if (cancelled()) return;
+        if (!releasedArmed) {
+            if (getConfig('clickSelectionShowsToolbar') !== true) return;
+            if (!clickKeptSelection(selection, text, releaseX, releaseY)) return;
+        }
         // Remember the captured range, not the live selection: the page may
         // clear its selection at any time and the bar must still follow it.
         rememberToolbarAnchor(range, rect);

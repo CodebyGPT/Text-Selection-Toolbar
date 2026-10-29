@@ -1117,6 +1117,15 @@ function ToolbarTab({ setting, update }) {
             onChange={(v) => patch({ forceWhiteBlack: v })}
           />
         </Row>
+        <Row
+          label={t("clickSelectionShowsToolbar")}
+          help={t("clickSelectionShowsToolbarHelp")}
+        >
+          <Toggle
+            value={value.clickSelectionShowsToolbar === true}
+            onChange={(v) => patch({ clickSelectionShowsToolbar: v })}
+          />
+        </Row>
       </Section>
 
       <Section title={t("selectionAdjust")}>

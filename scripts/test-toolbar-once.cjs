@@ -20,11 +20,15 @@ const prelude = `
   let cachedSelection = { text: '', html: '' };
 `;
 
+let selectionBox = { left: 0, top: 0, right: 20, bottom: 20, width: 20, height: 20 };
 const selection = {
   rangeCount: 1,
   isCollapsed: false,
   text: "hello",
-  getRangeAt: () => ({ cloneContents: () => ({}) }),
+  getRangeAt: () => ({
+    cloneContents: () => ({}),
+    getBoundingClientRect: () => selectionBox,
+  }),
   toString: () => selection.text,
 };
 
@@ -33,6 +37,7 @@ const doc = {
   createElement: () => ({ appendChild() {}, innerHTML: "<b>hello</b>" }),
 };
 const win = { getSelection: () => selection, innerWidth: 1280, innerHeight: 800 };
+let clickSelectionShowsToolbar = false;
 
 const api = new Function(
   "window",
@@ -62,7 +67,7 @@ const api = new Function(
 )(
   win,
   doc,
-  () => false,
+  (key) => (key === "clickSelectionShowsToolbar" ? clickSelectionShowsToolbar : false),
   () => ({ left: 0, top: 0, right: 10, bottom: 10, width: 10, height: 10 }),
   () => {},
   () => {},
@@ -83,9 +88,9 @@ const api = new Function(
 cancel = api.cancelScheduledToolbar;
 
 const press = () => api.handleSelectionPressStart({ button: 0, composedPath: () => [] });
-const release = () => api.handleSelectionMouseUp({
-  clientX: 10,
-  clientY: 10,
+const release = (x = 10, y = 10) => api.handleSelectionMouseUp({
+  clientX: x,
+  clientY: y,
   composedPath: () => [],
 });
 
@@ -236,6 +241,28 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   assert.strictEqual(outsideCall[6], textarea, "the focused textarea remains the target");
   assert.strictEqual(outsideCall[0].right, 200, "x is clamped to the control box");
   assert.strictEqual(outsideCall[0].bottom, 30, "y is clamped to the control box");
+
+  // Opt-in: a click on a selection the browser leaves in place opens the bar.
+  // It is off by default, and it still requires the click to land on that
+  // selection.
+  doc.activeElement = null;
+  assert.strictEqual(clickSelectionShowsToolbar, false, "the opt-in is off by default");
+  press();
+  release();
+  await wait(40);
+  assert.strictEqual(calls.length, 5, "with the opt-in off, clicking a selection opens nothing");
+
+  clickSelectionShowsToolbar = true;
+  press();
+  release();
+  await wait(40);
+  assert.strictEqual(calls.length, 6, "with the opt-in on, a click on the surviving selection opens the bar");
+
+  press();
+  release(400, 400);
+  await wait(40);
+  assert.strictEqual(calls.length, 6, "a click away from the selection opens nothing");
+  clickSelectionShowsToolbar = false;
 
   console.log("toolbar once-per-selection check passed");
 })().catch((error) => {

@@ -8,6 +8,9 @@ const DEFAULT_CONFIG = {
     // default ratio in sync with src/config/toolbar.js and module 26.
     fadeAwayDistance: '',
     fadeAwayRatio: '1.5',
+    // Opt-in: a click on a selection the browser leaves in place also opens
+    // the toolbar. Keep in sync with src/config/toolbar.js.
+    clickSelectionShowsToolbar: false,
     buttonStyle: 'row', // 'row' (capsule) | 'col' (rounded rect)
     forceWhiteBlack: true, // true = force white bg/black text
     trimSelectionWhitespace: true, // page selections drop edge whitespace

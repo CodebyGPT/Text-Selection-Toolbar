@@ -153,6 +153,16 @@ const MESSAGES = {
   fadeRatio200: ["渐隐距离=200%完全可见距离", "Fade distance = 200% of fully visible distance", "Затухание = 200% полностью видимого расстояния"],
   fadeRatio250: ["渐隐距离=250%完全可见距离", "Fade distance = 250% of fully visible distance", "Затухание = 250% полностью видимого расстояния"],
   fadeRatio300: ["渐隐距离=300%完全可见距离", "Fade distance = 300% of fully visible distance", "Затухание = 300% полностью видимого расстояния"],
+  clickSelectionShowsToolbar: [
+    "点击选区弹出工具栏",
+    "Show the toolbar on a selection click",
+    "Показывать панель по клику на выделение",
+  ],
+  clickSelectionShowsToolbarHelp: [
+    "工具栏默认只在用户划动选中文本后弹出一次；开启该选项后，用户单击选区且选区在单击后未被浏览器折叠或清除时，也能弹出工具栏",
+    "The toolbar normally opens once after the user drags over text. With this on, a click on an existing selection also opens it, as long as the browser did not collapse or clear that selection on the click",
+    "Панель обычно появляется один раз после выделения текста перетаскиванием. Если включить, панель также откроется по клику на существующее выделение, если браузер не свернул и не снял его при клике",
+  ],
   buttonLayout: ["按钮布局", "Button layout", "Раскладка кнопок"],
   horizontalCapsule: ["横向胶囊", "Horizontal capsule", "Горизонтальная капсула"],
   verticalMenu: ["纵向菜单", "Vertical menu", "Вертикальное меню"],
