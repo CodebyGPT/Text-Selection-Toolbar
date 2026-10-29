@@ -586,12 +586,13 @@ function handleKeydownHideUI(e) {
     hideUI();
 }
 
-// A normal Ctrl+C / context-menu copy outside the toolbar. Capture the text
-// synchronously from the selection and share it through the existing cache so
-// another tab can offer lightning paste without polling or clipboard reads.
-async function handleExternalCopy(e) {
-    if (!getConfig('enablePaste')) return;
+// A normal Ctrl+C / context-menu copy outside the toolbar. The capture phase
+// records the selection as a fallback; the bubble phase then reads the final
+// clipboardData, because pages may rewrite it before the event finishes.
+let pendingExternalCopyFallback = '';
+let pendingExternalCopyTimer = 0;
 
+function readExternalCopyText(e) {
     let text = '';
     const target = eventTargetDeep(e);
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
@@ -605,14 +606,49 @@ async function handleExternalCopy(e) {
         const sel = getSelectionFromEvent(e).selection;
         text = sel ? sel.toString() : '';
     }
-    if (!text) return;
+    return text;
+}
 
+async function writeExternalCopyCache(text) {
+    if (!text) return;
     unregisterVisibilityCleanup();
     await safeSetValue('smart_paste_cache', {
         text,
         timestamp: Date.now(),
         type: 'clipboard'
     });
+}
+
+function handleExternalCopy(e) {
+    if (!getConfig('enablePaste')) return;
+    const text = readExternalCopyText(e);
+    if (!text) return;
+
+    pendingExternalCopyFallback = text;
+    clearTimeout(pendingExternalCopyTimer);
+    // Normally the bubble listener below replaces this with the page's final
+    // clipboard text. The timer is only for pages that stop propagation before
+    // the bubble listener can run.
+    pendingExternalCopyTimer = setTimeout(() => {
+        const fallback = pendingExternalCopyFallback;
+        pendingExternalCopyFallback = '';
+        writeExternalCopyCache(fallback);
+    }, 0);
+}
+
+function handleExternalCopyFinal(e) {
+    if (!getConfig('enablePaste')) return;
+    let text = '';
+    try {
+        if (e.clipboardData) {
+            text = e.clipboardData.getData('text/plain') || e.clipboardData.getData('text') || '';
+        }
+    } catch (error) {}
+    if (!text) return;
+
+    pendingExternalCopyFallback = '';
+    clearTimeout(pendingExternalCopyTimer);
+    writeExternalCopyCache(text);
 }
 
 // Input paste mouseup handler. This is the only render path for editable

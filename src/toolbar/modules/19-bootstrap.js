@@ -99,6 +99,9 @@ function markToolbarReady() {
             // Capture copies made outside the toolbar; registered before unlock
             // mode's stopImmediatePropagation listener so it always sees them.
             window.addEventListener('copy', handleExternalCopy, true);
+            // Runs after page copy handlers so it sees the final clipboardData
+            // rather than the pre-copy selection text.
+            window.addEventListener('copy', handleExternalCopyFinal, false);
             // Safe copy is a read-only warning. Bubble phase puts it after the
             // page's own document/body copy handlers; it never prevents or
             // rewrites anything, so the page's copy behavior is untouched.

