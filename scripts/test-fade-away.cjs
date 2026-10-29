@@ -52,19 +52,21 @@ assert.strictEqual(ctx.getFadeAwayOpacity(20, 20, 20), 1);
 // Non-finite input never fades the toolbar.
 assert.strictEqual(ctx.getFadeAwayOpacity(NaN, 100, 150), 1);
 
-// Damping: each frame lands between the current value and the target, two
-// short frames equal one long frame, and repeated frames converge without
-// overshooting. A non-positive delta leaves the value untouched.
+// Damping: a non-positive delta leaves the value untouched, brightening snaps
+// (a click must dismiss from full opacity), and fading away eases: two short
+// frames equal one long frame, no overshoot, repeated frames converge.
 assert.strictEqual(ctx.easeFadeToward(0.2, 1, 0), 0.2);
 assert.strictEqual(ctx.easeFadeToward(0.2, 1, NaN), 0.2);
-const oneBigStep = ctx.easeFadeToward(0, 1, 16);
-const twoSmallSteps = ctx.easeFadeToward(ctx.easeFadeToward(0, 1, 8), 1, 8);
+assert.strictEqual(ctx.easeFadeToward(0.2, 1, 16), 1);
+assert.strictEqual(ctx.easeFadeToward(0, 1, 16), 1);
+const oneBigStep = ctx.easeFadeToward(1, 0, 16);
+const twoSmallSteps = ctx.easeFadeToward(ctx.easeFadeToward(1, 0, 8), 0, 8);
 assert.ok(Math.abs(oneBigStep - twoSmallSteps) < 1e-9, "frame-rate independent");
 assert.ok(oneBigStep > 0 && oneBigStep < 1, "moves without overshooting");
-let damped = 0;
-for (let i = 0; i < 60; i += 1) damped = ctx.easeFadeToward(damped, 1, 16);
-assert.ok(damped > 0.9999, "converges on the target");
-assert.ok(ctx.easeFadeToward(0.9, 0.2, 16) < 0.9, "fades down as well as up");
+let damped = 1;
+for (let i = 0; i < 60; i += 1) damped = ctx.easeFadeToward(damped, 0, 16);
+assert.ok(damped < 0.0001, "converges on the target");
+assert.ok(ctx.easeFadeToward(0.9, 0.2, 16) < 0.9, "fades down");
 
 // Wiring: the fade must travel on --sc-fade, never on inline opacity. Inline
 // opacity outranks `.sc-container` and would kill the CSS hide transition

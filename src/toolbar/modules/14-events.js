@@ -480,9 +480,11 @@ function handleSelectionMouseUp(e) {
 // from their centre would fade while the pointer is still on an item.
 //
 // The wobble-free path: --sc-fade is driven towards the distance target by a
-// short exponential follow (module 26) instead of being written raw. One rAF
-// per container, cancelled as soon as the value is within FADE_SETTLE_EPSILON
-// of its target, so a parked pointer costs nothing.
+// follow (module 26) that snaps on the way in and eases on the way out instead
+// of being written raw. One rAF per container, cancelled as soon as the value
+// is within FADE_SETTLE_EPSILON of its target, so a parked pointer costs nothing.
+// Rise-snaps matter beyond looks: a click must dismiss from full opacity, or
+// the 200ms hide fade starts dim and reads as a stall.
 const FADE_SETTLE_EPSILON = 0.002;
 const fadeRuns = new WeakMap();
 
@@ -507,6 +509,18 @@ function followToolbarFade(container, target) {
         fadeRuns.set(container, run);
     }
     run.target = target;
+
+    // Instant attack, no frame of dimness: a pointer arriving on the bar must
+    // see full opacity, and a click then hides from 1.
+    if (target >= run.value) {
+        if (run.raf) {
+            cancelAnimationFrame(run.raf);
+            run.raf = 0;
+        }
+        run.value = target;
+        writeFadeValue(container, target);
+        return;
+    }
 
     if (Math.abs(run.value - target) < FADE_SETTLE_EPSILON) {
         if (run.raf) {
