@@ -89,7 +89,12 @@ function ensureCodeCopyButton() {
 
 function hideCodeCopyButton() {
     codeCopyTarget = null;
-    if (codeCopyButton) codeCopyButton.classList.remove('visible');
+    if (codeCopyButton) {
+        // The button is reused, so drop the last fade value: otherwise the next
+        // show-in animates to a stale (possibly invisible) opacity.
+        codeCopyButton.style.removeProperty('--sc-fade');
+        codeCopyButton.classList.remove('visible');
+    }
 }
 
 function showCodeCopyButton(pre) {

@@ -486,7 +486,9 @@ function applyToolbarFade(x, y) {
     const options = typeof getFadeAwayOptions === 'function' ? getFadeAwayOptions() : null;
     if (!options) {
         containers.forEach((container) => {
-            if (container.style.opacity) container.style.opacity = '';
+            if (container.style.getPropertyValue('--sc-fade')) {
+                container.style.removeProperty('--sc-fade');
+            }
         });
         return;
     }
@@ -505,12 +507,13 @@ function applyToolbarFade(x, y) {
             y - (rect.top + rect.height / 2)
         );
         if (distance > options.fade) {
-            container.style.opacity = '0';
+            container.style.setProperty('--sc-fade', '0');
             hideUI();
             return;
         }
-        container.style.opacity = String(
-            getFadeAwayOpacity(distance, options.distance, options.fade)
+        container.style.setProperty(
+            '--sc-fade',
+            String(getFadeAwayOpacity(distance, options.distance, options.fade))
         );
     }
 }

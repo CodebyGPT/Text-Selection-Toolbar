@@ -61,6 +61,10 @@ function getStyles() {
             user-select: none;
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
+            /* Cursor-distance fade channel, written by applyToolbarFade. It is
+               deliberately absent from the transition below: the bar must track
+               the pointer, not ease towards it. */
+            --sc-fade: 1;
             opacity: 0;
             transform: scale(0.95);
             transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
@@ -68,9 +72,19 @@ function getStyles() {
             overflow: hidden;
             white-space: nowrap;
         }
+        /* Visible: opacity comes straight from --sc-fade so the fade follows the
+           pointer, while transform/box-shadow keep the durations the glass
+           .sc-container rule below declares. Hiding drops .visible, which hands
+           opacity back to the 0.2s base transition so it always fades out from
+           wherever the pointer fade left it. */
         .sc-container.visible {
-            opacity: 1;
+            opacity: var(--sc-fade, 1);
             transform: scale(1);
+            transition: transform .25s ease, box-shadow .25s ease;
+            animation: sc-toolbar-in .2s ease;
+        }
+        @keyframes sc-toolbar-in {
+            from { opacity: 0; }
         }
         .sc-btn {
             display: flex;

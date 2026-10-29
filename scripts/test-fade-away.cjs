@@ -52,4 +52,33 @@ assert.strictEqual(ctx.getFadeAwayOpacity(20, 20, 20), 1);
 // Non-finite input never fades the toolbar.
 assert.strictEqual(ctx.getFadeAwayOpacity(NaN, 100, 150), 1);
 
+// Wiring: the fade must travel on --sc-fade, never on inline opacity. Inline
+// opacity outranks `.sc-container` and would kill the CSS hide transition
+// (the bar shrinks, then pops out at full opacity).
+const eventsSrc = fs.readFileSync(
+  path.join(__dirname, "../src/toolbar/modules/14-events.js"),
+  "utf8"
+);
+assert.ok(
+  !/style\.opacity\s*=/.test(eventsSrc),
+  "applyToolbarFade must write --sc-fade, not inline opacity"
+);
+assert.ok(
+  /setProperty\(\s*['"]--sc-fade['"]/.test(eventsSrc),
+  "fade value is written through --sc-fade"
+);
+
+const styles = fs.readFileSync(
+  path.join(__dirname, "../src/toolbar/modules/08-shadow-dom.js"),
+  "utf8"
+);
+assert.ok(
+  /\.sc-container\.visible\s*\{[^}]*var\(--sc-fade/.test(styles),
+  "visible toolbar consumes --sc-fade"
+);
+assert.ok(
+  /\.sc-container\.visible\s*\{[^}]*animation:/.test(styles),
+  "show-in keeps an opacity animation while the fade owns opacity"
+);
+
 console.log("fade-away check passed");
