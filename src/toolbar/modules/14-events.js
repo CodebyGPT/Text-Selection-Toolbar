@@ -42,6 +42,21 @@ function editableTargetOf(node) {
     return null;
 }
 
+// selectionStart throws for input types that do not support selection (number,
+// date, ...), so a text-control selection is only read through this helper.
+function controlSelection(el) {
+    if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) return null;
+    try {
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        return typeof start === 'number' && typeof end === 'number'
+            ? { start, end }
+            : null;
+    } catch (e) {
+        return null;
+    }
+}
+
 // Last real pointer position, shared with the toolbar render path so the fade
 // state is applied immediately when the toolbar appears. Updated by mousemove
 // only; there is no polling.
@@ -57,6 +72,7 @@ let pointerKnown = false;
 // mouse movement, compares selection snapshots, counts renders or polls.
 let selectionGestureArmed = false;
 let pressSelection = null;
+let pressControl = null;
 let scheduledToolbar = null;
 
 // The press remembers the selection object of the tree it started in: the
@@ -93,9 +109,13 @@ function selectedTextOf(selection) {
 
 function armSelectionGesture(e) {
     const target = e && e.target;
-    if (target && typeof target.selectionStart === 'number') {
-        // Text control: the document selection cannot see this one.
-        if (target.selectionStart !== target.selectionEnd) selectionGestureArmed = true;
+    // A text control keeps its selection outside the document selection, and
+    // some engines dispatch the change at the document. The press remembers
+    // the control it started in, so arming never depends on the event target.
+    const control = controlSelection(target) ? target : pressControl;
+    if (control) {
+        const state = controlSelection(control);
+        if (state && state.start !== state.end) selectionGestureArmed = true;
         return;
     }
     // Only a change to a non-empty selection arms; clearing a selection (for
@@ -116,6 +136,8 @@ function handleSelectionPressStart(e) {
     selectionGestureArmed = false;
     const root = selectionRootOfPress(e);
     pressSelection = root === document ? window.getSelection() : root.getSelection();
+    const target = eventTargetDeep(e);
+    pressControl = controlSelection(target) ? target : null;
     watchShadowSelection(root);
     if (hostElement && e.composedPath().includes(hostElement)) return;
     // Dismiss the previous bar now and drop its scheduled render, so it cannot
@@ -613,9 +635,10 @@ function handleInputPasteMouseUp(e) {
         let whitespaceSelection = false;
 
         if (isTextControl) {
-            let start = target.selectionStart;
-            let end = target.selectionEnd;
-            if (typeof start === 'number' && typeof end === 'number' && start !== end) {
+            const state = controlSelection(target);
+            let start = state ? state.start : 0;
+            let end = state ? state.end : 0;
+            if (state && start !== end) {
                 selectedText = target.value.substring(start, end);
                 hasSelection = true;
                 if (selectedText.trim() === '') {
@@ -686,44 +709,71 @@ function handleInputPasteMouseUp(e) {
             : null;
         rememberToolbarAnchor(anchorRect ? selectionAtMouseUp.getRangeAt(0) : null, anchorRect);
 
-        if (!cache) {
-            if (!hasSelection) return;
-            // Contenteditable selections without a pending paste still get the
-            // regular toolbar (with cut/delete), exactly as the page path used
-            // to provide before the render was folded in here.
-            if (showIdCardCheck) {
-                initContainer();
-                renderButton(null, e.clientX, e.clientY, selectedText, '', 'default', target, false, null, true);
-                return;
-            }
-            if (!target.isContentEditable) return;
+        // Text controls have no DOM Range, but their selection focus is the
+        // release point. A zero-size endpoint rect routes them through the same
+        // endpoint placement as page selections instead of the click fallback,
+        // which pins the bar's left edge to the right of the pointer.
+        const endpointRect = {
+            left: e.clientX,
+            right: e.clientX,
+            top: e.clientY,
+            bottom: e.clientY,
+            width: 0,
+            height: 0,
+            isBackward: target.selectionDirection === 'backward'
+        };
+
+        // A selection always gets a toolbar; a pending paste only upgrades it
+        // to the three-button mode. Only a click *without* a selection depends
+        // on the cache, because then the paste offer is the whole point.
+        if (!hasSelection) {
+            if (!cache) return;
             initContainer();
-            renderButton(
-                anchorRect,
-                e.clientX,
-                e.clientY,
-                selectedText,
-                '',
-                'default'
-            );
+            if (isChineseUI() && cache.type === 'pan_code') {
+                const rect = target.getBoundingClientRect();
+                renderButton(rect, e.clientX, e.clientY, cache.text, '', 'paste', target, false, cache);
+            } else {
+                renderButton(null, e.clientX, e.clientY, cache.text, '', 'paste', target, false, cache);
+            }
+            return;
+        }
+
+        initContainer();
+        if (!cache) {
+            if (target.isContentEditable && !showIdCardCheck) {
+                // Editable ranges carry their own geometry (and rich copy data).
+                renderButton(anchorRect, e.clientX, e.clientY, selectedText, '', 'default');
+            } else {
+                // <input>/<textarea> selections have no DOM Range: the release
+                // point is the only anchor, and targetInput adds cut/delete.
+                renderButton(
+                    target.isContentEditable ? null : endpointRect,
+                    e.clientX,
+                    e.clientY,
+                    selectedText,
+                    '',
+                    'default',
+                    target,
+                    !target.isContentEditable,
+                    null,
+                    showIdCardCheck
+                );
+            }
             return;
         }
 
         // Cloud drive extraction code cache (Chinese mode only): force single paste button (key icon)
         const isChineseEnv = isChineseUI();
         if (isChineseEnv && cache.type === 'pan_code') {
-            initContainer();
             const rect = target.getBoundingClientRect();
             renderButton(rect, e.clientX, e.clientY, cache.text, '', 'paste', target, false, cache);
             return;
         }
 
         const isReplaceIntent = selectedText === ' ' || selectedText === '，';
-        const mode = (hasSelection && !isReplaceIntent) ? PASTE_MODE_THREE_BTNS : 'paste';
+        const mode = isReplaceIntent ? 'paste' : PASTE_MODE_THREE_BTNS;
         const textArg = (mode === 'paste') ? cache.text : selectedText;
-
-        const rect = (target.isContentEditable && hasSelection) ? anchorRect : null;
-        if (!hostElement) initContainer();
+        const rect = target.isContentEditable ? anchorRect : endpointRect;
         renderButton(rect, e.clientX, e.clientY, textArg, '', mode, target, false, cache, showIdCardCheck);
     });
 }

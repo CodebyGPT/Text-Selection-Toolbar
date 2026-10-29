@@ -163,6 +163,50 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   await wait(60);
   assert.strictEqual(calls.length, 2, "a new editable selection opens one toolbar");
 
+  // <input>/<textarea> selections have no window selection and no paste cache
+  // required: a selected text must still get the regular toolbar.
+  const textarea = {
+    nodeType: 1,
+    tagName: "TEXTAREA",
+    isContentEditable: false,
+    value: "本次更新 / Changes",
+    selectionStart: 0,
+    selectionEnd: 4,
+    selectionDirection: "forward",
+    parentElement: null,
+  };
+  doc.activeElement = textarea;
+  press();
+  api.armSelectionGesture({ target: textarea });
+  api.handleSelectionMouseUp({
+    clientX: 20,
+    clientY: 20,
+    composedPath: () => [textarea],
+  });
+  await wait(60);
+  assert.strictEqual(calls.length, 3, "a textarea selection opens a toolbar");
+  const textareaCall = calls[2];
+  assert.strictEqual(textareaCall[0].right, 20, "the bar anchors at the release point");
+  assert.strictEqual(textareaCall[0].isBackward, false, "a forward selection is not backward");
+  assert.strictEqual(textareaCall[5], "default", "no cache means the regular toolbar");
+  assert.strictEqual(textareaCall[6], textarea, "cut/delete must target the textarea");
+
+  // A right-to-left selection releases at its left endpoint: the same endpoint
+  // placement must flip the bar to that side instead of always drifting right.
+  textarea.selectionDirection = "backward";
+  press();
+  api.armSelectionGesture({ target: textarea });
+  api.handleSelectionMouseUp({
+    clientX: 30,
+    clientY: 25,
+    composedPath: () => [textarea],
+  });
+  await wait(60);
+  assert.strictEqual(calls.length, 4, "a backward textarea selection opens one toolbar");
+  const backwardCall = calls[3];
+  assert.strictEqual(backwardCall[0].left, 30, "the bar anchors at the backward endpoint");
+  assert.strictEqual(backwardCall[0].isBackward, true, "the direction is preserved");
+
   console.log("toolbar once-per-selection check passed");
 })().catch((error) => {
   console.error(error);
