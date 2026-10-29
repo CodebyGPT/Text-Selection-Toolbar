@@ -1103,11 +1103,10 @@ function ToolbarTab({ setting, update }) {
         </Row>
         <Row label={t("onScroll")}>
           <Select
-            value={value.scrollRepaintMode}
+            value={value.scrollRepaintMode === "hide" ? "hide" : "always"}
             onChange={(v) => patch({ scrollRepaintMode: v })}
             options={[
               ["always", t("repaintWithSelection")],
-              ["viewport", t("repaintViewport")],
               ["hide", t("hideOnScroll")],
             ]}
           />

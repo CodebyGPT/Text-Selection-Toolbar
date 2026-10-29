@@ -166,9 +166,8 @@ const shouldHideTranslate = (text) => {
 };
 
 const SCROLL_REPAINT_MODE = {
-    ALWAYS: 'always',      // 1. Always repaint (default)
-    VIEWPORT: 'viewport',  // 2. Repaint only when anchor is within viewport
-    HIDE: 'hide'           // 3. Hide on scroll, never repaint
+    KEEP: 'always',  // Keep the bar visible; follow the anchor while it is in view
+    HIDE: 'hide'     // Destroy the bar once the anchor leaves the viewport
 };
 
 const PASTE_MODE_THREE_BTNS = 'copy-search-paste';   // Lightning paste three-button mode marker
@@ -209,6 +208,9 @@ const TLD_SET = new Set(("aaa,aarp,abb,abbott,abbvie,abc,able,abogado,abudhabi,a
 
 // Runtime state
 let cachedSelection = { text: '', html: '' };
+// The range the visible toolbar belongs to. It outlives the live selection, so
+// scroll/resize can follow the anchor even after the page clears the selection.
+let toolbarAnchor = null;
 let uiTimer = null;
 let toastTimer = null;
 let isScrolling = false;

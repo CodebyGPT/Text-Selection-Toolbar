@@ -32,6 +32,7 @@ function makeToolbar(doc, win) {
     "isIdCardCandidate",
     "rememberIdCardDragGuard",
     "getSmartSelectionState",
+    "rememberToolbarAnchor",
     "PASTE_MODE_THREE_BTNS",
     "PASTE_MODE_WHITESPACE",
     `${prelude}
@@ -50,6 +51,7 @@ function makeToolbar(doc, win) {
     () => false,
     () => {},
     () => null,
+    () => {},
     "copy-search-paste",
     "whitespace-delete-paste"
   );

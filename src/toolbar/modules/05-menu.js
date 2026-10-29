@@ -2,7 +2,6 @@
 // Only page actions that do not belong in a form stay here.
 
 async function initConfiguration() {
-    configCache['scrollRepaintMode'] = await safeGetValue('scrollRepaintMode', 'always');
     const keys = Object.keys(DEFAULT_CONFIG);
     const values = await Promise.all(
         keys.map(key => safeGetValue(key, DEFAULT_CONFIG[key]))
@@ -10,6 +9,11 @@ async function initConfiguration() {
     keys.forEach((key, index) => {
         configCache[key] = values[index];
     });
+    // Older releases offered "viewport"; it now maps to the default
+    // keep-visible behaviour. Only an explicit hide destroys the bar on scroll.
+    if (configCache['scrollRepaintMode'] !== SCROLL_REPAINT_MODE.HIDE) {
+        configCache['scrollRepaintMode'] = SCROLL_REPAINT_MODE.KEEP;
+    }
 
     const blockedRules = await safeGetValue('blocked_elements', {});
     configCache['blocked_elements'] = blockedRules;

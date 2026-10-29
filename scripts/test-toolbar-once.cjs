@@ -22,16 +22,17 @@ const prelude = `
 
 const selection = {
   rangeCount: 1,
+  isCollapsed: false,
+  text: "hello",
   getRangeAt: () => ({ cloneContents: () => ({}) }),
-  toString: () => "hello",
+  toString: () => selection.text,
 };
 
 const doc = {
   activeElement: null,
   createElement: () => ({ appendChild() {}, innerHTML: "<b>hello</b>" }),
 };
-let currentSelection = selection;
-const win = { getSelection: () => currentSelection, innerWidth: 1280, innerHeight: 800 };
+const win = { getSelection: () => selection, innerWidth: 1280, innerHeight: 800 };
 
 const api = new Function(
   "window",
@@ -39,6 +40,7 @@ const api = new Function(
   "getConfig",
   "getSmartSelectionState",
   "bindSelectionScrollTargets",
+  "rememberToolbarAnchor",
   "renderButton",
   "initContainer",
   "hideUI",
@@ -62,6 +64,7 @@ const api = new Function(
   doc,
   () => false,
   () => ({ left: 0, top: 0, right: 10, bottom: 10, width: 10, height: 10 }),
+  () => {},
   () => {},
   (...args) => calls.push(args),
   () => {},
@@ -108,12 +111,15 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   // selectionchange must not arm a bar for text the user just deselected.
   press();
   release();
-  const emptySelection = { rangeCount: 1, isCollapsed: true, toString: () => "" };
-  currentSelection = emptySelection;
+  selection.isCollapsed = true;
+  selection.rangeCount = 0;
+  selection.text = "";
   api.armSelectionGesture({ target: doc });
   await wait(40);
   assert.strictEqual(calls.length, 1, "deselecting never opens a toolbar");
-  currentSelection = selection;
+  selection.isCollapsed = false;
+  selection.rangeCount = 1;
+  selection.text = "hello";
 
   // A press that is dismissed before the deferred render fires leaves no
   // stale toolbar behind.

@@ -994,6 +994,7 @@ function hideUI() {
         }, 200);
     });
     cachedSelection = { text: '', html: '' };
+    toolbarAnchor = null;
     clearSelectionScrollTargets();
     lastSelectionRoot = null;
 }

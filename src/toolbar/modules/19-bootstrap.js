@@ -84,9 +84,10 @@ function markToolbarReady() {
             // native selection change arms it, and the release consumes the arm.
             window.addEventListener('mousedown', handleSelectionPressStart, true);
             window.addEventListener('mouseup', handleSelectionMouseUp, true);
-            // `selectionchange` covers page and shadow selections, `select`
-            // covers text controls. Only a change that leaves text selected
-            // arms the press; clearing a selection does not.
+            // `selectstart` marks a selection actually starting; `selectionchange`
+            // and `select` additionally cover engines and controls where it is
+            // not dispatched. Only a non-empty selection arms through those.
+            window.addEventListener('selectstart', armOnSelectStart, true);
             document.addEventListener('selectionchange', armSelectionGesture, true);
             document.addEventListener('select', armSelectionGesture, true);
             // Cursor-distance fade is mouse-driven; no polling.

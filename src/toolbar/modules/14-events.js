@@ -56,29 +56,51 @@ let pointerKnown = false;
 // it never arms and cannot bring the dismissed bar back. Nothing here inspects
 // mouse movement, compares selection snapshots, counts renders or polls.
 let selectionGestureArmed = false;
+let pressSelection = null;
 let scheduledToolbar = null;
 
-// Both `selectionchange` and `select` pass the target that owns the new
-// selection. Only a non-empty result arms: a change to collapsed/empty is the
-// user deselecting, not selecting.
+// The press remembers the selection object of the tree it started in: the
+// document's, or an open ShadowRoot's. Chromium keeps a shadow-tree selection
+// out of window.getSelection(), so a shadow-aware arm has to read the root's
+// live Selection instead of the document one.
+function selectionRootOfPress(e) {
+    const path = e && typeof e.composedPath === 'function' ? e.composedPath() : [];
+    const node = path[0] || (e && e.target);
+    const root = node && typeof node.getRootNode === 'function' ? node.getRootNode() : document;
+    return root && root !== document && typeof root.getSelection === 'function' ? root : document;
+}
+
+// Some engines dispatch selectionchange on the shadow root instead of the
+// document. Subscribing to the root is idempotent, so a press can do it every
+// time for the tree it starts in.
+function watchShadowSelection(root) {
+    if (!root || root === document) return;
+    root.addEventListener('selectstart', armOnSelectStart, true);
+    root.addEventListener('selectionchange', armSelectionGesture, true);
+}
+
+// `selectstart` is the native "a selection is starting" signal (the UA fires it
+// only when the previous selection was empty or collapsed), so it arms without
+// inspecting any state and works for shadow trees too.
+function armOnSelectStart() {
+    selectionGestureArmed = true;
+}
+
+function selectedTextOf(selection) {
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return '';
+    return selection.toString();
+}
+
 function armSelectionGesture(e) {
     const target = e && e.target;
-    let selected = '';
     if (target && typeof target.selectionStart === 'number') {
         // Text control: the document selection cannot see this one.
-        if (target.selectionStart !== target.selectionEnd) {
-            selected = String(target.value || '').substring(target.selectionStart, target.selectionEnd);
-        }
-    } else {
-        const selection = target && target !== document && typeof target.getSelection === 'function'
-            ? target.getSelection()
-            : window.getSelection();
-        selected = selection && selection.rangeCount > 0 && !selection.isCollapsed
-            ? selection.toString()
-            : '';
+        if (target.selectionStart !== target.selectionEnd) selectionGestureArmed = true;
+        return;
     }
-    if (!selected) return;
-    selectionGestureArmed = true;
+    // Only a change to a non-empty selection arms; clearing a selection (for
+    // example a click that deselects the current text) must not.
+    if (selectedTextOf(pressSelection)) selectionGestureArmed = true;
 }
 
 function consumeSelectionArm() {
@@ -92,6 +114,9 @@ function handleSelectionPressStart(e) {
     // Every press starts unarmed: only a selection event during this press can
     // allow the release to open a toolbar.
     selectionGestureArmed = false;
+    const root = selectionRootOfPress(e);
+    pressSelection = root === document ? window.getSelection() : root.getSelection();
+    watchShadowSelection(root);
     if (hostElement && e.composedPath().includes(hostElement)) return;
     // Dismiss the previous bar now and drop its scheduled render, so it cannot
     // reappear after the user has moved on to something else.
@@ -421,6 +446,9 @@ function handleSelectionMouseUp(e) {
         // bar. A click that leaves an older selection untouched fires no
         // selection event, so it cannot bring a dismissed toolbar back.
         if (cancelled() || !consumeSelectionArm()) return;
+        // Remember the captured range, not the live selection: the page may
+        // clear its selection at any time and the bar must still follow it.
+        rememberToolbarAnchor(range, rect);
         renderButton(rect, releaseX, releaseY, text, html, 'default');
     });
 }
@@ -473,9 +501,10 @@ function handleToolbarMouseMove(e) {
     applyToolbarFade(lastPointerX, lastPointerY);
 }
 
-// Scroll and resize handler. The toolbar is never re-created here: it either
-// hides, or the existing bar follows the selection. Re-rendering on scroll was
-// the second source of "the toolbar appeared again" for the same selection.
+// Scroll and resize handler. The toolbar is never re-created here and a missing
+// live selection never dismisses it: the bar follows the range it was opened
+// for, stays put when that anchor leaves the viewport, and resumes following
+// once the anchor scrolls back in. Only the "hide" setting destroys it.
 const handleResizeOrScroll = () => {
     if (!hostElement) return;
     const mode = getConfig('scrollRepaintMode');
@@ -502,29 +531,24 @@ const handleResizeOrScroll = () => {
         return;
     }
 
-    if (mode === SCROLL_REPAINT_MODE.HIDE) {
-        hideUI();
-        return;
-    }
-
     // A dismissed bar stays dismissed until a new selection is made.
     if (!btn.classList.contains('visible')) return;
 
-    if (mode === SCROLL_REPAINT_MODE.VIEWPORT) {
-        const selection = getActiveSelection();
-        if (!selection.rangeCount) { hideUI(); return; }
-        const rect = selection.getRangeAt(0).getBoundingClientRect();
-        const inViewport = rect.top >= 0 && rect.left >= 0 &&
-            rect.bottom <= window.innerHeight &&
-            rect.right <= window.innerWidth;
-        if (!inViewport) { hideUI(); return; }
+    const anchor = getToolbarAnchorRect();
+    if (!anchor) {
+        // No usable anchor (e.g. a text-control selection, or the page removed
+        // the anchor nodes): keep the bar where it is instead of dismissing it.
+        return;
     }
 
-    const selection = getActiveSelection();
-    if (!selection || selection.rangeCount === 0) { hideUI(); return; }
-    const rect = getSmartSelectionState(selection);
-    if (!rect) { hideUI(); return; }
-    placeToolbar(btn, rect, lastPointerX, lastPointerY);
+    if (isOutsideViewport(anchor)) {
+        // Default: freeze at the last on-screen position so scrolling back
+        // resumes following. The hide setting destroys the bar for good.
+        if (mode === SCROLL_REPAINT_MODE.HIDE) hideUI();
+        return;
+    }
+
+    placeToolbar(btn, anchor, lastPointerX, lastPointerY);
 };
 
 function handleContextMenu(e) {
@@ -655,6 +679,13 @@ function handleInputPasteMouseUp(e) {
         // the collapsed-click paste offers below stay available.
         if (hasSelection && !consumeSelectionArm()) return;
 
+        // Editable selections have a real range: follow it on scroll. A
+        // collapsed click (paste offer) has no anchor and keeps its position.
+        const anchorRect = hasSelection && selectionAtMouseUp
+            ? getSmartSelectionState(selectionAtMouseUp)
+            : null;
+        rememberToolbarAnchor(anchorRect ? selectionAtMouseUp.getRangeAt(0) : null, anchorRect);
+
         if (!cache) {
             if (!hasSelection) return;
             // Contenteditable selections without a pending paste still get the
@@ -668,7 +699,7 @@ function handleInputPasteMouseUp(e) {
             if (!target.isContentEditable) return;
             initContainer();
             renderButton(
-                getSmartSelectionState(selectionAtMouseUp),
+                anchorRect,
                 e.clientX,
                 e.clientY,
                 selectedText,
@@ -691,9 +722,7 @@ function handleInputPasteMouseUp(e) {
         const mode = (hasSelection && !isReplaceIntent) ? PASTE_MODE_THREE_BTNS : 'paste';
         const textArg = (mode === 'paste') ? cache.text : selectedText;
 
-        const rect = (target.isContentEditable && hasSelection)
-            ? getSmartSelectionState(selectionAtMouseUp)
-            : null;
+        const rect = (target.isContentEditable && hasSelection) ? anchorRect : null;
         if (!hostElement) initContainer();
         renderButton(rect, e.clientX, e.clientY, textArg, '', mode, target, false, cache, showIdCardCheck);
     });
