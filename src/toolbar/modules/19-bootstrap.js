@@ -80,11 +80,17 @@ function markToolbarReady() {
             // 5. Register all event listeners
             // Capture phase: shadow-DOM hosts and page widgets may stop mouseup
             // from bubbling, which used to suppress the toolbar entirely.
+            // A toolbar is bound to one press: the press starts unarmed, a
+            // native selection change arms it, and the release consumes the arm.
+            window.addEventListener('mousedown', handleSelectionPressStart, true);
             window.addEventListener('mouseup', handleSelectionMouseUp, true);
+            // `selectionchange` covers page and shadow selections, `select`
+            // covers text controls. Only a change that leaves text selected
+            // arms the press; clearing a selection does not.
+            document.addEventListener('selectionchange', armSelectionGesture, true);
+            document.addEventListener('select', armSelectionGesture, true);
             // Cursor-distance fade is mouse-driven; no polling.
             window.addEventListener('mousemove', handleToolbarMouseMove, { passive: true, capture: true });
-            document.addEventListener('mouseup', handleInputPasteMouseUp, true);
-            document.addEventListener('mousedown', handleGlobalMouseDown, false);
             document.addEventListener('contextmenu', handleContextMenu, true);
             window.addEventListener('scroll', handleResizeOrScroll, { passive: true });
             window.addEventListener('resize', handleResizeOrScroll, { passive: true });

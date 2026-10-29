@@ -905,77 +905,87 @@ function renderButton(rect, mouseX, mouseY, text, html, mode = 'default', target
     // Calculate position (common logic)
     container.style.left = '-9999px';
 
-    requestAnimationFrame(() => {
-        const btnRect = container.getBoundingClientRect();
-        const btnW = btnRect.width;
-        const btnH = btnRect.height;
-        const offset = getConfig('offset');
-        const viewportW = window.innerWidth;
-        const viewportH = window.innerHeight;
+    requestAnimationFrame(() => placeToolbar(container, rect, mouseX, mouseY));
+}
 
-        let targetX, targetY;
+// Position the bar next to the selection endpoint (or the release point when
+// there is no usable rect). Scroll/resize moves the same element through this
+// function instead of creating a new toolbar.
+function placeToolbar(container, rect, mouseX, mouseY) {
+    if (!container || !container.isConnected) return;
 
-        if (rect) {
-            const isBackward = rect.isBackward || false;
-            const isVertical = rect.isVertical || false;
-            if (isVertical) {
-                if (isBackward) {
-                    targetX = rect.right + offset;
-                    targetY = rect.top;
-                } else {
-                    targetX = rect.left - btnW - offset;
-                    targetY = rect.bottom - btnH;
-                }
+    const btnRect = container.getBoundingClientRect();
+    const btnW = btnRect.width;
+    const btnH = btnRect.height;
+    const offset = getConfig('offset');
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+
+    let targetX, targetY;
+
+    if (rect) {
+        const isBackward = rect.isBackward || false;
+        const isVertical = rect.isVertical || false;
+        if (isVertical) {
+            if (isBackward) {
+                targetX = rect.right + offset;
+                targetY = rect.top;
             } else {
-                if (isBackward) {
-                    targetX = rect.left - (btnW / 2);
-                    targetY = rect.top - btnH - offset;
-                } else {
-                    targetX = rect.right - (btnW / 2);
-                    const spaceBelow = viewportH - rect.bottom;
-                    if (spaceBelow < (btnH + offset + 20)) {
-                        targetY = rect.top - btnH - offset;
-                    } else {
-                        targetY = rect.bottom + offset;
-                    }
-                }
+                targetX = rect.left - btnW - offset;
+                targetY = rect.bottom - btnH;
             }
         } else {
-            if (mouseY > viewportH / 2) {
-                targetY = mouseY - btnH - offset;
+            if (isBackward) {
+                targetX = rect.left - (btnW / 2);
+                targetY = rect.top - btnH - offset;
             } else {
-                targetY = mouseY + offset;
+                targetX = rect.right - (btnW / 2);
+                const spaceBelow = viewportH - rect.bottom;
+                if (spaceBelow < (btnH + offset + 20)) {
+                    targetY = rect.top - btnH - offset;
+                } else {
+                    targetY = rect.bottom + offset;
+                }
             }
-            if (mouseX > viewportW / 2) {
-                targetX = mouseX - btnW - offset;
-            } else {
-                targetX = mouseX + offset;
-            }
         }
-
-        // Edge detection
-        const margin = 10;
-        targetX = Math.max(margin, Math.min(targetX, viewportW - btnW - margin));
-        targetY = Math.max(margin, Math.min(targetY, viewportH - btnH - margin));
-
-        container.style.left = `${targetX}px`;
-        container.style.top = `${targetY}px`;
-        container.classList.add('visible');
-
-        // Apply the cursor-distance fade using the last real mouse position.
-        if (pointerKnown && typeof applyToolbarFade === 'function') {
-            applyToolbarFade(lastPointerX, lastPointerY);
+    } else {
+        if (mouseY > viewportH / 2) {
+            targetY = mouseY - btnH - offset;
+        } else {
+            targetY = mouseY + offset;
         }
-
-        const timeout = getConfig('timeout');
-        if (timeout > 0) {
-            if (uiTimer) clearTimeout(uiTimer);
-            uiTimer = setTimeout(hideUI, timeout);
+        if (mouseX > viewportW / 2) {
+            targetX = mouseX - btnW - offset;
+        } else {
+            targetX = mouseX + offset;
         }
-    });
+    }
+
+    // Edge detection
+    const margin = 10;
+    targetX = Math.max(margin, Math.min(targetX, viewportW - btnW - margin));
+    targetY = Math.max(margin, Math.min(targetY, viewportH - btnH - margin));
+
+    container.style.left = `${targetX}px`;
+    container.style.top = `${targetY}px`;
+    container.classList.add('visible');
+
+    // Apply the cursor-distance fade using the last real mouse position.
+    if (pointerKnown && typeof applyToolbarFade === 'function') {
+        applyToolbarFade(lastPointerX, lastPointerY);
+    }
+
+    const timeout = getConfig('timeout');
+    if (timeout > 0) {
+        if (uiTimer) clearTimeout(uiTimer);
+        uiTimer = setTimeout(hideUI, timeout);
+    }
 }
 
 function hideUI() {
+    // A hidden bar must never be resurrected by a render that was still queued
+    // when the user dismissed it.
+    cancelScheduledToolbar();
     const containers = shadowRoot ? shadowRoot.querySelectorAll('.sc-container') : [];
     containers.forEach((btn) => {
         btn.classList.remove('visible');

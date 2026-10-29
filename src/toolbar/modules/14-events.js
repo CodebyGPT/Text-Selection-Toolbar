@@ -49,6 +49,77 @@ let lastPointerX = 0;
 let lastPointerY = 0;
 let pointerKnown = false;
 
+// --- One toolbar per selection ---------------------------------------------
+// A toolbar belongs to the press that created its selection: a native event
+// that leaves a non-empty selection arms the press, and the release consumes
+// the arm. Clicking already-selected text is a *selection-clearing* change, so
+// it never arms and cannot bring the dismissed bar back. Nothing here inspects
+// mouse movement, compares selection snapshots, counts renders or polls.
+let selectionGestureArmed = false;
+let scheduledToolbar = null;
+
+// Both `selectionchange` and `select` pass the target that owns the new
+// selection. Only a non-empty result arms: a change to collapsed/empty is the
+// user deselecting, not selecting.
+function armSelectionGesture(e) {
+    const target = e && e.target;
+    let selected = '';
+    if (target && typeof target.selectionStart === 'number') {
+        // Text control: the document selection cannot see this one.
+        if (target.selectionStart !== target.selectionEnd) {
+            selected = String(target.value || '').substring(target.selectionStart, target.selectionEnd);
+        }
+    } else {
+        const selection = target && target !== document && typeof target.getSelection === 'function'
+            ? target.getSelection()
+            : window.getSelection();
+        selected = selection && selection.rangeCount > 0 && !selection.isCollapsed
+            ? selection.toString()
+            : '';
+    }
+    if (!selected) return;
+    selectionGestureArmed = true;
+}
+
+function consumeSelectionArm() {
+    const armed = selectionGestureArmed;
+    selectionGestureArmed = false;
+    return armed;
+}
+
+function handleSelectionPressStart(e) {
+    if (e.button !== 0) return;
+    // Every press starts unarmed: only a selection event during this press can
+    // allow the release to open a toolbar.
+    selectionGestureArmed = false;
+    if (hostElement && e.composedPath().includes(hostElement)) return;
+    // Dismiss the previous bar now and drop its scheduled render, so it cannot
+    // reappear after the user has moved on to something else.
+    hideUI();
+}
+
+// A release schedules at most one render. Pressing again or hiding the UI
+// cancels it, so an async cache read cannot resurrect a stale bar.
+function scheduleToolbarRender(delay, render) {
+    cancelScheduledToolbar();
+    const job = { timer: 0, cancelled: false };
+    job.timer = setTimeout(async () => {
+        try {
+            await render(() => job.cancelled);
+        } finally {
+            if (scheduledToolbar === job) scheduledToolbar = null;
+        }
+    }, delay);
+    scheduledToolbar = job;
+}
+
+function cancelScheduledToolbar() {
+    if (!scheduledToolbar) return;
+    clearTimeout(scheduledToolbar.timer);
+    scheduledToolbar.cancelled = true;
+    scheduledToolbar = null;
+}
+
 // Trim whitespace at both ends of a normal page selection before the toolbar
 // is shown. Returns false when the selection contains only whitespace.
 function trimRangeWhitespace(selection) {
@@ -272,6 +343,18 @@ function bindSelectionScrollTargets(selection) {
     }
 }
 
+// The copy button reads the rich clipboard payload from the live range, so a
+// contenteditable selection must be cached before the input handler renders.
+function cacheContentEditableSelection(editable, selection) {
+    if (!editable.isContentEditable || !selection || selection.rangeCount === 0) return;
+    try {
+        const range = selection.getRangeAt(0);
+        const container = document.createElement('div');
+        container.appendChild(range.cloneContents());
+        cachedSelection = { text: selection.toString(), html: container.innerHTML, selection };
+    } catch (e) {}
+}
+
 function handleSelectionMouseUp(e) {
     if (hostElement && e.composedPath().includes(hostElement)) return;
     if (!hostElement) initContainer();
@@ -287,38 +370,38 @@ function handleSelectionMouseUp(e) {
     // to the setTimeout below loses composedPath(), and some sites also clear
     // the selection on mouseup before the timer runs.
     const { selection, root: selectionRoot } = getSelectionFromEvent(e);
+    lastSelectionRoot = selectionRoot;
+
+    // Editable targets own their paste / cut / delete toolbar. The input handler
+    // is the single owner of that render, so one press paints one bar instead
+    // of the page toolbar and the paste toolbar replacing each other. This
+    // must run before the empty-selection check: an <input> has no window
+    // selection even while its own text is selected.
+    const editable = editableTargetOf(activeElementDeep());
+    if (editable) {
+        cacheContentEditableSelection(editable, selection);
+        handleInputPasteMouseUp(e);
+        return;
+    }
+
     if (!selection || selection.rangeCount === 0) {
         lastSelectionRoot = null;
         clearSelectionScrollTargets();
         hideUI();
         return;
     }
-    lastSelectionRoot = selectionRoot;
 
-    const editable = editableTargetOf(activeElementDeep());
-    const isTextInput = Boolean(editable && (editable.tagName === 'INPUT' || editable.tagName === 'TEXTAREA'));
-    const isEditable = Boolean(editable);
-
-    // Page selections trim edge whitespace unless the option is off; editable
-    // selections always keep it.
-    const trimWhitespace = !isEditable && getConfig('trimSelectionWhitespace') !== false;
-    if (trimWhitespace && !trimRangeWhitespace(selection)) {
+    // Page selections trim edge whitespace unless the option is off.
+    if (getConfig('trimSelectionWhitespace') !== false && !trimRangeWhitespace(selection)) {
         hideUI();
         return;
     }
 
     const text = selection.toString();
-    if (!text) {
+    if (!text.trim()) {
         hideUI();
         return;
     }
-    if (!isEditable && text.trim().length === 0) {
-        hideUI();
-        return;
-    }
-    // Whitespace-only input/textarea selection is handled by the capture
-    // mouseup handler, which expands it and builds the delete/paste UI.
-    if (isTextInput && text.trim().length === 0) return;
 
     const range = selection.getRangeAt(0);
     const container = document.createElement('div');
@@ -333,27 +416,13 @@ function handleSelectionMouseUp(e) {
 
     const releaseX = e.clientX;
     const releaseY = e.clientY;
-    setTimeout(async () => {
-        let cache = null;
-        if (getConfig('enablePaste')) {
-            cache = await safeGetValue('smart_paste_cache', null);
-        }
-        const isChineseEnv = isChineseUI();
-        const cacheValid = cache && cache.text && (Date.now() - cache.timestamp < getPasteTtlMs()) && !(isChineseEnv && cache.type === 'pan_code');
-        const isInput = isEditable;
-        const mode = (cacheValid && isInput) ? PASTE_MODE_THREE_BTNS : 'default';
-        renderButton(rect, releaseX, releaseY, text, html || '', mode, isInput ? editable : null, isInput, cache);
-    }, 10);
-}
-
-function handleGlobalMouseDown(e) {
-    if (hostElement && e.composedPath().includes(hostElement)) {
-        // Clicked inside button, keep it
-    } else {
-        shadowRoot?.querySelectorAll('.sc-container').forEach((btn) => {
-            btn.classList.remove('visible');
-        });
-    }
+    scheduleToolbarRender(10, (cancelled) => {
+        // Only a release that closes a selection-producing press may open the
+        // bar. A click that leaves an older selection untouched fires no
+        // selection event, so it cannot bring a dismissed toolbar back.
+        if (cancelled() || !consumeSelectionArm()) return;
+        renderButton(rect, releaseX, releaseY, text, html, 'default');
+    });
 }
 
 // Distance-based fade for the primary selection toolbar. Secondary link/search
@@ -404,7 +473,9 @@ function handleToolbarMouseMove(e) {
     applyToolbarFade(lastPointerX, lastPointerY);
 }
 
-// Scroll and resize handler
+// Scroll and resize handler. The toolbar is never re-created here: it either
+// hides, or the existing bar follows the selection. Re-rendering on scroll was
+// the second source of "the toolbar appeared again" for the same selection.
 const handleResizeOrScroll = () => {
     if (!hostElement) return;
     const mode = getConfig('scrollRepaintMode');
@@ -436,6 +507,9 @@ const handleResizeOrScroll = () => {
         return;
     }
 
+    // A dismissed bar stays dismissed until a new selection is made.
+    if (!btn.classList.contains('visible')) return;
+
     if (mode === SCROLL_REPAINT_MODE.VIEWPORT) {
         const selection = getActiveSelection();
         if (!selection.rangeCount) { hideUI(); return; }
@@ -446,21 +520,11 @@ const handleResizeOrScroll = () => {
         if (!inViewport) { hideUI(); return; }
     }
 
-    btn.classList.remove('visible');
-    isScrolling = true;
-    if (scrollTimeout) clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(() => {
-        isScrolling = false;
-        const selection = getActiveSelection();
-        if (selection && selection.toString().trim().length > 0) {
-            const rect = getSmartSelectionState(selection);
-            if (rect) {
-                renderButton(rect, rect.right, rect.top,
-                    selection.toString(),
-                    cachedSelection.html);
-            }
-        }
-    }, 300);
+    const selection = getActiveSelection();
+    if (!selection || selection.rangeCount === 0) { hideUI(); return; }
+    const rect = getSmartSelectionState(selection);
+    if (!rect) { hideUI(); return; }
+    placeToolbar(btn, rect, lastPointerX, lastPointerY);
 };
 
 function handleContextMenu(e) {
@@ -505,7 +569,8 @@ async function handleExternalCopy(e) {
     });
 }
 
-// Input paste mouseup handler
+// Input paste mouseup handler. This is the only render path for editable
+// targets (the page handler delegates here), so a press cannot paint twice.
 function handleInputPasteMouseUp(e) {
     // Resolve the real clicked node: at document level e.target is the shadow
     // host, which is neither an <input> nor contenteditable, so lightning paste
@@ -517,12 +582,13 @@ function handleInputPasteMouseUp(e) {
     const selectionAtMouseUp = target.isContentEditable
         ? getSelectionFromEvent(e).selection
         : null;
-    setTimeout(async () => {
+    const isTextControl = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+    scheduleToolbarRender(20, async (cancelled) => {
         let selectedText = '';
         let hasSelection = false;
         let whitespaceSelection = false;
 
-        if (['INPUT', 'TEXTAREA'].includes(target.tagName)) {
+        if (isTextControl) {
             let start = target.selectionStart;
             let end = target.selectionEnd;
             if (typeof start === 'number' && typeof end === 'number' && start !== end) {
@@ -557,6 +623,7 @@ function handleInputPasteMouseUp(e) {
             if (cache && (!cache.text && cache.type !== 'clipboard')) cache = null;
             if (cache && Date.now() - cache.timestamp > getPasteTtlMs()) cache = null;
         }
+        if (cancelled()) return;
 
         // The ID card action is appended to the normal input toolbar when the
         // selection looks like a mainland ID number (Chinese UI only).
@@ -583,10 +650,31 @@ function handleInputPasteMouseUp(e) {
             return;
         }
 
+        // A selection toolbar needs a selection made by this press. A click
+        // that leaves an old selection untouched must not bring the bar back;
+        // the collapsed-click paste offers below stay available.
+        if (hasSelection && !consumeSelectionArm()) return;
+
         if (!cache) {
-            if (!showIdCardCheck) return;
+            if (!hasSelection) return;
+            // Contenteditable selections without a pending paste still get the
+            // regular toolbar (with cut/delete), exactly as the page path used
+            // to provide before the render was folded in here.
+            if (showIdCardCheck) {
+                initContainer();
+                renderButton(null, e.clientX, e.clientY, selectedText, '', 'default', target, false, null, true);
+                return;
+            }
+            if (!target.isContentEditable) return;
             initContainer();
-            renderButton(null, e.clientX, e.clientY, selectedText, '', 'default', target, false, null, true);
+            renderButton(
+                getSmartSelectionState(selectionAtMouseUp),
+                e.clientX,
+                e.clientY,
+                selectedText,
+                '',
+                'default'
+            );
             return;
         }
 
@@ -608,5 +696,5 @@ function handleInputPasteMouseUp(e) {
             : null;
         if (!hostElement) initContainer();
         renderButton(rect, e.clientX, e.clientY, textArg, '', mode, target, false, cache, showIdCardCheck);
-    }, 20);
+    });
 }
