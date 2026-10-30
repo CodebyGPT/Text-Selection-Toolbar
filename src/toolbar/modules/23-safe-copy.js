@@ -587,7 +587,6 @@ function acknowledgeSafeCopyAlarm() {
         state.actionList.some((action) => action.kind === 'open');
     if (isClickWarning) {
         safeCopyClickAcknowledged = true;
-        clearLinkGuardNavigationTimers();
         if (linkGuard) {
             linkGuard.boxes.forEach((box) => {
                 box.setAttribute('data-passive', 'true');
@@ -937,8 +936,15 @@ const LINK_GUARD_CSS = `
 .sc-link-guard {
     position: fixed;
     box-sizing: border-box;
-    /* Pale-yellow veil: no border, radius, glow or shadow. */
-    background: rgba(248, 231, 28, 0.32);
+    /* Hazard tape: equal-width 45-degree yellow/black stripes, translucent.
+       Wider stripes and a lighter black keep it from looking too busy. */
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(248, 231, 28, 0.60) 0,
+        rgba(248, 231, 28, 0.60) 16px,
+        rgba(0, 0, 0, 0.30) 16px,
+        rgba(0, 0, 0, 0.30) 32px
+    );
     pointer-events: auto;
     cursor: pointer;
 }
@@ -1046,8 +1052,15 @@ function ensureLinkGuardBox(state, anchor) {
         box = createLinkGuardBox(state, anchor);
         state.boxes.set(anchor, box);
     }
-    box.style.pointerEvents = 'auto';
-    if (box.removeAttribute) box.removeAttribute('data-passive');
+    // Acknowledged covers stay as click-through visual reminders, including
+    // ones created later for newly visible or re-rendered links.
+    if (safeCopyClickAcknowledged) {
+        box.setAttribute('data-passive', 'true');
+        box.style.pointerEvents = 'none';
+    } else {
+        box.style.pointerEvents = 'auto';
+        if (box.removeAttribute) box.removeAttribute('data-passive');
+    }
     positionLinkGuardBox(box, anchor);
     return box;
 }
@@ -1089,16 +1102,9 @@ function collectViewportGuardAnchors() {
 
 // Rebuild the cover set from what is currently visible. Called on scroll and
 // resize only; content added without either is picked up by the hover fast path.
+// After acknowledgement the covers are still drawn, just click-through, so a
+// scrolled-away or re-rendered link gets its visual reminder back.
 function refreshLinkGuards() {
-    if (safeCopyClickAcknowledged) {
-        // The tab is opted out: keep existing covers as plain visuals.
-        if (!linkGuard) return;
-        linkGuard.boxes.forEach((box, anchor) => {
-            if (anchor.isConnected === false) removeLinkGuardBox(linkGuard, anchor);
-            else positionLinkGuardBox(box, anchor);
-        });
-        return;
-    }
     if (getConfig('safeCopyClickCheck') !== true ||
         getConfig('enableSafeCopyAlarm') !== true) {
         hideLinkGuard();
@@ -1148,13 +1154,11 @@ function clearLinkGuardNavigationTimers() {
 }
 
 function scheduleLinkGuardNavigationRecheck() {
-    if (safeCopyClickAcknowledged) return;
     if (getConfig('safeCopyClickCheck') !== true) return;
     clearLinkGuardNavigationTimers();
     scheduleLinkGuardScan();
     LINK_GUARD_NAVIGATION_RECHECKS.forEach((delay) => {
         linkGuardNavigationTimers.push(setTimeout(() => {
-            if (safeCopyClickAcknowledged) return;
             if (getConfig('safeCopyClickCheck') !== true) return;
             scheduleLinkGuardScan();
         }, delay));
@@ -1172,7 +1176,6 @@ function handleLinkGuardNavigationClick(event) {
 function handleLinkGuardPointerOver(event) {
     try {
         if (!event || event.isTrusted === false) return;
-        if (safeCopyClickAcknowledged) return;
         if (getConfig('safeCopyClickCheck') !== true) return;
         if (getConfig('enableSafeCopyAlarm') !== true) return;
         const scope = getSafeCopyLinkScope();
@@ -1193,6 +1196,8 @@ function handleLinkGuardPointerOver(event) {
 
 function showLinkGuardWarning(anchor, kind, pointer) {
     if (!anchor) return;
+    // Acknowledged covers are click-through, so clicks reach the page directly.
+    if (safeCopyClickAcknowledged) return;
     if (getConfig('safeCopyClickCheck') !== true) return;
     if (getConfig('enableSafeCopyAlarm') !== true) return;
     const scope = getSafeCopyLinkScope();

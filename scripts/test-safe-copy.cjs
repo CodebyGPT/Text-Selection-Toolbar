@@ -1114,8 +1114,8 @@ const visibleStyle = {
   alarmEnabled = false;
 }
 
-// "知道了" turns every cover click-through but keeps them visible; the tab then
-// stops creating new blocking covers.
+// "知道了" turns every cover click-through but keeps drawing them as visual
+// reminders, including for links that become visible later.
 {
   clickCheck = true;
   alarmEnabled = true;
@@ -1145,13 +1145,24 @@ const visibleStyle = {
   assert.strictEqual(guardHost.isConnected, true);
   assert.strictEqual(box.style.pointerEvents, "none");
 
-  // A later scan does not add new blocking covers, and the acknowledged cover
-  // stays as a visual (repositioned) marker.
+  // A later scan keeps drawing covers, all click-through.
   doc.querySelectorAll = () => [other];
   ctx.refreshLinkGuards();
   assert.strictEqual(guardHost.isConnected, true);
-  assert.strictEqual(findAllByClass(guardHost.shadowRoot, "sc-link-guard").length, 1);
-  assert.strictEqual(box.style.pointerEvents, "none");
+  let covers = findAllByClass(guardHost.shadowRoot, "sc-link-guard");
+  assert.strictEqual(covers.length, 1);
+  covers.forEach((cover) => {
+    assert.strictEqual(cover.style.pointerEvents, "none");
+    assert.strictEqual(cover.style.display, "block");
+  });
+
+  // Scrolling back to the first link recreates its cover as a passive visual.
+  doc.querySelectorAll = () => [anchor];
+  ctx.refreshLinkGuards();
+  covers = findAllByClass(guardHost.shadowRoot, "sc-link-guard");
+  assert.strictEqual(covers.length, 1);
+  assert.strictEqual(covers[0].style.pointerEvents, "none");
+  assert.strictEqual(covers[0].style.display, "block");
 
   clickCheck = false;
   alarmEnabled = false;
