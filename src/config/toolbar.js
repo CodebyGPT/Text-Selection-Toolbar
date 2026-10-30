@@ -28,6 +28,7 @@ export const DEFAULT_TOOLBAR_SETTING = {
   enablePaste: true,
   enableSafeCopyAlarm: false,
   safeCopyLinkScope: "domain",
+  safeCopyClickCheck: false, // opt-in: check link consistency on plain left clicks
   idnGuardMode: "toast", // IDN homograph guard: "toast" | "fullscreen" | "disabled"
   zeroWidthGuardSensitivity: "low", // "high" | "medium" | "low" | "verylow" | "disabled"
   showAsciiCheckMenu: false, // userscript menu "check selected text for non-ASCII"

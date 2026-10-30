@@ -136,6 +136,13 @@ const windowStub = {
   navigation: null,
 };
 
+// Safe-copy link detection delegates to the selection-link extractor; this
+// test only needs one full URL to be recognized.
+const extractUrlsFromText = (text) => {
+  const match = String(text || "").trim().match(/https?:\/\/\S+/i);
+  return match ? [{ display: match[0], url: match[0], host: "" }] : [];
+};
+
 function load(doc, locationStub) {
   return new Function(
     "window",
@@ -148,6 +155,7 @@ function load(doc, locationStub) {
     "setInterval",
     "clearInterval",
     "Date",
+    "extractUrlsFromText",
     `${safeSrc}\n${idnSrc}\nreturn {
       getIdnWarningsForHosts,
       getIdnWarningsForUrl,
@@ -168,7 +176,8 @@ function load(doc, locationStub) {
     t,
     () => 1,
     () => {},
-    { now: () => 1000 }
+    { now: () => 1000 },
+    extractUrlsFromText
   );
 }
 

@@ -5,8 +5,10 @@
 // any clipboard write: outside unlock mode the page's own copy behavior must
 // stay exactly as it was. It only reads the selection, the event's clipboard
 // data and computed styles, then shows a toast (and optionally a full-screen
-// warning). Link consistency is checked on right-click instead: Chromium's
-// "Copy link address" writes the clipboard without dispatching a copy event.
+// warning). Link consistency is checked on right-click and, when the opt-in
+// setting is on, via a cover laid over mismatched links in the viewport (the
+// page's own click behavior is never modified). Chromium's "Copy link
+// address" writes the clipboard without dispatching a copy event.
 //
 // ponytail: the hidden-element scan is capped so a full-page select cannot
 // jank the copy event; raise the cap if a site nests deeper than 2000 nodes.
@@ -65,8 +67,14 @@ const SAFE_COPY_ALARM_CSS = `
     line-clamp: 3;
     overflow: hidden;
 }
-.sc-guard-ack {
+.sc-guard-actions {
     margin-top: 24px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+.sc-guard-ack {
     border: 0;
     border-radius: 12px;
     padding: 12px 28px;
@@ -81,9 +89,26 @@ const SAFE_COPY_ALARM_CSS = `
 }
 .sc-guard-ack:hover { filter: brightness(0.94); }
 .sc-guard-ack:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.sc-guard-secondary {
+    border: 2px solid rgba(248, 231, 28, 0.85);
+    border-radius: 12px;
+    padding: 10px 22px;
+    background: transparent;
+    color: #f8e71c;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    pointer-events: auto;
+}
+.sc-guard-secondary:hover { background: rgba(248, 231, 28, 0.12); }
+.sc-guard-secondary:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 `;
 
 let safeCopyAlarm = null;
+// Acknowledging a click-triggered warning disables click interception for the
+// rest of this tab. In-memory only: a reload clears it. Timeout does not.
+let safeCopyClickAcknowledged = false;
 
 function getSafeCopyTarget(event) {
     try {
@@ -113,23 +138,17 @@ function getSafeCopyText(event) {
 // A bare domain or a full URL counts as a link for the link consistency check.
 // Scheme and trailing slashes are noise, so "https://baidu.com/" and
 // "baidu.com" compare equal; a typo'd scheme ("htps://...") is stripped too.
-// Bare text only counts when it ends in a common TLD, so "readme.txt" or
-// "v1.2.3" are not mistaken for links.
-const SAFE_COPY_LINK_RE = /^(?:[a-z][a-z0-9+.-]*:\/\/)?(?:[^\s/?#@]+\.)+([a-z]{2,})(?::\d+)?(?:[/?#]\S*)?$/i;
-const SAFE_COPY_LINK_SCHEME_RE = /^[a-z][a-z0-9+.-]*:\/\//i;
-const SAFE_COPY_LINK_TLDS = new Set((
-    'com cn net org edu gov io co me tv cc xyz top info biz dev app site online ' +
-    'shop store tech club live link pro vip asia ru uk de fr jp kr hk tw sg au ' +
-    'ca us br in eu nl se no fi pl it es ch at be dk cz pt gr ie il mx nz za tr ua'
-).split(' '));
-
-function isSafeCopyLinkText(text) {
+// Detection itself is delegated to the selection-link extractor (module 06),
+// which also drops CJK/zero-width interference. Only an unambiguous single
+// link is usable for a consistency check: with zero links there is nothing to
+// compare, and with several links the label itself is too vague to be a
+// "displayed link". "readme.txt" / "v1.2.3" are not links to the extractor.
+function findSafeCopyLink(text) {
+    if (typeof extractUrlsFromText !== 'function') return '';
     const value = String(text || '').trim();
-    if (!value) return false;
-    const match = SAFE_COPY_LINK_RE.exec(value);
-    if (!match) return false;
-    if (SAFE_COPY_LINK_SCHEME_RE.test(value)) return true;
-    return SAFE_COPY_LINK_TLDS.has(match[1].toLowerCase());
+    if (!value) return '';
+    const links = extractUrlsFromText(value);
+    return links.length === 1 ? links[0].display : '';
 }
 
 function normalizeSafeCopyLink(value) {
@@ -137,20 +156,6 @@ function normalizeSafeCopyLink(value) {
     text = text.replace(/^[a-z][a-z0-9+.-]*:\/\//, ''); // http(s) header / typos
     text = text.replace(/\/+$/, ''); // trailing slash
     return text;
-}
-
-// Pull the first link-like token out of arbitrary text (link labels may wrap
-// the URL in extra words).
-function findSafeCopyLink(text) {
-    const value = String(text || '').trim();
-    if (!value) return '';
-    if (isSafeCopyLinkText(value)) return value;
-    const tokens = value.split(/\s+/);
-    for (let i = 0; i < tokens.length; i++) {
-        const token = tokens[i].replace(/^[("'<\[{]+|[)"'>\]}.,;!?]+$/g, '');
-        if (isSafeCopyLinkText(token)) return token;
-    }
-    return '';
 }
 
 // The settings allow comparing only the hostname (default), only the SLD+TLD,
@@ -539,7 +544,7 @@ function getSecurityNoticeToastText(notice) {
 // together: toasts are merged into one multi-line toast, while full-screen
 // notices are rendered as stacked panels in a single overlay. Callers may add
 // one informational line (e.g. "Copied visible text only") after the warning.
-function showSecurityWarnings(notices, pointer, extraToastText) {
+function showSecurityWarnings(notices, pointer, extraToastText, actions) {
     if (!notices || !notices.length) return;
     const active = notices.filter((notice) =>
         notice.kind !== 'idn' ||
@@ -561,7 +566,7 @@ function showSecurityWarnings(notices, pointer, extraToastText) {
         if (notice.kind === 'idn') return getIdnGuardMode() === 'fullscreen';
         return getConfig('enableSafeCopyAlarm') === true;
     });
-    if (alarmNotices.length) showSafeCopyAlarm({ notices: alarmNotices, pointer });
+    if (alarmNotices.length) showSafeCopyAlarm({ notices: alarmNotices, pointer, actions });
 }
 
 function closeSafeCopyAlarm() {
@@ -571,6 +576,26 @@ function closeSafeCopyAlarm() {
 
     if (state.timer) clearInterval(state.timer);
     if (state.host && state.host.parentNode) state.host.parentNode.removeChild(state.host);
+}
+
+// Only the acknowledge button opts the rest of the tab out; the 15s timeout
+// must leave click interception armed. The cover turns click-through but stays
+// visible as a plain visual reminder.
+function acknowledgeSafeCopyAlarm() {
+    const state = safeCopyAlarm;
+    const isClickWarning = state && Array.isArray(state.actionList) &&
+        state.actionList.some((action) => action.kind === 'open');
+    if (isClickWarning) {
+        safeCopyClickAcknowledged = true;
+        stopLinkGuardObserver();
+        if (linkGuard) {
+            linkGuard.boxes.forEach((box) => {
+                box.setAttribute('data-passive', 'true');
+                box.style.pointerEvents = 'none';
+            });
+        }
+    }
+    closeSafeCopyAlarm();
 }
 
 // The warning must never compete with a native context menu: the backdrop is
@@ -616,13 +641,85 @@ function createSafeCopyAlarm(doc) {
     noticesEl.className = 'sc-guard-notices';
     panel.appendChild(noticesEl);
 
+    const actions = doc.createElement('div');
+    actions.className = 'sc-guard-actions';
+    panel.appendChild(actions);
+
     const button = doc.createElement('button');
     button.type = 'button';
     button.className = 'sc-guard-ack';
-    button.addEventListener('click', closeSafeCopyAlarm);
-    panel.appendChild(button);
+    button.addEventListener('click', acknowledgeSafeCopyAlarm);
+    actions.appendChild(button);
 
-    return { host, doc, noticesEl, button, timer: null, deadline: 0 };
+    // Link warnings get up to two follow-up actions: the displayed link and
+    // the real target. Hidden for warnings that have nothing actionable.
+    const makeActionButton = (index) => {
+        const actionButton = doc.createElement('button');
+        actionButton.type = 'button';
+        actionButton.className = 'sc-guard-secondary';
+        actionButton.style.display = 'none';
+        actionButton.addEventListener('click', () => runSafeCopyAlarmAction(index));
+        actions.appendChild(actionButton);
+        return actionButton;
+    };
+    const actionButtons = [makeActionButton(0), makeActionButton(1)];
+
+    return {
+        host, doc, noticesEl, actions, button,
+        actionButtons, actionList: [],
+        timer: null, deadline: 0,
+    };
+}
+
+function setSafeCopyAlarmActions(state, actions) {
+    if (!state || !state.actionButtons) return;
+    const valid = (Array.isArray(actions) ? actions : [])
+        .filter((action) => action && action.url &&
+            (action.kind === 'copy' || action.kind === 'open'));
+    state.actionList = valid;
+    state.actionButtons.forEach((button, index) => {
+        const action = valid[index];
+        button.style.display = action ? 'block' : 'none';
+        if (!action) return;
+        button.textContent = action.label ? t(action.label)
+            : t(action.kind === 'open' ? 'alarm_open_displayed' : 'alarm_copy_displayed');
+    });
+}
+
+function runSafeCopyAlarmAction(index) {
+    const state = safeCopyAlarm;
+    const action = state && state.actionList ? state.actionList[index] : null;
+    if (!action) return;
+    closeSafeCopyAlarm();
+    try {
+        if (action.kind === 'copy') {
+            if (typeof copyToClipboard === 'function') {
+                copyToClipboard(action.url, '').then((ok) => {
+                    if (ok && typeof showToast === 'function') showToast(t('toast_link_copied'));
+                });
+            }
+            return;
+        }
+        if (action.kind === 'open') openSafeCopyDisplayedLink(action.url, action.newTab);
+    } catch (e) {
+        // A failed follow-up must never leave the page in a worse state.
+    }
+}
+
+function openSafeCopyDisplayedLink(url, newTab) {
+    if (!/^https?:\/\//i.test(String(url || ''))) return;
+    if (newTab && typeof safeOpenTab === 'function') {
+        safeOpenTab(url);
+        return;
+    }
+    if (typeof window === 'undefined') return;
+    if (newTab && typeof window.open === 'function') {
+        window.open(url, '_blank', 'noopener');
+        return;
+    }
+    if (window.location && typeof window.location.assign === 'function') {
+        window.location.assign(url);
+    }
 }
 
 // Each warning is a title + body pair inside the shared panel; the panel and
@@ -681,7 +778,7 @@ function avoidSafeCopyAlarmPointer(button, pointer) {
     button.style.transform = `translate(${Math.round(dx)}px, 0)`;
 }
 
-function showSafeCopyAlarm({ kind, text, link, notices, pointer }) {
+function showSafeCopyAlarm({ kind, text, link, notices, pointer, actions }) {
     if (typeof document === 'undefined' || !document.createElement) return false;
 
     let state = safeCopyAlarm;
@@ -696,6 +793,7 @@ function showSafeCopyAlarm({ kind, text, link, notices, pointer }) {
         ? notices
         : [{ kind, text, link }];
     renderSafeCopyAlarmNotices(state, list);
+    setSafeCopyAlarmActions(state, actions);
     state.deadline = Date.now() + SAFE_COPY_ALARM_SECONDS * 1000;
 
     if (state.timer) clearInterval(state.timer);
@@ -710,8 +808,46 @@ function showSafeCopyAlarm({ kind, text, link, notices, pointer }) {
     };
     state.timer = setInterval(tick, 1000);
     tick();
-    avoidSafeCopyAlarmPointer(state.button, pointer);
+    avoidSafeCopyAlarmPointer(state.actions || state.button, pointer);
     return true;
+}
+
+// The action button follows the link the user actually saw, not the hidden
+// href. Reuse the selection-link extractor so CJK/zero-width noise is dropped
+// the same way as "detect hidden links". A clipped label ending in an ellipsis
+// is completed from the href only when it really is a prefix of that href, so
+// a genuinely different destination is never silently substituted.
+function resolveSafeCopyDisplayedLink(anchor, shown) {
+    const raw = String(anchor && anchor.textContent || '').trim();
+    const value = String(shown || '').trim();
+    if (!value) return '';
+    const cleaned = value.replace(/(?:…|⋯|\.{3,})+$/, '').trim();
+    if (!cleaned) return '';
+    // The extractor trims the clipped tail, so look at the label itself to know
+    // whether the displayed link was cut off.
+    const clipped = /(?:…|⋯|\.{3,})+$/.test(raw) || cleaned !== value;
+
+    let url = '';
+    if (typeof extractUrlsFromText === 'function') {
+        const found = extractUrlsFromText(cleaned);
+        if (found.length) url = found[0].url;
+    }
+    if (!url) {
+        url = /^[a-z][a-z0-9+.-]*:\/\//i.test(cleaned) ? cleaned : 'https://' + cleaned;
+    }
+
+    const href = getSafeCopyAnchorHref(anchor);
+    if (clipped && href && url &&
+        getSafeCopyLinkKey(href, 'full').startsWith(getSafeCopyLinkKey(url, 'full'))) {
+        return href;
+    }
+    // The extractor defaults a scheme-less label to http; prefer the anchor's
+    // https scheme when both point at the same host.
+    if (href && /^http:\/\//i.test(url) && /^https:\/\//i.test(href) &&
+        getSafeCopyLinkKey(href, 'domain') === getSafeCopyLinkKey(url, 'domain')) {
+        url = 'https://' + url.slice(7);
+    }
+    return url;
 }
 
 function findSafeCopyLinkProblem(anchor, scope) {
@@ -753,10 +889,16 @@ function runSafeCopyContextMenuCheck(event) {
     }
     if (!notices.length) return;
 
+    const actions = [];
+    if (problem) {
+        const displayed = resolveSafeCopyDisplayedLink(anchor, problem.shown);
+        if (displayed) actions.push({ kind: 'copy', url: displayed });
+        actions.push({ kind: 'copy', url: problem.href, label: 'alarm_copy_actual' });
+    }
     showSecurityWarnings(notices, {
         x: event.clientX,
         y: event.clientY,
-    });
+    }, null, actions);
 }
 
 // Dragging a link hands its URL to the drop target. A full-screen layer would
@@ -774,6 +916,334 @@ function handleSafeCopyDragStart(event) {
         if (typeof showToast === 'function') showToast(t('toast_copy_link'), 2600);
     } catch (e) {
         // A read-only detector must never break the page's drag.
+    }
+}
+
+// Opt-in link cover: instead of trying to cancel a native click (which pages
+// can bypass with their own pointerdown/navigation handlers), a translucent
+// layer is laid over each mismatched link in the viewport. The click lands on
+// our layer, so the page's own event behavior is never touched. The viewport is
+// re-checked on scroll/resize (coalesced with rAF) and, as a fast path, one
+// hovered link is checked immediately; the whole document is never scanned on a
+// timer.
+const LINK_GUARD_Z_INDEX = '2147483000';
+// ponytail: each scroll reads one rect per anchor in the document and caps the
+// covers drawn. A page with tens of thousands of links may jank; move to
+// IntersectionObserver if that ever shows up.
+const LINK_GUARD_MAX_COVERS = 40;
+
+const LINK_GUARD_CSS = `
+:host { all: initial; }
+.sc-link-guard {
+    position: fixed;
+    box-sizing: border-box;
+    background: rgba(248, 231, 28, 0.30);
+    border: 2px solid rgba(248, 231, 28, 0.92);
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.22), 0 2px 10px rgba(248, 231, 28, 0.24);
+    pointer-events: auto;
+    cursor: pointer;
+}
+.sc-link-guard[data-passive="true"] {
+    pointer-events: none;
+    cursor: default;
+}
+`;
+
+let linkGuard = null;
+let linkGuardScanScheduled = false;
+
+function getLinkGuard() {
+    if (linkGuard && linkGuard.host.isConnected) return linkGuard;
+    if (typeof document === 'undefined' || !document.createElement) return null;
+    const parent = document.documentElement || document.body;
+    if (!parent) return null;
+
+    const host = document.createElement('div');
+    host.id = 'tm-safe-copy-link-guard-host';
+    host.setAttribute('data-notranslate', '');
+    host.style.all = 'initial';
+    host.style.position = 'fixed';
+    host.style.inset = '0';
+    // Below the alarm (2147483646) and the toolbar (2147483647).
+    host.style.zIndex = LINK_GUARD_Z_INDEX;
+    host.style.pointerEvents = 'none';
+    parent.appendChild(host);
+
+    const shadow = host.attachShadow({ mode: 'open' });
+    const style = document.createElement('style');
+    style.textContent = LINK_GUARD_CSS;
+    shadow.appendChild(style);
+    linkGuard = { host, shadow, boxes: new Map() };
+    return linkGuard;
+}
+
+function hideLinkGuard() {
+    if (!linkGuard) return;
+    if (linkGuard.host.parentNode) linkGuard.host.parentNode.removeChild(linkGuard.host);
+    linkGuard = null;
+}
+
+function removeLinkGuardBox(state, anchor) {
+    const box = state.boxes.get(anchor);
+    if (!box) return;
+    if (box.parentNode) box.parentNode.removeChild(box);
+    state.boxes.delete(anchor);
+}
+
+function positionLinkGuardBox(box, anchor) {
+    if (!anchor || anchor.isConnected === false || !anchor.getBoundingClientRect) {
+        box.style.display = 'none';
+        return;
+    }
+    let rect;
+    try {
+        rect = anchor.getBoundingClientRect();
+    } catch (e) {
+        box.style.display = 'none';
+        return;
+    }
+    if (!rect || !(rect.width > 0) || !(rect.height > 0)) {
+        box.style.display = 'none';
+        return;
+    }
+    const win = typeof window !== 'undefined' ? window : null;
+    if (win && (rect.bottom <= 0 || rect.top >= win.innerHeight ||
+        rect.right <= 0 || rect.left >= win.innerWidth)) {
+        box.style.display = 'none';
+        return;
+    }
+
+    const style = box.style;
+    style.display = 'block';
+    style.left = Math.max(0, rect.left) + 'px';
+    style.top = Math.max(0, rect.top) + 'px';
+    style.width = rect.width + 'px';
+    style.height = rect.height + 'px';
+}
+
+function createLinkGuardBox(state, anchor) {
+    const box = document.createElement('div');
+    box.className = 'sc-link-guard';
+    box.addEventListener('click', (event) => handleLinkGuardClick(event, anchor));
+    // The native link menu cannot target the page's anchor while our layer is
+    // on top, so right-click offers the same copy-displayed-link warning.
+    box.addEventListener('contextmenu', (event) => handleLinkGuardContextMenu(event, anchor));
+    // The click is already ours; keep page-level delegated handlers out of it
+    // without touching the page's own event listeners. No preventDefault here:
+    // the native right-click menu must still follow, and our contextmenu
+    // handler takes over from there.
+    const contain = (event) => {
+        event.stopImmediatePropagation();
+    };
+    box.addEventListener('pointerdown', contain);
+    box.addEventListener('mousedown', contain);
+    state.shadow.appendChild(box);
+    return box;
+}
+
+function ensureLinkGuardBox(state, anchor) {
+    let box = state.boxes.get(anchor);
+    if (!box) {
+        box = createLinkGuardBox(state, anchor);
+        state.boxes.set(anchor, box);
+    }
+    box.style.pointerEvents = 'auto';
+    if (box.removeAttribute) box.removeAttribute('data-passive');
+    positionLinkGuardBox(box, anchor);
+    return box;
+}
+
+function collectViewportGuardAnchors() {
+    if (typeof document === 'undefined' || !document.querySelectorAll) return [];
+    const scope = getSafeCopyLinkScope();
+    if (scope === 'off') return [];
+    const win = typeof window !== 'undefined' ? window : null;
+    if (!win) return [];
+
+    let anchors;
+    try {
+        anchors = document.querySelectorAll('a[href]');
+    } catch (e) {
+        return [];
+    }
+
+    const found = [];
+    const total = anchors.length;
+    for (let i = 0; i < total; i++) {
+        if (found.length >= LINK_GUARD_MAX_COVERS) break;
+        const anchor = anchors[i];
+        if (anchor.hasAttribute && anchor.hasAttribute('download')) continue;
+        let rect;
+        try {
+            rect = anchor.getBoundingClientRect();
+        } catch (e) {
+            continue;
+        }
+        if (!rect || !(rect.width > 0) || !(rect.height > 0)) continue;
+        if (rect.bottom <= 0 || rect.top >= win.innerHeight ||
+            rect.right <= 0 || rect.left >= win.innerWidth) continue;
+        if (!findSafeCopyLinkProblem(anchor, scope)) continue;
+        found.push(anchor);
+    }
+    return found;
+}
+
+// Rebuild the cover set from what is currently visible. Called on scroll and
+// resize only; content added without either is picked up by the hover fast path.
+function refreshLinkGuards() {
+    if (safeCopyClickAcknowledged) {
+        // The tab is opted out: keep existing covers as plain visuals.
+        if (!linkGuard) return;
+        linkGuard.boxes.forEach((box, anchor) => {
+            if (anchor.isConnected === false) removeLinkGuardBox(linkGuard, anchor);
+            else positionLinkGuardBox(box, anchor);
+        });
+        return;
+    }
+    if (getConfig('safeCopyClickCheck') !== true ||
+        getConfig('enableSafeCopyAlarm') !== true) {
+        hideLinkGuard();
+        return;
+    }
+
+    const anchors = collectViewportGuardAnchors();
+    if (!anchors.length) {
+        hideLinkGuard();
+        return;
+    }
+    const state = getLinkGuard();
+    if (!state) return;
+
+    const keep = new Set(anchors);
+    state.boxes.forEach((box, anchor) => {
+        if (!keep.has(anchor) || anchor.isConnected === false) removeLinkGuardBox(state, anchor);
+    });
+    anchors.forEach((anchor) => ensureLinkGuardBox(state, anchor));
+}
+
+function scheduleLinkGuardScan() {
+    if (linkGuardScanScheduled) return;
+    linkGuardScanScheduled = true;
+    const run = () => {
+        linkGuardScanScheduled = false;
+        try {
+            refreshLinkGuards();
+        } catch (e) {}
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+    else run();
+}
+
+// SPA/PWA routes swap the content without a scroll or resize, so a viewport
+// scan never runs again. Watch childList mutations (no polling, no per-site
+// logic), let the burst settle, then reuse the same viewport scan. The
+// debounce keeps a busy feed from scanning on every keystroke/tick.
+let linkGuardObserver = null;
+let linkGuardMutationTimer = null;
+const LINK_GUARD_MUTATION_DEBOUNCE = 200;
+
+function scheduleLinkGuardMutationScan() {
+    if (safeCopyClickAcknowledged) return;
+    if (getConfig('safeCopyClickCheck') !== true) return;
+    if (linkGuardMutationTimer) clearTimeout(linkGuardMutationTimer);
+    linkGuardMutationTimer = setTimeout(() => {
+        linkGuardMutationTimer = null;
+        scheduleLinkGuardScan();
+    }, LINK_GUARD_MUTATION_DEBOUNCE);
+}
+
+function startLinkGuardObserver() {
+    if (linkGuardObserver || safeCopyClickAcknowledged) return;
+    if (typeof MutationObserver === 'undefined') return;
+    if (typeof document === 'undefined' || !document.body) return;
+    linkGuardObserver = new MutationObserver(scheduleLinkGuardMutationScan);
+    linkGuardObserver.observe(document.body, { childList: true, subtree: true });
+}
+
+function stopLinkGuardObserver() {
+    if (linkGuardMutationTimer) {
+        clearTimeout(linkGuardMutationTimer);
+        linkGuardMutationTimer = null;
+    }
+    if (linkGuardObserver) {
+        linkGuardObserver.disconnect();
+        linkGuardObserver = null;
+    }
+}
+
+// Fast path for links that appear between scrolls (e.g. an infinite feed).
+function handleLinkGuardPointerOver(event) {
+    try {
+        if (!event || event.isTrusted === false) return;
+        if (safeCopyClickAcknowledged) return;
+        if (getConfig('safeCopyClickCheck') !== true) return;
+        if (getConfig('enableSafeCopyAlarm') !== true) return;
+        const scope = getSafeCopyLinkScope();
+        if (scope === 'off') return;
+
+        const anchor = findSafeCopyAnchor(getSafeCopyTarget(event));
+        if (!anchor) return;
+        if (anchor.hasAttribute && anchor.hasAttribute('download')) return;
+        if (!findSafeCopyLinkProblem(anchor, scope)) return;
+
+        const state = getLinkGuard();
+        if (!state) return;
+        ensureLinkGuardBox(state, anchor);
+    } catch (e) {
+        // A hover detector must never disrupt the page.
+    }
+}
+
+function showLinkGuardWarning(anchor, kind, pointer) {
+    if (!anchor) return;
+    if (getConfig('safeCopyClickCheck') !== true) return;
+    if (getConfig('enableSafeCopyAlarm') !== true) return;
+    const scope = getSafeCopyLinkScope();
+    if (scope === 'off') return;
+
+    const problem = findSafeCopyLinkProblem(anchor, scope);
+    if (!problem) return;
+
+    const displayed = resolveSafeCopyDisplayedLink(anchor, problem.shown);
+    const target = anchor.getAttribute
+        ? String(anchor.getAttribute('target') || '').toLowerCase()
+        : '';
+    const newTab = target === '_blank';
+    const actualLabel = kind === 'open' ? 'alarm_open_actual' : 'alarm_copy_actual';
+    showSecurityWarnings(
+        [{ kind: 'link', text: problem.shown, link: problem.href }],
+        pointer || null,
+        null,
+        [
+            { kind, url: displayed, newTab },
+            { kind, url: problem.href, newTab, label: actualLabel },
+        ]
+    );
+}
+
+function handleLinkGuardClick(event, anchor) {
+    try {
+        if (!event) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        showLinkGuardWarning(anchor, 'open');
+    } catch (e) {
+        // A failed warning must never swallow the interaction by accident.
+    }
+}
+
+function handleLinkGuardContextMenu(event, anchor) {
+    try {
+        if (!event) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        showLinkGuardWarning(anchor, 'copy', {
+            x: event.clientX,
+            y: event.clientY,
+        });
+    } catch (e) {
+        // A failed warning must never swallow the interaction by accident.
     }
 }
 

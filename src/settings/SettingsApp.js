@@ -1301,6 +1301,19 @@ function ToolbarTab({ setting, update }) {
             ]}
           />
         </Row>
+        <Row
+          label={t("safeCopyClickCheck")}
+          help={t("safeCopyClickCheckHelp")}
+        >
+          <Toggle
+            value={value.safeCopyClickCheck === true}
+            disabled={
+              value.enableSafeCopyAlarm !== true ||
+              (value.safeCopyLinkScope ?? "domain") === "off"
+            }
+            onChange={(v) => patch({ safeCopyClickCheck: v })}
+          />
+        </Row>
         <Row label={t("idnGuard")} help={t("idnGuardHelp")}>
           <Select
             value={value.idnGuardMode ?? "toast"}

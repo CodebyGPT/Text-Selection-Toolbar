@@ -21,6 +21,9 @@ const DEFAULT_CONFIG = {
     enableSafeCopyAlarm: false, // full-screen warning; the toast is always on
     // Link check scope: 'domain' (hostname, default) | 'sld' (SLD+TLD) | 'full' | 'off'
     safeCopyLinkScope: 'domain',
+    // Opt-in: check link consistency on plain left clicks and warn before the
+    // page navigates. Only active when the alarm is on and the scope is not off.
+    safeCopyClickCheck: false,
     // IDN homograph guard: 'toast' (default) | 'fullscreen' | 'disabled'
     idnGuardMode: 'toast',
     // Zero-width identifier guard: 'high' | 'medium' | 'low' (default) | 'verylow' | 'disabled'

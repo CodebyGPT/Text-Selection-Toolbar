@@ -246,9 +246,19 @@ const MESSAGES = {
     "Область проверки совпадения ссылок",
   ],
   safeCopyLinkScopeHelp: [
-    "右键点击或拖拽超链接时，比较链接显示的文字和它实际指向的地址；拖拽只弹 toast、不显示全屏提醒；范围越严格越容易触发提示",
-    "On link right-click or drag, compares the displayed text with the address the link actually points to; drag only shows the toast, never the full-screen warning; stricter scopes warn more often",
-    "При правом клике или перетаскивании ссылки сравнивает отображаемый текст с фактическим адресом; при перетаскивании показывается только toast, без полноэкранного предупреждения; строгие режимы предупреждают чаще",
+    "右键点击、拖拽或（下方开关开启时）单击超链接时，比较链接显示的文字和它实际指向的地址；拖拽只弹 toast、不显示全屏提醒；范围越严格越容易触发提示",
+    "On link right-click, drag, or plain click (when the option below is on), compares the displayed text with the address the link actually points to; drag only shows the toast, never the full-screen warning; stricter scopes warn more often",
+    "При правом клике, перетаскивании или обычном клике (если включена опция ниже) сравнивает отображаемый текст с фактическим адресом; при перетаскивании показывается только toast, без полноэкранного предупреждения; строгие режимы предупреждают чаще",
+  ],
+  safeCopyClickCheck: [
+    "点击链接时也进行链接一致性检查",
+    "Check link consistency on click too",
+    "Проверять совпадение ссылок и при клике",
+  ],
+  safeCopyClickCheckHelp: [
+    "开启后，视口内显示文字与实际地址不一致的超链接会盖上淡黄色覆盖层（滚动或缩放时重新检查视口）；点击覆盖层弹出全屏提醒，可在提醒中访问或复制显示/实际的链接地址。点“知道了”后本标签页的覆盖层变为点击穿透的纯视觉提醒（刷新页面恢复）；等提醒超时自动消失则仍继续拦截",
+    "When on, links in the viewport whose displayed text differs from their real address get a pale-yellow cover (the viewport is re-checked on scroll or resize); clicking the cover opens the full-screen warning with options to open or copy the displayed/actual link. Acknowledging with OK makes this tab's covers click-through visual reminders (a reload restores them); letting the warning time out keeps them blocking",
+    "Если включено, ссылки в области просмотра, у которых отображаемый текст не совпадает с реальным адресом, получают бледно-жёлтую накладку (область перепроверяется при прокрутке и изменении размера); клик по накладке открывает полноэкранное предупреждение с возможностью открыть или скопировать отображаемую/фактическую ссылку. Нажатие «Понятно» делает накладки в этой вкладке прозрачными для кликов до перезагрузки; если предупреждение просто истечёт, накладки продолжат блокировать клики",
   ],
   safeCopyScopeDomain: ["完整域名（默认）", "Full hostname (default)", "Полное доменное имя (по умолчанию)"],
   safeCopyScopeSld: ["SLD 域名（最宽松）", "SLD domain (most lenient)", "SLD-домен (самый мягкий)"],

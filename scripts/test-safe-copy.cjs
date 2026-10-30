@@ -22,8 +22,12 @@ const t = (key, arg) => {
 };
 let alarmEnabled = false;
 let linkScope = "domain";
-const getConfig = (key) =>
-  key === "safeCopyLinkScope" ? linkScope : alarmEnabled;
+let clickCheck = false;
+const getConfig = (key) => {
+  if (key === "safeCopyLinkScope") return linkScope;
+  if (key === "safeCopyClickCheck") return clickCheck;
+  return alarmEnabled;
+};
 
 function makeSelection(text, elements = []) {
   const root = {
@@ -51,13 +55,21 @@ function makeElement({ text, style, rect }) {
   };
 }
 
-function makeAnchor({ href, text }) {
+function makeAnchor({ href, text, target = null, download = false, rect = null }) {
   return {
     nodeType: 1,
     tagName: "A",
     href,
     textContent: text,
-    getAttribute: (name) => (name === "href" ? href : null),
+    isConnected: true,
+    hasAttribute: (name) => name === "download" && download,
+    getAttribute: (name) => {
+      if (name === "href") return href;
+      if (name === "target") return target;
+      return null;
+    },
+    getBoundingClientRect: () =>
+      rect || { left: 100, top: 50, right: 300, bottom: 70, width: 200, height: 20 },
   };
 }
 
@@ -137,6 +149,7 @@ function makeFakeDocument() {
       innerHTML: "",
       isConnected: false,
       setAttribute() {},
+      removeAttribute() {},
       appendChild(child) {
         child.parentNode = node;
         node.children.push(child);
@@ -156,7 +169,15 @@ function makeFakeDocument() {
         node.shadowRoot = shadow;
         return shadow;
       },
-      click() { if (listeners.click) listeners.click(); },
+      click() {
+        if (listeners.click) {
+          listeners.click({
+            target: node,
+            preventDefault() {},
+            stopImmediatePropagation() {},
+          });
+        }
+      },
       __listeners: listeners,
     };
     return node;
@@ -165,6 +186,7 @@ function makeFakeDocument() {
   return {
     documentElement: makeNode("html"),
     createElement: (tag) => makeNode(tag),
+    querySelectorAll: () => [],
   };
 }
 
@@ -175,6 +197,15 @@ function findByClass(root, className) {
     if (found) return found;
   }
   return null;
+}
+
+function findAllByClass(root, className) {
+  const found = [];
+  for (const child of root.children) {
+    if (child.className === className) found.push(child);
+    found.push(...findAllByClass(child, className));
+  }
+  return found;
 }
 
 function makeVisibleTree() {
@@ -255,7 +286,38 @@ const windowStub = {
   innerHeight: 800,
   getComputedStyle: (element) => element.__style,
   getSelection: () => null,
+  location: { assign: (url) => { windowStub.__assigned = url; } },
+  open: (url) => { windowStub.__opened = url; },
 };
+
+// Minimal stand-in for the selection link extractor (module 06).
+const KNOWN_TLDS = new Set([
+  "com", "cn", "net", "org", "edu", "gov", "io", "co", "me",
+  "example", "test", "local", "internal",
+]);
+const extractUrlsFromText = (text) => {
+  const value = String(text || "");
+  const re = /(?:[a-z][a-z0-9+.-]*:\/\/)?(?:[^\s/?#@]+\.)+([a-z]{2,})(?::\d+)?(?:[/?#]\S*)?/gi;
+  const found = [];
+  let match;
+  while ((match = re.exec(value)) !== null) {
+    const raw = match[0];
+    const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw);
+    if (hasScheme || KNOWN_TLDS.has(match[1].toLowerCase())) {
+      found.push({
+        display: raw,
+        url: hasScheme ? raw : "http://" + raw,
+        host: "",
+      });
+    }
+    if (match.index === re.lastIndex) re.lastIndex++;
+  }
+  return found;
+};
+const copiedLinks = [];
+const copyToClipboard = async (text) => { copiedLinks.push(text); return true; };
+const openedTabs = [];
+const safeOpenTab = (url) => openedTabs.push(url);
 
 function load(documentStub, nowRef, timerRef) {
   const DateStub = { now: () => nowRef.value };
@@ -275,7 +337,10 @@ function load(documentStub, nowRef, timerRef) {
     "setInterval",
     "clearInterval",
     "Date",
-    `${src}\nreturn { handleSafeCopyCheck, handleSafeCopyContextMenu, handleSafeCopyDragStart, getSafeCopyAlarmRemaining, formatSafeCopyAlarmBody, buildVisibleSelectionText, avoidSafeCopyAlarmPointer };`
+    "extractUrlsFromText",
+    "copyToClipboard",
+    "safeOpenTab",
+    `${src}\nreturn { handleSafeCopyCheck, handleSafeCopyContextMenu, handleSafeCopyDragStart, handleLinkGuardPointerOver, refreshLinkGuards, scheduleLinkGuardScan, hideLinkGuard, getSafeCopyAlarmRemaining, formatSafeCopyAlarmBody, buildVisibleSelectionText, avoidSafeCopyAlarmPointer };`
   )(
     windowStub,
     documentStub,
@@ -285,7 +350,10 @@ function load(documentStub, nowRef, timerRef) {
     t,
     setIntervalStub,
     clearIntervalStub,
-    DateStub
+    DateStub,
+    extractUrlsFromText,
+    copyToClipboard,
+    safeOpenTab
   );
 }
 
@@ -793,6 +861,402 @@ const visibleStyle = {
   const visibleCtx = load(doc, { value: 1000 }, { next: 1, timers: new Map() });
   const result = visibleCtx.buildVisibleSelectionText(selection, windowStub);
   assert.deepStrictEqual(result, { text: "Hello world\nline2", changed: true });
+}
+
+// A right-click link warning gets a follow-up button that copies the link the
+// user actually saw, not the hidden destination. An ellipsized label is
+// completed from the href because it is a genuine prefix of that href.
+{
+  messages.length = 0;
+  clickCheck = true;
+  alarmEnabled = true;
+  linkScope = "full";
+  const doc = makeFakeDocument();
+  const alarmCtx = load(doc, { value: 1000 }, { next: 1, timers: new Map() });
+  const anchor = makeAnchor({
+    href: "https://github.com/valentderah/totk-pc-recomp",
+    text: "github.com/valentderah/to…",
+  });
+  alarmCtx.handleSafeCopyContextMenu(makeContextMenuEvent(anchor));
+  assert.deepStrictEqual(messages, ["toast_copy_link"]);
+
+  const host = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-alarm-host"
+  );
+  assert.ok(host);
+  const buttons = findAllByClass(host.shadowRoot, "sc-guard-secondary");
+  assert.strictEqual(buttons.length, 2);
+  assert.strictEqual(buttons[0].style.display, "block");
+  assert.strictEqual(buttons[0].textContent, "alarm_copy_displayed");
+  assert.strictEqual(buttons[1].style.display, "block");
+  assert.strictEqual(buttons[1].textContent, "alarm_copy_actual");
+
+  copiedLinks.length = 0;
+  buttons[0].click();
+  assert.deepStrictEqual(copiedLinks, [
+    "https://github.com/valentderah/totk-pc-recomp",
+  ]);
+  assert.strictEqual(host.isConnected, false);
+
+  // The displayed link and the real target are separate actions.
+  const phishing = makeAnchor({
+    href: "https://login.bank.example.secure-verify.top/account",
+    text: "https://www.bank.example/login",
+  });
+  alarmCtx.handleSafeCopyContextMenu(makeContextMenuEvent(phishing));
+  const host2 = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-alarm-host"
+  );
+  assert.ok(host2);
+  copiedLinks.length = 0;
+  findAllByClass(host2.shadowRoot, "sc-guard-secondary")[0].click();
+  assert.deepStrictEqual(copiedLinks, ["https://www.bank.example/login"]);
+
+  alarmCtx.handleSafeCopyContextMenu(makeContextMenuEvent(phishing));
+  const host2b = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-alarm-host"
+  );
+  assert.ok(host2b);
+  copiedLinks.length = 0;
+  findAllByClass(host2b.shadowRoot, "sc-guard-secondary")[1].click();
+  assert.deepStrictEqual(copiedLinks, [
+    "https://login.bank.example.secure-verify.top/account",
+  ]);
+
+  // Warnings with nothing actionable keep both follow-up buttons hidden.
+  alarmCtx.handleSafeCopyCheck(
+    makeEvent({ clipboard: "evil", selection: makeSelection("hello") }).event
+  );
+  const host3 = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-alarm-host"
+  );
+  assert.ok(host3);
+  findAllByClass(host3.shadowRoot, "sc-guard-secondary").forEach((button) => {
+    assert.strictEqual(button.style.display, "none");
+  });
+
+  // A label containing zero or several links is not a "displayed link".
+  const noLink = makeAnchor({
+    href: "https://example.com/search",
+    text: "点这里开始搜索",
+  });
+  messages.length = 0;
+  alarmCtx.handleSafeCopyContextMenu(makeContextMenuEvent(noLink));
+  assert.deepStrictEqual(messages, []);
+
+  const manyLinks = makeAnchor({
+    href: "https://example.com/search",
+    text: "https://a.example.com/x https://b.example.com/y",
+  });
+  messages.length = 0;
+  alarmCtx.handleSafeCopyContextMenu(makeContextMenuEvent(manyLinks));
+  assert.deepStrictEqual(messages, []);
+  alarmCtx.handleLinkGuardPointerOver(makeContextMenuEvent(manyLinks));
+  assert.strictEqual(
+    doc.documentElement.children.some(
+      (child) => child.id === "tm-safe-copy-link-guard-host"
+    ),
+    false
+  );
+
+  alarmEnabled = false;
+  linkScope = "domain";
+}
+
+// The link cover is off by default: neither a scroll scan nor a hover adds it.
+{
+  clickCheck = false;
+  alarmEnabled = true;
+  const doc = makeFakeDocument();
+  const ctx = load(doc, { value: 1000 }, { next: 1, timers: new Map() });
+  const anchor = makeAnchor({
+    href: "https://login.bank.example.secure-verify.top/account",
+    text: "https://www.bank.example/login",
+  });
+  doc.querySelectorAll = () => [anchor];
+  ctx.refreshLinkGuards();
+  ctx.handleLinkGuardPointerOver(makeContextMenuEvent(anchor));
+  assert.strictEqual(
+    doc.documentElement.children.some(
+      (child) => child.id === "tm-safe-copy-link-guard-host"
+    ),
+    false
+  );
+  alarmEnabled = false;
+}
+
+// A scroll/resize scan covers only mismatched links inside the viewport.
+{
+  clickCheck = true;
+  alarmEnabled = true;
+  linkScope = "domain";
+  const doc = makeFakeDocument();
+  const ctx = load(doc, { value: 1000 }, { next: 1, timers: new Map() });
+  const visible = makeAnchor({
+    href: "https://login.bank.example.secure-verify.top/account",
+    text: "https://www.bank.example/login",
+  });
+  const offscreen = makeAnchor({
+    href: "https://evil.example/top",
+    text: "https://www.bank.example/login",
+    rect: { left: 1400, top: 50, right: 1600, bottom: 70, width: 200, height: 20 },
+  });
+  const matching = makeAnchor({ href: "https://baidu.com/", text: "baidu.com" });
+  doc.querySelectorAll = () => [visible, offscreen, matching];
+
+  ctx.refreshLinkGuards();
+  const guardHost = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-link-guard-host"
+  );
+  assert.ok(guardHost);
+  const boxes = findAllByClass(guardHost.shadowRoot, "sc-link-guard");
+  assert.strictEqual(boxes.length, 1);
+  const box = boxes[0];
+  assert.strictEqual(box.style.left, "100px");
+  assert.strictEqual(box.style.top, "50px");
+  assert.strictEqual(box.style.width, "200px");
+  assert.strictEqual(box.style.height, "20px");
+  assert.strictEqual(box.style.pointerEvents, "auto");
+
+  messages.length = 0;
+  box.click();
+  assert.deepStrictEqual(messages, ["toast_copy_link"]);
+  const alarmHost = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-alarm-host"
+  );
+  assert.ok(alarmHost);
+  const alarmButtons = findAllByClass(alarmHost.shadowRoot, "sc-guard-secondary");
+  assert.strictEqual(alarmButtons.length, 2);
+  assert.strictEqual(alarmButtons[0].textContent, "alarm_open_displayed");
+  assert.strictEqual(alarmButtons[1].textContent, "alarm_open_actual");
+  windowStub.__assigned = null;
+  alarmButtons[0].click();
+  assert.strictEqual(windowStub.__assigned, "https://www.bank.example/login");
+
+  // Re-open and use the real-target action.
+  box.click();
+  const actualAlarm = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-alarm-host"
+  );
+  assert.ok(actualAlarm);
+  windowStub.__assigned = null;
+  findAllByClass(actualAlarm.shadowRoot, "sc-guard-secondary")[1].click();
+  assert.strictEqual(
+    windowStub.__assigned,
+    "https://login.bank.example.secure-verify.top/account"
+  );
+
+  // Right-click on the cover offers the copy-displayed-link warning.
+  box.__listeners.contextmenu({
+    preventDefault() {},
+    stopImmediatePropagation() {},
+    clientX: 10,
+    clientY: 20,
+  });
+  const menuAlarm = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-alarm-host"
+  );
+  assert.ok(menuAlarm);
+  const menuButtons = findAllByClass(menuAlarm.shadowRoot, "sc-guard-secondary");
+  assert.strictEqual(menuButtons[0].textContent, "alarm_copy_displayed");
+  copiedLinks.length = 0;
+  menuButtons[0].click();
+  assert.deepStrictEqual(copiedLinks, ["https://www.bank.example/login"]);
+
+  box.__listeners.contextmenu({
+    preventDefault() {},
+    stopImmediatePropagation() {},
+    clientX: 10,
+    clientY: 20,
+  });
+  const menuAlarm2 = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-alarm-host"
+  );
+  assert.ok(menuAlarm2);
+  copiedLinks.length = 0;
+  findAllByClass(menuAlarm2.shadowRoot, "sc-guard-secondary")[1].click();
+  assert.deepStrictEqual(copiedLinks, [
+    "https://login.bank.example.secure-verify.top/account",
+  ]);
+
+  // Scrolling away from the link removes its cover.
+  doc.querySelectorAll = () => [];
+  ctx.refreshLinkGuards();
+  assert.strictEqual(
+    doc.documentElement.children.some(
+      (child) => child.id === "tm-safe-copy-link-guard-host"
+    ),
+    false
+  );
+  clickCheck = false;
+  alarmEnabled = false;
+}
+
+// The hover fast path catches links that appeared between scrolls.
+{
+  clickCheck = true;
+  alarmEnabled = true;
+  linkScope = "domain";
+  const doc = makeFakeDocument();
+  const ctx = load(doc, { value: 1000 }, { next: 1, timers: new Map() });
+  const anchor = makeAnchor({
+    href: "https://login.bank.example.secure-verify.top/account",
+    text: "https://www.bank.example/login",
+  });
+
+  ctx.handleLinkGuardPointerOver(makeContextMenuEvent(anchor));
+  const guardHost = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-link-guard-host"
+  );
+  assert.ok(guardHost);
+  assert.strictEqual(findAllByClass(guardHost.shadowRoot, "sc-link-guard").length, 1);
+  clickCheck = false;
+  alarmEnabled = false;
+}
+
+// "知道了" turns every cover click-through but keeps them visible; the tab then
+// stops creating new blocking covers.
+{
+  clickCheck = true;
+  alarmEnabled = true;
+  linkScope = "domain";
+  const doc = makeFakeDocument();
+  const ctx = load(doc, { value: 1000 }, { next: 1, timers: new Map() });
+  const anchor = makeAnchor({
+    href: "https://login.bank.example.secure-verify.top/account",
+    text: "https://www.bank.example/login",
+  });
+  const other = makeAnchor({
+    href: "https://evil.example/top",
+    text: "https://www.bank.example/login",
+  });
+
+  ctx.handleLinkGuardPointerOver(makeContextMenuEvent(anchor));
+  const guardHost = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-link-guard-host"
+  );
+  const box = findByClass(guardHost.shadowRoot, "sc-link-guard");
+  box.click();
+  const alarmHost = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-alarm-host"
+  );
+  assert.ok(alarmHost);
+  findByClass(alarmHost.shadowRoot, "sc-guard-ack").click();
+  assert.strictEqual(guardHost.isConnected, true);
+  assert.strictEqual(box.style.pointerEvents, "none");
+
+  // A later scan does not add new blocking covers, and the acknowledged cover
+  // stays as a visual (repositioned) marker.
+  doc.querySelectorAll = () => [other];
+  ctx.refreshLinkGuards();
+  assert.strictEqual(guardHost.isConnected, true);
+  assert.strictEqual(findAllByClass(guardHost.shadowRoot, "sc-link-guard").length, 1);
+  assert.strictEqual(box.style.pointerEvents, "none");
+
+  clickCheck = false;
+  alarmEnabled = false;
+}
+
+// A timeout only closes the warning: the cover stays click-blocking.
+{
+  clickCheck = true;
+  alarmEnabled = true;
+  linkScope = "domain";
+  const now = { value: 1000 };
+  const timers = { next: 1, timers: new Map() };
+  const doc = makeFakeDocument();
+  const ctx = load(doc, now, timers);
+  const anchor = makeAnchor({
+    href: "https://login.bank.example.secure-verify.top/account",
+    text: "https://www.bank.example/login",
+  });
+
+  ctx.handleLinkGuardPointerOver(makeContextMenuEvent(anchor));
+  const guardHost = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-link-guard-host"
+  );
+  const box = findByClass(guardHost.shadowRoot, "sc-link-guard");
+  box.click();
+  const alarmHost = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-alarm-host"
+  );
+  assert.ok(alarmHost);
+  now.value += 15000;
+  for (const tick of timers.timers.values()) tick();
+  assert.strictEqual(alarmHost.isConnected, false);
+  assert.strictEqual(box.style.pointerEvents, "auto");
+  assert.strictEqual(guardHost.isConnected, true);
+
+  box.click();
+  assert.ok(
+    doc.documentElement.children.some(
+      (child) => child.id === "tm-safe-copy-alarm-host"
+    )
+  );
+
+  clickCheck = false;
+  alarmEnabled = false;
+}
+
+// A _blank cover opens the displayed address in a new tab.
+{
+  clickCheck = true;
+  alarmEnabled = true;
+  linkScope = "full";
+  const doc = makeFakeDocument();
+  const ctx = load(doc, { value: 1000 }, { next: 1, timers: new Map() });
+  const anchor = makeAnchor({
+    href: "https://github.com/valentderah/totk-pc-recomp",
+    text: "github.com/valentderah/to…",
+    target: "_blank",
+  });
+
+  ctx.handleLinkGuardPointerOver(makeContextMenuEvent(anchor));
+  const guardHost = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-link-guard-host"
+  );
+  const box = findByClass(guardHost.shadowRoot, "sc-link-guard");
+  box.click();
+  const alarmHost = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-alarm-host"
+  );
+  openedTabs.length = 0;
+  findByClass(alarmHost.shadowRoot, "sc-guard-secondary").click();
+  assert.deepStrictEqual(openedTabs, [
+    "https://github.com/valentderah/totk-pc-recomp",
+  ]);
+  clickCheck = false;
+  alarmEnabled = false;
+  linkScope = "domain";
+}
+
+// Acknowledging a right-click warning must not disarm the click cover.
+{
+  clickCheck = true;
+  alarmEnabled = true;
+  linkScope = "domain";
+  const doc = makeFakeDocument();
+  const ctx = load(doc, { value: 1000 }, { next: 1, timers: new Map() });
+  const anchor = makeAnchor({
+    href: "https://login.bank.example.secure-verify.top/account",
+    text: "https://www.bank.example/login",
+  });
+
+  ctx.handleSafeCopyContextMenu(makeContextMenuEvent(anchor));
+  const alarmHost = doc.documentElement.children.find(
+    (child) => child.id === "tm-safe-copy-alarm-host"
+  );
+  assert.ok(alarmHost);
+  findByClass(alarmHost.shadowRoot, "sc-guard-ack").click();
+  doc.querySelectorAll = () => [anchor];
+  ctx.refreshLinkGuards();
+  assert.ok(
+    doc.documentElement.children.some(
+      (child) => child.id === "tm-safe-copy-link-guard-host"
+    )
+  );
+  clickCheck = false;
+  alarmEnabled = false;
 }
 
 console.log("safe copy check passed");
