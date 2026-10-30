@@ -113,29 +113,33 @@ function markToolbarReady() {
             window.addEventListener('dragstart', handleSafeCopyDragStart, true);
             // Opt-in: a translucent cover sits over mismatched links so a click
             // lands on the cover instead of the page (no click rewrites). The
-            // viewport is re-checked on scroll/resize, never on a timer.
+            // viewport is re-checked on scroll/resize and on SPA navigation
+            // signals, never on a timer.
             window.addEventListener('pointerover', handleLinkGuardPointerOver, true);
             window.addEventListener('scroll', scheduleLinkGuardScan, { passive: true, capture: true });
             window.addEventListener('resize', scheduleLinkGuardScan, { passive: true });
             // The script starts at document-start, before most links exist, so
             // scan once the DOM is ready and again when the page is resumed.
-            // SPA navigation is handled by a childList observer (module 23).
-            const onLinkGuardReady = () => {
-                startLinkGuardObserver();
-                scheduleLinkGuardScan();
-            };
+            const onLinkGuardReady = () => scheduleLinkGuardScan();
             document.addEventListener('DOMContentLoaded', onLinkGuardReady, { once: true });
             window.addEventListener('load', onLinkGuardReady, { once: true });
             window.addEventListener('pageshow', onLinkGuardReady);
             window.addEventListener('focus', scheduleLinkGuardScan);
-            window.addEventListener('popstate', scheduleLinkGuardScan);
-            window.addEventListener('hashchange', scheduleLinkGuardScan);
+            window.addEventListener('popstate', scheduleLinkGuardNavigationRecheck);
+            window.addEventListener('hashchange', scheduleLinkGuardNavigationRecheck);
+            // Chrome's Navigation API covers pushState/replaceState. A trusted
+            // click stays as a fallback for engines (or sandboxes) where that
+            // event is unavailable; the re-check is bounded either way.
+            const navigationApi = typeof window !== 'undefined' ? window.navigation : null;
+            if (navigationApi && typeof navigationApi.addEventListener === 'function') {
+                navigationApi.addEventListener('currententrychange', scheduleLinkGuardNavigationRecheck);
+            }
+            window.addEventListener('click', handleLinkGuardNavigationClick, true);
             try {
                 refreshLinkGuards();
             } catch (e) {
                 // A broken scan must never take the rest of the toolbar down.
             }
-            startLinkGuardObserver();
 
             // Copy button for <pre><code> blocks follows the hover target.
             document.addEventListener('mouseover', handleCodeCopyHover, true);

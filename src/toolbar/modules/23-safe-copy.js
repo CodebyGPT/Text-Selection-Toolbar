@@ -587,7 +587,7 @@ function acknowledgeSafeCopyAlarm() {
         state.actionList.some((action) => action.kind === 'open');
     if (isClickWarning) {
         safeCopyClickAcknowledged = true;
-        stopLinkGuardObserver();
+        clearLinkGuardNavigationTimers();
         if (linkGuard) {
             linkGuard.boxes.forEach((box) => {
                 box.setAttribute('data-passive', 'true');
@@ -1136,40 +1136,38 @@ function scheduleLinkGuardScan() {
 }
 
 // SPA/PWA routes swap the content without a scroll or resize, so a viewport
-// scan never runs again. Watch childList mutations (no polling, no per-site
-// logic), let the burst settle, then reuse the same viewport scan. The
-// debounce keeps a busy feed from scanning on every keystroke/tick.
-let linkGuardObserver = null;
-let linkGuardMutationTimer = null;
-const LINK_GUARD_MUTATION_DEBOUNCE = 200;
+// scan never runs again. Use the platform's own navigation signal instead of
+// watching the DOM: Chrome's Navigation API fires currententrychange for
+// history.pushState/replaceState, and popstate/hashchange cover back/forward.
+// Content renders asynchronously after the route change, so re-check a bounded
+// number of times rather than polling.
+const LINK_GUARD_NAVIGATION_RECHECKS = [300, 1200];
+let linkGuardNavigationTimers = [];
 
-function scheduleLinkGuardMutationScan() {
+function clearLinkGuardNavigationTimers() {
+    linkGuardNavigationTimers.forEach((timer) => clearTimeout(timer));
+    linkGuardNavigationTimers = [];
+}
+
+function scheduleLinkGuardNavigationRecheck() {
     if (safeCopyClickAcknowledged) return;
     if (getConfig('safeCopyClickCheck') !== true) return;
-    if (linkGuardMutationTimer) clearTimeout(linkGuardMutationTimer);
-    linkGuardMutationTimer = setTimeout(() => {
-        linkGuardMutationTimer = null;
-        scheduleLinkGuardScan();
-    }, LINK_GUARD_MUTATION_DEBOUNCE);
+    clearLinkGuardNavigationTimers();
+    scheduleLinkGuardScan();
+    LINK_GUARD_NAVIGATION_RECHECKS.forEach((delay) => {
+        linkGuardNavigationTimers.push(setTimeout(() => {
+            if (safeCopyClickAcknowledged) return;
+            if (getConfig('safeCopyClickCheck') !== true) return;
+            scheduleLinkGuardScan();
+        }, delay));
+    });
 }
 
-function startLinkGuardObserver() {
-    if (linkGuardObserver || safeCopyClickAcknowledged) return;
-    if (typeof MutationObserver === 'undefined') return;
-    if (typeof document === 'undefined' || !document.body) return;
-    linkGuardObserver = new MutationObserver(scheduleLinkGuardMutationScan);
-    linkGuardObserver.observe(document.body, { childList: true, subtree: true });
-}
-
-function stopLinkGuardObserver() {
-    if (linkGuardMutationTimer) {
-        clearTimeout(linkGuardMutationTimer);
-        linkGuardMutationTimer = null;
-    }
-    if (linkGuardObserver) {
-        linkGuardObserver.disconnect();
-        linkGuardObserver = null;
-    }
+// Browsers without the Navigation API: a trusted click is the only reliable
+// signal that a SPA may be about to swap the page content.
+function handleLinkGuardNavigationClick(event) {
+    if (!event || event.isTrusted === false) return;
+    scheduleLinkGuardNavigationRecheck();
 }
 
 // Fast path for links that appear between scrolls (e.g. an infinite feed).
