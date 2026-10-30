@@ -256,9 +256,9 @@ const MESSAGES = {
     "Проверять совпадение ссылок и при клике",
   ],
   safeCopyClickCheckHelp: [
-    "开启后，视口内显示文字与实际地址不一致的超链接会盖上淡黄色覆盖层（滚动或缩放时重新检查视口）；点击覆盖层弹出全屏提醒，可在提醒中访问或复制显示/实际的链接地址。点“知道了”后本标签页的覆盖层变为点击穿透的纯视觉提醒（刷新页面恢复）；等提醒超时自动消失则仍继续拦截",
-    "When on, links in the viewport whose displayed text differs from their real address get a pale-yellow cover (the viewport is re-checked on scroll or resize); clicking the cover opens the full-screen warning with options to open or copy the displayed/actual link. Acknowledging with OK makes this tab's covers click-through visual reminders (a reload restores them); letting the warning time out keeps them blocking",
-    "Если включено, ссылки в области просмотра, у которых отображаемый текст не совпадает с реальным адресом, получают бледно-жёлтую накладку (область перепроверяется при прокрутке и изменении размера); клик по накладке открывает полноэкранное предупреждение с возможностью открыть или скопировать отображаемую/фактическую ссылку. Нажатие «Понятно» делает накладки в этой вкладке прозрачными для кликов до перезагрузки; если предупреждение просто истечёт, накладки продолжат блокировать клики",
+    "实验性功能",
+    "Experimental feature",
+    "Экспериментальная функция",
   ],
   safeCopyScopeDomain: ["完整域名（默认）", "Full hostname (default)", "Полное доменное имя (по умолчанию)"],
   safeCopyScopeSld: ["SLD 域名（最宽松）", "SLD domain (most lenient)", "SLD-домен (самый мягкий)"],

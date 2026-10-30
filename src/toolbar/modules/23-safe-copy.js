@@ -937,8 +937,8 @@ const LINK_GUARD_CSS = `
 .sc-link-guard {
     position: fixed;
     box-sizing: border-box;
-    /* Plain light-gray veil: no border, radius, glow or shadow. */
-    background: rgba(180, 180, 180, 0.32);
+    /* Pale-yellow veil: no border, radius, glow or shadow. */
+    background: rgba(248, 231, 28, 0.32);
     pointer-events: auto;
     cursor: pointer;
 }
