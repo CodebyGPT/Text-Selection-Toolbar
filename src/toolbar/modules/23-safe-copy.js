@@ -936,14 +936,13 @@ const LINK_GUARD_CSS = `
 .sc-link-guard {
     position: fixed;
     box-sizing: border-box;
-    /* Hazard tape: equal-width 45-degree yellow/black stripes, translucent.
-       Wider stripes and a lighter black keep it from looking too busy. */
+    /* Hazard tape: equal-width 45-degree yellow/black stripes, translucent. */
     background: repeating-linear-gradient(
         45deg,
-        rgba(248, 231, 28, 0.60) 0,
-        rgba(248, 231, 28, 0.60) 16px,
-        rgba(0, 0, 0, 0.30) 16px,
-        rgba(0, 0, 0, 0.30) 32px
+        rgba(248, 231, 28, 0.30) 0,
+        rgba(248, 231, 28, 0.30) 20px,
+        rgba(0, 0, 0, 0.30) 20px,
+        rgba(0, 0, 0, 0.30) 40px
     );
     pointer-events: auto;
     cursor: pointer;
